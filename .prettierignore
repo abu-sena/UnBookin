@@ -1,0 +1,8 @@
+drizzle/
+.next/
+pnpm-lock.yaml
+
+# Long-form documents keep their original formatting
+PRD.md
+CLAUDE.md
+docs/
