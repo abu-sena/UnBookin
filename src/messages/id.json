@@ -347,5 +347,53 @@
       "rights": "© 2026 Unbookin"
     },
     "ogImageAlt": "Unbookin — Unbook anything. Master everything."
+  },
+  "profileForm": {
+    "labels": {
+      "displayName": "Nama panggilan",
+      "jobRole": "Peran atau pekerjaanmu",
+      "primaryInterest": "Minat utama",
+      "additionalInterests": "Minat tambahan (opsional, maks 2)",
+      "goal": "Tujuan belajarmu",
+      "dailyGoal": "Target belajar harian",
+      "minutes": "{count} menit",
+      "experienceLevel": "Pengalaman di bidang ini"
+    },
+    "placeholders": {
+      "displayName": "Contoh: Sena",
+      "jobRole": "Contoh: Manajer operasional",
+      "goal": "Contoh: Memimpin rapat tim yang singkat dan jelas"
+    },
+    "experienceLevels": {
+      "novice": "Pemula",
+      "intermediate": "Menengah",
+      "advanced": "Mahir"
+    },
+    "roleSuggestions": {
+      "manager": "Manajer",
+      "divisionHead": "Kepala divisi",
+      "businessOwner": "Pemilik usaha",
+      "hr": "HR",
+      "consultant": "Konsultan",
+      "marketer": "Pemasar",
+      "postgrad": "Mahasiswa pascasarjana",
+      "educator": "Guru/Dosen"
+    },
+    "errors": {
+      "invalidInput": "Ada isian yang belum pas. Cek lagi, ya.",
+      "invalidInterest": "Minat itu tidak tersedia. Pilih yang lain, ya.",
+      "generic": "Maaf, profil belum tersimpan. Coba lagi sebentar.",
+      "displayName": "Isi nama panggilan (maks 40 karakter).",
+      "jobRole": "Tulis peranmu (2–80 karakter).",
+      "primaryInterestSlug": "Pilih satu minat utama.",
+      "additionalInterestSlugs": "Pilih maks 2 minat tambahan yang berbeda dari minat utama.",
+      "goal": "Tulis tujuanmu dalam satu kalimat (10–200 karakter).",
+      "dailyGoalMinutes": "Pilih 5, 10, atau 20 menit.",
+      "timezone": "Zona waktu tidak dikenali.",
+      "experienceLevel": "Pilih tingkat pengalaman."
+    },
+    "save": "Simpan",
+    "saving": "Menyimpan…",
+    "saved": "Profil tersimpan."
   }
 }
