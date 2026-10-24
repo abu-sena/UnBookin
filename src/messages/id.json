@@ -1,4 +1,33 @@
 {
+  "auth": {
+    "title": "Masuk ke Unbookin",
+    "description": "Lanjutkan perjalanan belajarmu tanpa kata sandi.",
+    "google": "Masuk dengan Google",
+    "divider": "atau lewat email",
+    "emailLabel": "Email",
+    "emailPlaceholder": "nama@contoh.com",
+    "emailHint": "Kami akan mengirim tautan masuk ke email kamu.",
+    "sendLink": "Kirim tautan masuk",
+    "signOut": "Keluar",
+    "checkEmailTitle": "Cek email kamu",
+    "checkEmailDescription": "Jika email kamu bisa digunakan, tautan masuk akan segera tiba. Buka tautannya untuk melanjutkan.",
+    "checkSpam": "Belum terlihat? Periksa folder spam. Tautan hanya bisa digunakan sekali dan berlaku selama 24 jam.",
+    "back": "Kembali ke halaman masuk",
+    "errors": {
+      "invalidEmail": "Alamat email belum valid. Periksa lagi, ya.",
+      "accountNotLinked": "Email ini sudah memakai cara masuk lain. Gunakan cara yang sama seperti sebelumnya.",
+      "accessDenied": "Akun ini belum bisa masuk. Hubungi bantuan jika kamu membutuhkan akses.",
+      "verification": "Tautan masuk sudah kedaluwarsa atau pernah digunakan. Minta tautan baru, ya.",
+      "generic": "Belum berhasil masuk. Coba lagi sebentar lagi, ya."
+    },
+    "email": {
+      "subject": "Tautan masuk Unbookin",
+      "intro": "Halo! Gunakan tautan berikut untuk masuk ke Unbookin.",
+      "action": "Masuk ke Unbookin",
+      "expiry": "Tautan ini hanya bisa digunakan sekali dan berlaku selama 24 jam.",
+      "ignore": "Jika kamu tidak meminta tautan ini, abaikan email ini."
+    }
+  },
   "common": {
     "appName": "Unbookin",
     "tagline": "Unbook anything. Master everything.",
