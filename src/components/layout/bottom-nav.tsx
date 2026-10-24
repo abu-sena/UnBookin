@@ -95,7 +95,7 @@ function BottomNavItem({ href, icon, label, active, badgeCount }: BottomNavItemP
           </span>
         )}
       </span>
-      <span aria-hidden="true">{label}</span>
+      <span>{label}</span>
     </Link>
   );
 }
