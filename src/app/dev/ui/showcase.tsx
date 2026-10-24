@@ -73,12 +73,12 @@ export function DevUiShowcase({
           <ColorSwatch className="bg-primary" label={t('colorPrimary')} />
           <ColorSwatch className="bg-primary-soft" label={t('colorPrimarySoft')} bordered />
           <ColorSwatch className="bg-xp" label={t('colorXp')} />
-          <ColorSwatch className="bg-success" label={t('badgeSuccess')} />
-          <ColorSwatch className="bg-warning" label={t('badgeSuccess')} />
+          <ColorSwatch className="bg-success" label={t('colorSuccess')} />
+          <ColorSwatch className="bg-warning" label={t('colorWarning')} />
           <ColorSwatch className="bg-danger" label={t('colorDanger')} />
         </div>
         <p className="text-caption text-text-muted">
-          {t('colorXp')} · {t('badgeSuccess')} · {t('colorDanger')}
+          {t('colorXp')} · {t('colorSuccess')} · {t('colorWarning')} · {t('colorDanger')}
         </p>
       </Section>
 
