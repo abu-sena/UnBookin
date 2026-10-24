@@ -1,26 +1,227 @@
 @import 'tailwindcss';
+@import 'tw-animate-css';
 
+/* Dark mode is class-based (next-themes with attribute="class"). */
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Design tokens — PRD §12.2 (colours), §12.3 (typography), §12.4 (radius,
+ * shadow, motion). Raw hex values live only in this file.
+ */
+
+/* ---------- Light theme (default) ---------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* PRD §12.2 colour tokens */
+  --background: #fafaf9;
+  --surface: #ffffff;
+  --surface-2: #f5f5f4;
+  --border: #e7e5e4;
+  --text: #1c1917;
+  --text-muted: #78716c;
+  --primary: #4338ca;
+  --primary-fg: #ffffff;
+  --primary-soft: #eef2ff;
+  --xp: #f59e0b;
+  --success: #059669;
+  --warning: #d97706;
+  --danger: #e11d48;
+
+  /* Dreyfus skill-level colours (PRD §12.2) */
+  --level-novice: #94a3b8;
+  --level-advanced-beginner: #0ea5e9;
+  --level-competent: #10b981;
+  --level-proficient: #8b5cf6;
+  --level-expert: #f59e0b;
+
+  /* shadcn/ui variables mapped onto the PRD tokens */
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary-foreground: var(--primary-fg);
+  --secondary: var(--surface-2);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-2);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--primary-soft);
+  --accent-foreground: var(--primary);
+  --destructive: var(--danger);
+  --input: var(--border);
+  --ring: var(--primary);
+
+  /* Radius tokens — PRD §12.4 */
+  --radius-input: 8px;
+  --radius-button: 12px;
+  --radius-card: 16px;
+  --radius-sheet: 24px;
+  --radius-full: 9999px;
+  --radius: var(--radius-button);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Shadow tokens — very subtle; dark theme uses borders instead (PRD §12.4) */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-raised: 0 4px 12px rgb(0 0 0 / 0.08);
+  --shadow-fab: 0 6px 16px rgb(0 0 0 / 0.16);
+
+  /* Motion tokens — PRD §12.4 */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
+/* ---------- Dark theme ---------- */
+.dark {
+  --background: #0c0a09;
+  --surface: #1c1917;
+  --surface-2: #292524;
+  --border: #44403c;
+  --text: #fafaf9;
+  --text-muted: #a8a29e;
+  --primary: #818cf8;
+  --primary-fg: #0c0a09;
+  --primary-soft: #1e1b4b;
+  --xp: #fbbf24;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #fb7185;
+
+  /* Level colours are shared between themes. */
+  --level-novice: #94a3b8;
+  --level-advanced-beginner: #0ea5e9;
+  --level-competent: #10b981;
+  --level-proficient: #8b5cf6;
+  --level-expert: #f59e0b;
+
+  /* Cards rely on borders in dark mode instead of shadows. */
+  --shadow-card: 0 0 #0000;
+  --shadow-raised: 0 0 #0000;
+  --shadow-fab: 0 0 #0000;
+}
+
+/* ---------- Tailwind theme mapping ---------- */
 @theme inline {
+  --font-sans: var(--font-sans);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-primary-fg: var(--primary-fg);
+  --color-primary-soft: var(--primary-soft);
+  --color-xp: var(--xp);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-level-novice: var(--level-novice);
+  --color-level-advanced-beginner: var(--level-advanced-beginner);
+  --color-level-competent: var(--level-competent);
+  --color-level-proficient: var(--level-proficient);
+  --color-level-expert: var(--level-expert);
+
+  /* shadcn/ui colour utilities */
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Motion tokens as utilities (duration-*, ease-*) */
+  --duration-fast: var(--duration-fast);
+  --duration-base: var(--duration-base);
+  --duration-slow: var(--duration-slow);
+  --ease-out-soft: var(--ease-out-soft);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ---------- Typography scale — PRD §12.3 ---------- */
+@utility text-display {
+  font-size: 2rem; /* 32px */
+  line-height: 2.375rem; /* 38px */
+  font-weight: 700;
+}
+
+@utility text-h1 {
+  font-size: 1.625rem; /* 26px */
+  line-height: 2rem; /* 32px */
+  font-weight: 700;
+}
+
+@utility text-h2 {
+  font-size: 1.3125rem; /* 21px */
+  line-height: 1.75rem; /* 28px */
+  font-weight: 650;
+}
+
+@utility text-h3 {
+  font-size: 1.125rem; /* 18px */
+  line-height: 1.625rem; /* 26px */
+  font-weight: 600;
+}
+
+@utility text-body {
+  font-size: 1rem; /* 16px */
+  line-height: 1.5rem; /* 24px */
+  font-weight: 400;
+}
+
+@utility text-reading {
+  font-size: 1.0625rem; /* 17px */
+  line-height: 1.8125rem; /* 29px */
+  font-weight: 400;
+}
+
+@utility text-small {
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.25rem; /* 20px */
+  font-weight: 500;
+}
+
+@utility text-caption {
+  font-size: 0.75rem; /* 12px */
+  line-height: 1rem; /* 16px */
+  font-weight: 500;
+}
+
+/* ---------- Base ---------- */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    @apply font-sans;
+  }
+
+  body {
+    @apply bg-background text-text text-body;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ---------- Reduced motion — PRD §12.4 ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

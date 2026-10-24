@@ -1,10 +1,141 @@
 {
   "common": {
     "appName": "Unbookin",
-    "tagline": "Unbook anything. Master everything."
+    "tagline": "Unbook anything. Master everything.",
+    "close": "Tutup"
   },
   "metadata": {
     "title": "Unbookin — Platform belajar dari buku, jurnal, dan tautan",
     "description": "Ubah buku, jurnal, dan tautan menjadi modul belajar Pahami, Terapkan, dan Buktikan dengan kuis, review terjadwal, dan gamifikasi."
+  },
+  "nav": {
+    "ariaLabel": "Navigasi utama",
+    "home": "Beranda",
+    "library": "Pustaka",
+    "unbook": "Unbook",
+    "unbookAria": "Mulai Unbook baru",
+    "review": "Review",
+    "progress": "Progres"
+  },
+  "topBar": {
+    "streakAria": "Streak belajarmu",
+    "streakAriaCount": "Streak belajarmu: {count, plural, one {# hari} other {# hari}}",
+    "notifications": "Notifikasi",
+    "profile": "Profil kamu"
+  },
+  "empty": {
+    "homeMessage": "Belum ada aktivitas hari ini. Unbook bacaan pertamamu dan mulai belajar.",
+    "homeAction": "Unbook bacaan pertamamu",
+    "libraryMessage": "Pustakamu masih kosong. Unbook buku, jurnal, atau tautan pertama untuk mengubahnya jadi modul belajar.",
+    "libraryAction": "Unbook bacaan pertamamu",
+    "reviewMessage": "Tidak ada kartu review hari ini. Nikmati harimu, kami siapkan kartu baru untuk besok.",
+    "reviewAction": "Pelajari sesuatu yang baru",
+    "progressMessage": "Belum ada progres yang bisa ditampilkan. Selesaikan satu modul untuk melihat pohon keahlianmu tumbuh.",
+    "progressAction": "Mulai belajar sekarang"
+  },
+  "errors": {
+    "genericMessage": "Ada yang salah di sisi kami, bukan karena kamu. Coba lagi sebentar lagi, ya.",
+    "retry": "Coba lagi",
+    "offline": "Kamu sedang offline. Modul yang tersimpan tetap bisa dibaca."
+  },
+  "theme": {
+    "toggle": "Ganti tema tampilan",
+    "light": "Terang",
+    "dark": "Gelap",
+    "system": "Ikuti sistem"
+  },
+  "pages": {
+    "home": {
+      "title": "Beranda"
+    },
+    "library": {
+      "title": "Pustaka"
+    },
+    "review": {
+      "title": "Review"
+    },
+    "progress": {
+      "title": "Progres"
+    }
+  },
+  "devUi": {
+    "title": "Perpustakaan UI",
+    "description": "Semua token desain dan komponen Unbookin di satu tempat.",
+    "sectionTheme": "Tema",
+    "sectionColors": "Warna",
+    "sectionTypography": "Tipografi",
+    "sectionRadius": "Sudut",
+    "sectionButtons": "Tombol",
+    "sectionForms": "Formulir",
+    "sectionComponents": "Komponen",
+    "sectionStates": "Status kosong dan error",
+    "sectionNavigation": "Navigasi",
+    "sectionSheet": "Lembar bawah",
+    "openSheet": "Buka lembar bawah",
+    "sheetTitle": "Contoh lembar bawah",
+    "sheetDescription": "Di ponsel tampil sebagai lembar bawah, di layar lebar sebagai dialog.",
+    "sheetBody": "Lembar bawah dipakai untuk detail dan form singkat, menggantikan modal di ponsel.",
+    "closeSheet": "Tutup",
+    "colorBackground": "Latar halaman",
+    "colorSurface": "Kartu, lembar",
+    "colorSurface2": "Latar sekunder, input",
+    "colorBorder": "Garis, pemisah",
+    "colorText": "Teks utama",
+    "colorTextMuted": "Teks sekunder",
+    "colorPrimary": "Tombol utama, tautan",
+    "colorPrimarySoft": "Latar sorotan",
+    "colorXp": "XP, streak, lencana emas",
+    "colorSuccess": "Benar, selesai",
+    "colorWarning": "Tenggat dekat",
+    "colorDanger": "Salah, hapus",
+    "typeDisplay": "Display 32/38 tebal",
+    "typeH1": "H1 26/32 tebal",
+    "typeH2": "H2 21/28 sedang",
+    "typeH3": "H3 18/26 semibold",
+    "typeBody": "Body 16/24",
+    "typeReading": "Reading 17/29",
+    "typeSmall": "Small 14/20",
+    "typeCaption": "Caption 12/16",
+    "radiusInput": "Input 8px",
+    "radiusButton": "Tombol 12px",
+    "radiusCard": "Kartu 16px",
+    "radiusSheet": "Lembar bawah 24px",
+    "defaultButton": "Tombol utama",
+    "secondaryButton": "Sekunder",
+    "outlineButton": "Garis",
+    "ghostButton": "Halus",
+    "destructiveButton": "Hapus",
+    "linkButton": "Tautan",
+    "iconButtonAria": "Tombol ikon contoh",
+    "nameLabel": "Nama",
+    "namePlaceholder": "Tulis namamu",
+    "bioLabel": "Catatan",
+    "bioPlaceholder": "Tulis catatan singkat",
+    "agreementLabel": "Saya setuju dengan ketentuan layanan",
+    "tabOne": "Ringkasan",
+    "tabTwo": "Isi",
+    "tabOneBody": "Ini isi tab pertama.",
+    "tabTwoBody": "Ini isi tab kedua.",
+    "toggleBold": "Tebal",
+    "toggleItalic": "Miring",
+    "toggleUnderline": "Garis bawah",
+    "progressLabel": "Progres belajar",
+    "badgeDefault": "Default",
+    "badgeSecondary": "Sekunder",
+    "badgeSuccess": "Berhasil",
+    "badgeXp": "+30 XP",
+    "dropdownLabel": "Menu",
+    "dropdownItem": "Tindakan contoh",
+    "tooltipLabel": "Tooltip",
+    "tooltipContent": "Saya tooltip kecil.",
+    "avatarFallback": "US",
+    "skeletonTitle": "Skeleton",
+    "skeletonHint": "Bentuk konten yang sedang dimuat.",
+    "emptyStateTitle": "Status kosong",
+    "errorStateTitle": "Status error",
+    "errorStateMessage": "Koneksi terputus saat memuat data.",
+    "showToast": "Tampilkan toast",
+    "toastTitle": "Ini contoh notifikasi",
+    "toastDescription": "Notifikasi ringan muncul di sini."
   }
 }
