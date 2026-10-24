@@ -12,3 +12,5 @@
 | 2026-10-24 | FK `user_id` di semua tabel data pengguna memakai `ON DELETE CASCADE` (hapus akun E15-03), kecuali `ai_calls` dan `audit_logs` yang memakai `SET NULL`. | Riwayat biaya AI dan jejak audit harus tetap ada setelah akun dihapus; keduanya tidak berisi konten pengguna. |
 | 2026-10-24 | `docker-compose.yml` memakai `name: unbookin` agar semua worktree memakai satu database dev yang sama. | Tanpa itu nama proyek diambil dari nama folder. |
 | 2026-10-24 | **Terbuka:** `payments` saat ini ikut terhapus bersama akun. Perlu keputusan founder apakah catatan transaksi wajib disimpan (pajak) dengan `user_id` dikosongkan. | Ditunda ke M8 (Monetisasi). |
+| 2026-10-24 | `src/proxy.ts` melakukan cek optimistis (ada/tidaknya cookie sesi) untuk rute area login; validasi sebenarnya tetap di `requireUser()` pada layout `(app)`. | Memberi redirect 307 yang benar ke `/masuk` beserta `callbackUrl`; pola resmi Next 16. |
+| 2026-10-24 | Callback `session` Auth.js membangun objek sesi secara eksplisit (id, name, email, image, role). | Tanpa itu `/api/auth/session` membocorkan `sessionToken` ke browser. |
