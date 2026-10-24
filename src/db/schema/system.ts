@@ -44,9 +44,8 @@ export const aiCalls = pgTable(
   'ai_calls',
   {
     ...identity(),
-    userId: uuid()
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
+    // Kept after account deletion (set null) so AI cost history survives; holds no user content.
+    userId: uuid().references(() => users.id, { onDelete: 'set null' }),
     task: text().notNull(),
     model: text().notNull(),
     byok: boolean().notNull().default(false),
@@ -107,7 +106,8 @@ export const auditLogs = pgTable(
   'audit_logs',
   {
     ...identity(),
-    actorId: uuid().references(() => users.id, { onDelete: 'cascade' }),
+    // Audit trail outlives the actor's account.
+    actorId: uuid().references(() => users.id, { onDelete: 'set null' }),
     action: text().notNull(),
     targetType: text().notNull(),
     targetId: uuid(),

@@ -15,6 +15,13 @@
       "when": 1792853133058,
       "tag": "0001_init",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792853481981,
+      "tag": "0002_keep_ai_calls_and_audit_logs",
+      "breakpoints": true
     }
   ]
 }

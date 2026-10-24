@@ -77,7 +77,7 @@ describe('PRD database schema', () => {
     expect(schema.quizQuestions.chunkRefs.getSQLType()).toBe('uuid[]');
   });
 
-  it('indexes every foreign key and cascades user deletion', () => {
+  it('indexes every foreign key and cascades user deletion except retained logs', () => {
     for (const table of Object.values(schema).filter((value) => is(value, Table))) {
       const config = getTableConfig(table);
       for (const fk of config.foreignKeys) {
@@ -94,7 +94,13 @@ describe('PRD database schema', () => {
             );
           expect(indexed, `${config.name}.${column.name} lacks an index`).toBe(true);
         }
-        if (getTableName(reference.foreignTable) === 'users') expect(fk.onDelete).toBe('cascade');
+        if (getTableName(reference.foreignTable) === 'users') {
+          // AI cost logs and the audit trail outlive a deleted account (no user content in them).
+          const expected = ['ai_calls', 'audit_logs'].includes(config.name)
+            ? 'set null'
+            : 'cascade';
+          expect(fk.onDelete, `${config.name} user FK`).toBe(expected);
+        }
       }
     }
   });
