@@ -3,8 +3,15 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { BadgeRule } from '../lib/game/badge-rules';
 import { PlanLimits } from '../lib/billing/plan-limits';
-import { badges, domains, interests, missionTemplates, plans } from './schema';
-import { badgeSeeds, domainSeeds, interestSeeds, missionSeeds, planSeeds } from './seed-data';
+import { badges, domains, interests, missionTemplates, plans, priceVariants } from './schema';
+import {
+  badgeSeeds,
+  domainSeeds,
+  interestSeeds,
+  missionSeeds,
+  planSeeds,
+  priceVariantSeeds,
+} from './seed-data';
 
 config({ path: ['.env.local', '.env'], quiet: true });
 
@@ -37,6 +44,15 @@ async function seed() {
       for (const row of planSeeds) {
         const data = { ...row, limits: PlanLimits.parse(row.limits) };
         await tx.insert(plans).values(data).onConflictDoUpdate({ target: plans.code, set: data });
+      }
+      for (const row of priceVariantSeeds) {
+        await tx
+          .insert(priceVariants)
+          .values(row)
+          .onConflictDoUpdate({
+            target: [priceVariants.variant, priceVariants.planCode],
+            set: row,
+          });
       }
       for (const row of badgeSeeds) {
         const data = { ...row, rule: BadgeRule.parse(row.rule) };

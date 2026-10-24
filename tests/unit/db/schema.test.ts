@@ -37,6 +37,7 @@ const expectedTables = [
   'originals',
   'original_purchases',
   'plans',
+  'price_variants',
   'subscriptions',
   'payments',
   'usage_counters',

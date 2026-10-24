@@ -1,5 +1,7 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
+  check,
   index,
   integer,
   jsonb,
@@ -27,6 +29,25 @@ export const plans = pgTable(
   },
   (t) => [index('plans_is_active_idx').on(t.isActive)],
 );
+export const priceVariants = pgTable(
+  'price_variants',
+  {
+    ...identity(),
+    variant: text().notNull(),
+    planCode: planCode()
+      .notNull()
+      .references(() => plans.code),
+    priceIdr: integer().notNull(),
+  },
+  (t) => [
+    check('price_variants_variant_check', sql`${t.variant} in ('A', 'B')`),
+    unique().on(t.variant, t.planCode),
+    index('price_variants_plan_code_idx').on(t.planCode),
+  ],
+);
+export type PriceVariantRow = typeof priceVariants.$inferSelect;
+export type NewPriceVariant = typeof priceVariants.$inferInsert;
+
 export const subscriptions = pgTable(
   'subscriptions',
   {
