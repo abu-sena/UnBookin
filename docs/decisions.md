@@ -9,3 +9,6 @@
 | 2026-10-24 | Database pengembangan: Postgres + pgvector via Docker lokal (`docker-compose.yml`). | Pilihan founder; gratis dan offline. |
 | 2026-10-24 | Rantai worker "berat" ditambah GLM-5.3-Flash (9Router, lalu Z.ai) di akhir. | Founder: jangan menunggu reset kuota; review koordinator diperketat. |
 | 2026-10-24 | Kredensial Google OAuth diisi founder di `.env.local` setelah kode Auth siap. | Founder belum punya kredensial. |
+| 2026-10-24 | FK `user_id` di semua tabel data pengguna memakai `ON DELETE CASCADE` (hapus akun E15-03), kecuali `ai_calls` dan `audit_logs` yang memakai `SET NULL`. | Riwayat biaya AI dan jejak audit harus tetap ada setelah akun dihapus; keduanya tidak berisi konten pengguna. |
+| 2026-10-24 | `docker-compose.yml` memakai `name: unbookin` agar semua worktree memakai satu database dev yang sama. | Tanpa itu nama proyek diambil dari nama folder. |
+| 2026-10-24 | **Terbuka:** `payments` saat ini ikut terhapus bersama akun. Perlu keputusan founder apakah catatan transaksi wajib disimpan (pajak) dengan `user_id` dikosongkan. | Ditunda ke M8 (Monetisasi). |
