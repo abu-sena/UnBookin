@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation';
+import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,11 +8,22 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { emailSignInAction, googleSignInAction } from '@/lib/auth/actions';
 import { safeCallbackUrl } from '@/lib/auth/validation';
 
-export default async function SignInPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ callbackUrl?: string; error?: string }>;
-}) {
+type SignInSearchParams = Promise<{ callbackUrl?: string; error?: string }>;
+
+// The session read is request-time data, so it streams inside Suspense (Cache Components).
+export default function SignInPage({ searchParams }: { searchParams: SignInSearchParams }) {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-surface-2 h-96 w-full animate-pulse rounded-[var(--radius-card)] motion-reduce:animate-none" />
+      }
+    >
+      <SignInContent searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function SignInContent({ searchParams }: { searchParams: SignInSearchParams }) {
   if (await getCurrentUser()) redirect('/home');
   const [params, t, common] = await Promise.all([
     searchParams,

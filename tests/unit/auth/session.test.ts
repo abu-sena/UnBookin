@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }));
+vi.mock('next/server', () => ({ connection: vi.fn(async () => undefined) }));
 vi.mock('next/navigation', () => ({
   redirect: vi.fn(() => {
     throw new Error('redirect');

@@ -1,10 +1,13 @@
 import 'server-only';
 import { notFound, redirect } from 'next/navigation';
+import { connection } from 'next/server';
 import { auth } from '@/lib/auth';
 import { safeCallbackUrl } from '@/lib/auth/validation';
 
 /** Get identity from the server session; never accept userId from the client. */
 export async function getCurrentUser() {
+  // Auth.js touches crypto before reading cookies; mark the render as request-time for Cache Components.
+  await connection();
   const session = await auth();
   if (!session?.user || session.user.deletedAt) return null;
   const { id, email, name, image, role } = session.user;
