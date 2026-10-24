@@ -14,3 +14,6 @@
 | 2026-10-24 | **Terbuka:** `payments` saat ini ikut terhapus bersama akun. Perlu keputusan founder apakah catatan transaksi wajib disimpan (pajak) dengan `user_id` dikosongkan. | Ditunda ke M8 (Monetisasi). |
 | 2026-10-24 | `src/proxy.ts` melakukan cek optimistis (ada/tidaknya cookie sesi) untuk rute area login; validasi sebenarnya tetap di `requireUser()` pada layout `(app)`. | Memberi redirect 307 yang benar ke `/masuk` beserta `callbackUrl`; pola resmi Next 16. |
 | 2026-10-24 | Callback `session` Auth.js membangun objek sesi secara eksplisit (id, name, email, image, role). | Tanpa itu `/api/auth/session` membocorkan `sessionToken` ke browser. |
+| 2026-10-25 | Uji harga E0-02: varian A = harga PRD; varian B = lebih murah (Pro Rp 49.000/bln · Rp 379.000/thn; BYOK Rp 25.000/bln · Rp 199.000/thn; Gratis tetap Rp 0). | Keputusan founder. |
+| 2026-10-25 | Harga varian disimpan di tabel baru `price_variants` (variant, plan_code, price_idr), di-seed; varian A tetap membaca `plans.price_idr`. | Disetujui founder; harga tidak boleh ditulis di kode. |
+| 2026-10-25 | Varian harga ditetapkan acak 50/50 di `proxy.ts` saat membuka `/`, disimpan di cookie `ub_price_variant` (180 hari). | E0-02 AC2. |

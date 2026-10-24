@@ -17,6 +17,17 @@ describe('proxy', () => {
     );
   });
 
+  it('assigns a sticky price variant on the landing page without redirecting', () => {
+    const response = proxy(request('/'));
+    expect(response.headers.get('location')).toBeNull();
+    expect(response.cookies.get('ub_price_variant')?.value).toMatch(/^[AB]$/);
+  });
+
+  it('keeps an existing price variant', () => {
+    const response = proxy(request('/', 'ub_price_variant=B'));
+    expect(response.cookies.get('ub_price_variant')).toBeUndefined();
+  });
+
   it.each(['authjs.session-token', '__Secure-authjs.session-token'])(
     'lets requests with %s through for the layout to validate',
     (name) => {
