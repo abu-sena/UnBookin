@@ -1,25 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 
 /**
  * Subscribes to a CSS media query and returns whether it currently matches.
- * Returns `undefined` until mounted so SSR output stays deterministic.
+ * Returns `undefined` on the server (and during SSR rendering) so hydration
+ * output stays deterministic.
  */
 export function useMediaQuery(query: string): boolean | undefined {
-  const [matches, setMatches] = useState<boolean | undefined>(undefined);
-
-  useEffect(() => {
+  const subscribe = (onStoreChange: () => void) => {
     const mediaQueryList = window.matchMedia(query);
-    setMatches(mediaQueryList.matches);
-
-    const handleChange = (event: MediaQueryListEvent) => {
-      setMatches(event.matches);
-    };
-
-    mediaQueryList.addEventListener('change', handleChange);
+    mediaQueryList.addEventListener('change', onStoreChange);
     return () => {
-      mediaQueryList.removeEventListener('change', handleChange);
+      mediaQueryList.removeEventListener('change', onStoreChange);
     };
-  }, [query]);
+  };
 
-  return matches;
+  const getSnapshot = () => window.matchMedia(query).matches;
+  const getServerSnapshot = () => undefined;
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
