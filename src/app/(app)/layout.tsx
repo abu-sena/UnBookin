@@ -1,5 +1,20 @@
 import { AppShell } from '@/components/layout/app-shell';
+import { requireUser } from '@/lib/auth/session';
+import { Suspense } from 'react';
+
+async function AuthenticatedApp({ children }: { children: React.ReactNode }) {
+  const user = await requireUser();
+  return <AppShell user={user}>{children}</AppShell>;
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-surface mx-auto mt-14 h-64 w-full max-w-sm animate-pulse rounded-xl motion-reduce:animate-none" />
+      }
+    >
+      <AuthenticatedApp>{children}</AuthenticatedApp>
+    </Suspense>
+  );
 }
