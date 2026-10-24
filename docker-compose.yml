@@ -1,3 +1,4 @@
+name: unbookin
 services:
   db:
     image: pgvector/pgvector:pg17
