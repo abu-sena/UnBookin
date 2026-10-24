@@ -59,6 +59,38 @@ describe('auth configuration', () => {
     );
     expect(mocks.update).toHaveBeenCalledOnce();
   });
+  it('never exposes the session token or extra user columns in the session', async () => {
+    const session = config.callbacks!.session!;
+    const result = await session({
+      session: {
+        sessionToken: 'secret-token',
+        userId: 'u1',
+        expires: new Date('2026-12-01'),
+        user: { id: 'u1', email: 'a@example.com' },
+      },
+      user: {
+        id: 'u1',
+        name: 'A',
+        email: 'a@example.com',
+        image: null,
+        role: 'admin',
+        emailVerified: null,
+        createdAt: new Date(),
+      },
+    } as unknown as Parameters<typeof session>[0]);
+    expect(result).toEqual({
+      expires: new Date('2026-12-01'),
+      user: {
+        id: 'u1',
+        name: 'A',
+        email: 'a@example.com',
+        image: null,
+        role: 'admin',
+        deletedAt: null,
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain('secret-token');
+  });
   it('allows new users without promoting unlisted email', async () => {
     storedUser(null);
     expect(await signIn({ user: { id: 'new', email: 'user@example.com' }, account: null })).toBe(

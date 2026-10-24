@@ -70,16 +70,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
       }
       return !user.deletedAt;
     },
+    // Build the session explicitly: with database sessions the incoming object also carries
+    // `sessionToken` and the full user row, which /api/auth/session would expose to the browser.
     async session({ session, user }) {
-      Object.assign(session.user, {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        image: user.image,
-        role: user.role ?? 'user',
-        deletedAt: user.deletedAt,
-      });
-      return session;
+      return {
+        expires: session.expires,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+          role: user.role ?? 'user',
+          deletedAt: user.deletedAt ?? null,
+        },
+      };
     },
   },
   events: {
