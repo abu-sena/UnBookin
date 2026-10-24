@@ -1,5 +1,13 @@
-import type { NewBadge, NewInterest, NewMissionTemplate, NewPlan } from './schema';
+import type { NewBadge, NewInterest, NewMissionTemplate, NewPlan, NewPriceVariant } from './schema';
 import type { PlanLimits } from '../lib/billing/plan-limits';
+
+export const priceVariantSeeds = [
+  { variant: 'B', planCode: 'free', priceIdr: 0 },
+  { variant: 'B', planCode: 'pro_monthly', priceIdr: 49000 },
+  { variant: 'B', planCode: 'pro_yearly', priceIdr: 379000 },
+  { variant: 'B', planCode: 'byok_monthly', priceIdr: 25000 },
+  { variant: 'B', planCode: 'byok_yearly', priceIdr: 199000 },
+] satisfies NewPriceVariant[];
 
 export const interestSeeds = [
   {
