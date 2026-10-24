@@ -1,6 +1,13 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useSyncExternalStore } from 'react';
+import {
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react';
 import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { getWaitlistPriceVariant, joinWaitlist } from '@/lib/waitlist/actions';
@@ -24,6 +31,9 @@ export type WaitlistFormProps = {
 export function WaitlistForm({ interests, referralCode }: WaitlistFormProps) {
   const t = useTranslations('waitlist');
   const [state, action, pending] = useActionState(joinWaitlist, initialState);
+  // Controlled so the visitor's input survives re-renders when an error shows.
+  const [email, setEmail] = useState('');
+  const [interestSlug, setInterestSlug] = useState('');
   const submittedInterest = useRef('');
   const trackedCode = useRef<string | null>(null);
   const origin = useSyncExternalStore(subscribe, getOrigin, getServerOrigin);
@@ -97,10 +107,11 @@ export function WaitlistForm({ interests, referralCode }: WaitlistFormProps) {
 
   return (
     <form
-      action={action}
       className="space-y-4"
       aria-busy={pending}
       onSubmit={(event) => {
+        // Dispatch manually instead of `action={…}` so React does not reset the form after an error.
+        event.preventDefault();
         const form = event.currentTarget;
         submittedInterest.current = new FormData(form).get('interestSlug')?.toString() ?? '';
         const query = new URLSearchParams(window.location.search);
@@ -113,6 +124,8 @@ export function WaitlistForm({ interests, referralCode }: WaitlistFormProps) {
         if (utmField instanceof HTMLInputElement) utmField.value = utm.toString().slice(0, 300);
         if (refField instanceof HTMLInputElement)
           refField.value = referralCode ?? query.get('ref') ?? '';
+        const formData = new FormData(form);
+        startTransition(() => action(formData));
       }}
     >
       <label className="block space-y-2">
@@ -123,6 +136,8 @@ export function WaitlistForm({ interests, referralCode }: WaitlistFormProps) {
           required
           maxLength={254}
           autoComplete="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
           placeholder={t('emailPlaceholder')}
           className={inputClass}
           aria-describedby={state.status === 'error' ? 'waitlist-error' : undefined}
@@ -140,6 +155,8 @@ export function WaitlistForm({ interests, referralCode }: WaitlistFormProps) {
                 type="radio"
                 name="interestSlug"
                 value={interest.slug}
+                checked={interestSlug === interest.slug}
+                onChange={() => setInterestSlug(interest.slug)}
                 required
                 className="accent-primary size-4 shrink-0"
               />
