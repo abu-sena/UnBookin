@@ -17,3 +17,7 @@
 | 2026-10-25 | Uji harga E0-02: varian A = harga PRD; varian B = lebih murah (Pro Rp 49.000/bln · Rp 379.000/thn; BYOK Rp 25.000/bln · Rp 199.000/thn; Gratis tetap Rp 0). | Keputusan founder. |
 | 2026-10-25 | Harga varian disimpan di tabel baru `price_variants` (variant, plan_code, price_idr), di-seed; varian A tetap membaca `plans.price_idr`. | Disetujui founder; harga tidak boleh ditulis di kode. |
 | 2026-10-25 | Varian harga ditetapkan acak 50/50 di `proxy.ts` saat membuka `/`, disimpan di cookie `ub_price_variant` (180 hari). | E0-02 AC2. |
+| 2026-10-25 | Onboarding E1-02: minat utama wajib 1, minat tambahan maks 2 (dari minat aktif selain `general`); `experience_level` tidak ditanyakan (default `novice`), bisa diubah di Pengaturan; zona waktu dideteksi dari browser. | Menjaga onboarding ≤ 90 detik (AC1). |
+| 2026-10-25 | Saran cepat peran (E1-02 langkah 2): Manajer, Kepala divisi, Pemilik usaha, HR, Konsultan, Pemasar, Mahasiswa pascasarjana, Guru/Dosen. | Mengikuti persona PRD §3; teks di `messages/id.json`, mudah diubah founder. |
+| 2026-10-25 | Batas magic link 5/jam per email (§11) dihitung dari `verification_tokens` yang dibuat dalam 1 jam terakhir (`expires > now() + maxAge − 1 jam`); tanpa tabel baru. | Menghindari perubahan skema; cukup untuk MVP. |
+| 2026-10-25 | Pengaturan M2 hanya mengaktifkan Profil belajar dan Tampilan; Model AI, Langganan, Notifikasi, Privasi tampil sebagai "Segera hadir". | Fitur itu dibangun di M8–M10. |
