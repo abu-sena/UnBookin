@@ -195,5 +195,157 @@
     "showToast": "Tampilkan toast",
     "toastTitle": "Ini contoh notifikasi",
     "toastDescription": "Notifikasi ringan muncul di sini."
+  },
+  "landing": {
+    "hero": {
+      "tagline": "Unbook anything. Master everything.",
+      "description": "Ubah buku, jurnal, dan tautan jadi modul Pahami, Terapkan, Buktikan — dengan aksi nyata, kuis, dan gamifikasi yang membuat kamu benar-benar maju.",
+      "cta": "Gabung daftar tunggu"
+    },
+    "howItWorks": {
+      "title": "Cara kerja",
+      "subtitle": "Setiap modul mengikuti tiga pilar yang sama, dari mengerti sampai terbukti.",
+      "pahami": {
+        "title": "Pahami",
+        "body": "Inti satu kalimat, penjelasan tiga tingkat, dan peta konsep — kamu mengerti isinya, bukan sekadar tahu."
+      },
+      "terapkan": {
+        "title": "Terapkan",
+        "body": "Studi kasus sesuai peranmu, templat siap pakai, dan Aksi Minggu Ini — kamu tahu apa yang harus dilakukan Senin depan."
+      },
+      "buktikan": {
+        "title": "Buktikan",
+        "body": "Kuis berjenjang, kartu review terjadwal, dan jurnal penerapan — kamu bisa membuktikan sudah menguasainya."
+      }
+    },
+    "demo": {
+      "title": "Contoh modul",
+      "subtitle": "Cuplikan modul tentang kepemimpinan. Ketuk tingkat penjelasan untuk merasakan tiga lapisnya.",
+      "bigIdeaLabel": "Inti utama",
+      "bigIdea": "Pemimpin terbaik membangun sistem, bukan panggung.",
+      "toggleLabel": "Pilih tingkat penjelasan",
+      "layers": {
+        "sederhana": {
+          "label": "Sederhana",
+          "body": "Pemimpin yang baik menyiapkan cara kerja tim: siapa mengerjakan apa, dan bagaimana hasilnya diperiksa. Panggung tidak perlu."
+        },
+        "praktisi": {
+          "label": "Praktisi",
+          "body": "Pekan depan, tuliskan tiga rutinitas tim yang berulang setiap minggu. Pilih satu, tetapkan pemiliknya, lalu tentukan cara mengukur hasilnya. Sistem mulai berjalan tanpa kamu."
+        },
+        "ahli": {
+          "label": "Ahli",
+          "body": "Organisasi yang tumbuh memindahkan keandalan dari orang ke sistem. Tugasmu bukan menjadi pahlawan di setiap krisis, melainkan merancang rutinitas, ukuran, dan umpan balik sehingga krisis jarang terjadi."
+        }
+      },
+      "actionCard": {
+        "label": "Aksi Minggu Ini",
+        "title": "Rancang satu rutinitas tim",
+        "body": "Pilih satu pekerjaan yang setiap minggu bergantung pada kamu. Tulis langkah-langkahnya, tetapkan pemilik dan ukuran hasil, lalu jalankan lima hari.",
+        "criteria": "Selesai bila rutinitas berjalan satu pekan penuh tanpa campur tanganmu."
+      }
+    },
+    "gamification": {
+      "title": "Belajar yang terasa maju",
+      "subtitle": "XP, streak, level, dan lencana memberi rasa maju tanpa merusak fokus.",
+      "xp": {
+        "label": "XP",
+        "gain": "+30 XP",
+        "line": "Setiap sesi belajar menambah XP dan progresmu selalu terlihat."
+      },
+      "streak": {
+        "label": "Streak",
+        "line": "Belajar berurutan setiap hari menjaga api streak tetap menyala."
+      },
+      "level": {
+        "label": "Level",
+        "line": "Level naik hanya bila kamu lulus kuis dan melaporkan penerapan nyata."
+      },
+      "badges": {
+        "label": "Lencana",
+        "line": "Lencana menandai tonggak belajarmu, dari modul pertama sampai penguasaan."
+      }
+    },
+    "pricing": {
+      "title": "Harga",
+      "subtitle": "Mulai gratis. Naik paket saat kamu makin serius.",
+      "perMonth": "/bulan",
+      "perYear": "/tahun",
+      "savings": "Hemat {pct}%",
+      "plans": {
+        "free": {
+          "bullet1": "2 Unbook per bulan",
+          "bullet2": "20 pesan mentor per bulan",
+          "bullet3": "Modul contoh di Originals"
+        },
+        "pro": {
+          "bullet1": "8 Unbook per bulan",
+          "bullet2": "300 pesan mentor per bulan",
+          "bullet3": "Akses penuh Originals"
+        },
+        "byok": {
+          "bullet1": "Unbook tanpa batas (fair use)",
+          "bullet2": "Mentor tanpa batas dengan kunci sendiri",
+          "bullet3": "Pilih model AI dari daftar yang diizinkan"
+        }
+      }
+    },
+    "waitlist": {
+      "title": "Gabung daftar tunggu",
+      "subtitle": "Cukup email dan minat utamamu. Kami mengirim undangan bertahap supaya pengalaman awal tetap mulus."
+    },
+    "faq": {
+      "title": "Pertanyaan umum",
+      "q1": "Apa itu Unbookin?",
+      "a1": "Platform belajar berbasis AI yang mengubah buku, jurnal, dan tautan menjadi modul Pahami, Terapkan, Buktikan — lengkap dengan kuis, review terjadwal, dan gamifikasi.",
+      "q2": "Apakah buku atau file yang saya unggah aman?",
+      "a2": "Hanya kamu yang bisa membaca konten unggahanmu. Tidak ada URL publik untuk konten itu, dan kamu bisa menghapusnya kapan saja.",
+      "q3": "AI apa yang dipakai?",
+      "a3": "Unbookin memakai model kelas utama lewat OpenRouter. Dengan paket Pro BYOK, kamu bisa memakai kunci model sendiri dari daftar yang diizinkan.",
+      "q4": "Bagaimana privasi data saya?",
+      "a4": "Data milikmu. Kamu bisa mengekspor seluruh data atau menghapus akun secara permanen kapan saja.",
+      "q5": "Berapa harganya?",
+      "a5": "Ada paket Gratis. Paket berbayar mulai dari puluhan ribu rupiah per bulan, dan paket tahunan lebih hemat — angka terkini ada di bagian harga di atas.",
+      "q6": "Kapan Unbookin diluncurkan?",
+      "a6": "Daftar tunggu dibuka sekarang. Undangan dikirim bertahap menjelang peluncuran publik."
+    }
+  },
+  "legal": {
+    "notice": {
+      "title": "Catatan penting",
+      "body": "Teks hukum final untuk halaman ini sedang ditinjau konsultan hukum dan akan diterbitkan sebelum peluncuran. Isi di bawah masih placeholder."
+    },
+    "syarat": {
+      "title": "Syarat Layanan",
+      "intro": "Halaman ini akan memuat ketentuan penggunaan platform Unbookin.",
+      "p1": "Ketentuan mengenai akun, langganan, pembayaran, dan pembatalan akan diuraikan di sini.",
+      "p2": "Rincian hak dan kewajiban pengguna serta batasan tanggung jawab Unbookin menyusul setelah peninjauan hukum.",
+      "p3": "Setiap perubahan ketentuan akan selalu diumumkan di halaman ini."
+    },
+    "privasi": {
+      "title": "Kebijakan Privasi",
+      "intro": "Halaman ini akan memuat cara Unbookin mengumpulkan, memakai, dan melindungi data kamu.",
+      "p1": "Rincian data yang dikumpulkan, dasar pemrosesan, dan masa retensi akan diuraikan di sini.",
+      "p2": "Hak kamu atas ekspor dan penghapusan data akan dijelaskan setelah peninjauan hukum.",
+      "p3": "Cara menghubungi kami terkait data pribadi dan proses permintaannya menyusul di bagian ini."
+    },
+    "hakCipta": {
+      "title": "Kebijakan Hak Cipta",
+      "intro": "Halaman ini akan memuat kebijakan hak cipta dan formulir laporan pelanggaran.",
+      "p1": "Cara melaporkan dugaan pelanggaran hak cipta dan proses peninjauannya akan diuraikan di sini.",
+      "p2": "Ketentuan mengenai konten yang kamu unggah dan hak atas karya aslimu menyusul setelah peninjauan hukum.",
+      "p3": "Proses pengambilan turun (takedown) dan pengajuan banding akan dijelaskan di bagian ini."
+    }
+  },
+  "marketing": {
+    "header": {
+      "signIn": "Masuk",
+      "cta": "Gabung"
+    },
+    "footer": {
+      "navLabel": "Tautan legal",
+      "rights": "© 2026 Unbookin"
+    },
+    "ogImageAlt": "Unbookin — Unbook anything. Master everything."
   }
 }
