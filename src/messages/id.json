@@ -1,13 +1,15 @@
 {
   "common": {
     "appName": "Unbookin",
-    "tagline": "Unbook anything. Master everything."
+    "tagline": "Unbook anything. Master everything.",
+    "close": "Tutup"
   },
   "metadata": {
     "title": "Unbookin — Platform belajar dari buku, jurnal, dan tautan",
     "description": "Ubah buku, jurnal, dan tautan menjadi modul belajar Pahami, Terapkan, dan Buktikan dengan kuis, review terjadwal, dan gamifikasi."
   },
   "nav": {
+    "ariaLabel": "Navigasi utama",
     "home": "Beranda",
     "library": "Pustaka",
     "unbook": "Unbook",
@@ -17,6 +19,7 @@
   },
   "topBar": {
     "streakAria": "Streak belajarmu",
+    "streakAriaCount": "Streak belajarmu: {count, plural, one {# hari} other {# hari}}",
     "notifications": "Notifikasi",
     "profile": "Profil kamu"
   },
@@ -133,7 +136,6 @@
     "errorStateMessage": "Koneksi terputus saat memuat data.",
     "showToast": "Tampilkan toast",
     "toastTitle": "Ini contoh notifikasi",
-    "toastDescription": "Notifikasi ringan muncul di sini.",
-    "switchLabel": "Contoh switch"
+    "toastDescription": "Notifikasi ringan muncul di sini."
   }
 }
