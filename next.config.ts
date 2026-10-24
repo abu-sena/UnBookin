@@ -1,4 +1,4 @@
-import withSentryConfig from '@sentry/nextjs';
+import { withSentryConfig } from '@sentry/nextjs/config';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
@@ -60,8 +60,6 @@ export default withSentryConfig(withNextIntl(nextConfig), {
   // No org/project/token is hard-coded; configuration comes from the
   // environment at deploy time (SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT).
   silent: true,
-  telemetry: false,
-  disableLogger: true,
   // Upload source maps only when an auth token is configured.
   sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
 });
