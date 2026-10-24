@@ -28,6 +28,35 @@
       "ignore": "Jika kamu tidak meminta tautan ini, abaikan email ini."
     }
   },
+  "waitlist": {
+    "emailLabel": "Email",
+    "emailPlaceholder": "nama@contoh.com",
+    "interestLegend": "Apa minat utamamu?",
+    "website": "Situs web",
+    "submit": "Gabung daftar tunggu",
+    "pending": "Sedang mendaftar…",
+    "success": "Kamu di antrean ke-{position}",
+    "shareLabel": "Tautan rujukanmu",
+    "copy": "Salin tautan",
+    "copied": "Tautan berhasil disalin.",
+    "copyFailed": "Tautan belum tersalin. Salin langsung dari kolom tautan, ya.",
+    "whatsapp": "Bagikan lewat WhatsApp",
+    "shareText": "Yuk, gabung daftar tunggu Unbookin bersamaku! {link}",
+    "boost": "Setiap teman yang bergabung lewat tautanmu menaikkan posisimu 10 tingkat.",
+    "errors": {
+      "invalidInput": "Periksa email dan isianmu, lalu coba lagi, ya.",
+      "invalidInterest": "Pilih salah satu minat yang tersedia, ya.",
+      "duplicateEmail": "Email ini sudah terdaftar. Cek email konfirmasimu untuk tautan rujukan, ya.",
+      "generic": "Belum berhasil mendaftar. Coba lagi sebentar lagi, ya."
+    },
+    "email": {
+      "subject": "Kamu sudah masuk daftar tunggu Unbookin!",
+      "intro": "Terima kasih sudah bergabung dengan daftar tunggu Unbookin.",
+      "position": "Kamu di antrean ke-{position}.",
+      "share": "Bagikan tautan rujukanmu kepada teman:",
+      "boost": "Setiap teman yang bergabung lewat tautanmu menaikkan posisimu 10 tingkat."
+    }
+  },
   "common": {
     "appName": "Unbookin",
     "tagline": "Unbook anything. Master everything.",
