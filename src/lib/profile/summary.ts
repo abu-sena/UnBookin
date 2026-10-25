@@ -97,7 +97,7 @@ export async function getMyProfileSummary(): Promise<ProfileSummary> {
   return {
     user: { name: user.name ?? null, image: user.image ?? null },
     displayName: profileRows[0]?.displayName ?? null,
-    level: stats?.level ?? 0,
+    level: stats?.level ?? 1, // levels start at 1 (user_stats default)
     totalXp: stats?.totalXp ?? 0,
     longestStreak: stats?.longestStreak ?? 0,
     badges: badgeRows.map((badge) => ({

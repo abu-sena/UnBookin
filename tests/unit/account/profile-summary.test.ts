@@ -72,7 +72,7 @@ describe('getMyProfileSummary', () => {
 
     const summary = await getMyProfileSummary();
 
-    expect(summary.level).toBe(0);
+    expect(summary.level).toBe(1);
     expect(summary.totalXp).toBe(0);
     expect(summary.longestStreak).toBe(0);
     expect(summary.stats).toEqual({ modulesRead: 0, quizzesPassed: 0, verifiedActions: 0 });
