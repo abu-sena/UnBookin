@@ -199,6 +199,22 @@
   font-weight: 500;
 }
 
+/* ---------- Reading size — E4-02 AC8 (per device, set on <html>) ---------- */
+[data-reading-size='small'] .text-reading {
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.625rem; /* 26px */
+}
+
+[data-reading-size='medium'] .text-reading {
+  font-size: 1.0625rem; /* 17px */
+  line-height: 1.8125rem; /* 29px */
+}
+
+[data-reading-size='large'] .text-reading {
+  font-size: 1.1875rem; /* 19px */
+  line-height: 2rem; /* 32px */
+}
+
 /* ---------- Base ---------- */
 @layer base {
   * {
