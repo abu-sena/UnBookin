@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const dbMocks = vi.hoisted(() => ({ select: vi.fn() }));
 
+vi.mock('server-only', () => ({}));
 vi.mock('next-auth', () => ({ AuthError: class AuthError extends Error {} }));
 vi.mock('@/lib/auth', () => ({ signIn: vi.fn(), signOut: vi.fn() }));
 vi.mock('@/db', () => ({ db: { select: dbMocks.select } }));

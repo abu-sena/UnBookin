@@ -9,7 +9,8 @@ import { Resend } from 'resend';
 import { db } from '@/db';
 import { accounts, sessions, users, verificationTokens } from '@/db/schema/auth';
 import { isAdminEmail } from '@/lib/auth/admin';
-import { EMAIL_VERIFICATION_MAX_AGE_SECONDS } from '@/lib/auth/rate-limit';
+import { countRecentMagicLinkTokens } from '@/lib/auth/magic-link-limit';
+import { EMAIL_VERIFICATION_MAX_AGE_SECONDS, MAGIC_LINK_MAX_PER_HOUR } from '@/lib/auth/rate-limit';
 import messages from '@/messages/id.json';
 
 // The shared lazy DB proxy has Object.prototype; expose its dialect for adapter detection.
@@ -46,6 +47,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
       maxAge: EMAIL_VERIFICATION_MAX_AGE_SECONDS,
       async sendVerificationRequest({ identifier, url, provider }) {
         if (!provider.from) throw new Error('EMAIL_FROM is required to send verification email.');
+        // Defense in depth for direct /api/auth/signin/resend calls that skip emailSignInAction.
+        // Auth.js stores this request's token concurrently, so allow one row of slack (> not >=).
+        if ((await countRecentMagicLinkTokens(identifier)) > MAGIC_LINK_MAX_PER_HOUR) {
+          throw new Error('Magic link rate limit reached.');
+        }
         const copy = messages.auth.email;
         const { error } = await new Resend(process.env.RESEND_API_KEY).emails.send({
           from: provider.from,

@@ -98,4 +98,18 @@ describe('auth configuration', () => {
     );
     expect(mocks.update).not.toHaveBeenCalled();
   });
+
+  it('refuses to send a magic link past the hourly limit even without the form action', async () => {
+    const resend = config.providers[1] as unknown as {
+      sendVerificationRequest: (params: object) => Promise<void>;
+    };
+    const params = { identifier: 'a@example.com', url: 'https://x', provider: { from: 'U <u@x>' } };
+    mocks.select.mockReturnValue({ from: () => ({ where: async () => [{ value: 6 }] }) });
+    await expect(resend.sendVerificationRequest(params)).rejects.toThrow('rate limit');
+    expect(mocks.send).not.toHaveBeenCalled();
+
+    mocks.select.mockReturnValue({ from: () => ({ where: async () => [{ value: 5 }] }) });
+    await resend.sendVerificationRequest(params);
+    expect(mocks.send).toHaveBeenCalledOnce();
+  });
 });
