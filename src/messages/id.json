@@ -395,5 +395,63 @@
     "save": "Simpan",
     "saving": "Menyimpan…",
     "saved": "Profil tersimpan."
+  },
+  "profile": {
+    "title": "Profil",
+    "description": "Ringkasan perjalanan belajarmu.",
+    "unnamed": "Pengguna Unbookin",
+    "level": "Level",
+    "levelValue": "Level {level}",
+    "totalXp": "Total XP",
+    "longestStreak": "Streak terpanjang",
+    "days": "hari",
+    "gamificationTitle": "Ringkasan gamifikasi",
+    "badgesTitle": "Lencana",
+    "badgesEmpty": "Belum ada lencana yang tersedia. Selesaikan satu modul untuk membuka lencana pertamamu.",
+    "badgesEmptyAction": "Mulai belajar",
+    "locked": "Belum terbuka",
+    "statsTitle": "Statistik belajar",
+    "modulesRead": "Modul dibaca",
+    "quizzesPassed": "Kuis lulus",
+    "verifiedActions": "Aksi terverifikasi",
+    "editProfile": "Ubah profil belajar",
+    "errorMessage": "Profil belum bisa dimuat. Coba lagi sebentar lagi, ya.",
+    "retry": "Coba lagi"
+  },
+  "settings": {
+    "title": "Pengaturan",
+    "description": "Kelola profil belajar dan tampilan aplikasi.",
+    "back": "Kembali ke Pengaturan",
+    "comingSoon": "Segera hadir",
+    "errorMessage": "Pengaturan belum bisa dimuat. Coba lagi sebentar lagi, ya.",
+    "retry": "Coba lagi",
+    "learningProfileDescription": "Ubah nama, peran, minat, tujuan, dan target harianmu.",
+    "appearanceDescription": "Atur tema dan ukuran huruf bacaan.",
+    "roleSuggestionsLabel": "Saran peran cepat",
+    "rows": {
+      "learningProfile": "Profil belajar",
+      "learningProfileDescription": "Nama, peran, minat, tujuan, dan target harian.",
+      "appearance": "Tampilan",
+      "appearanceDescription": "Tema terang, gelap, atau ikut sistem.",
+      "aiModel": "Model AI",
+      "aiModelDescription": "Hubungkan kunci model sendiri.",
+      "subscription": "Langganan",
+      "subscriptionDescription": "Kelola paket dan pembayaran.",
+      "notifications": "Notifikasi",
+      "notificationsDescription": "Atur pengingat dan kabar dari kami.",
+      "privacy": "Privasi",
+      "privacyDescription": "Ekspor atau hapus data akunmu."
+    },
+    "appearance": {
+      "themeTitle": "Tema",
+      "themeHint": "Pilih tampilan yang paling nyaman untuk matamu.",
+      "readingSizeTitle": "Ukuran huruf bacaan",
+      "readingSizeHint": "Berlaku di perangkat ini saja.",
+      "small": "Kecil",
+      "medium": "Sedang",
+      "large": "Besar",
+      "previewTitle": "Pratinjau",
+      "previewText": "Pemimpin terbaik membangun sistem, bukan panggung. Ukuran huruf ini berlaku untuk semua teks bacaan di modul, jadi kamu bisa membaca lebih lama dengan nyaman."
+    }
   }
 }

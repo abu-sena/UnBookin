@@ -1,4 +1,5 @@
 import { BottomNav } from '@/components/layout/bottom-nav';
+import { ReadingSizeSync } from '@/components/layout/reading-size-sync';
 import { SideNav } from '@/components/layout/side-nav';
 import { TopBar } from '@/components/layout/top-bar';
 import { OfflineBanner } from '@/components/ui-kit/offline-banner';
@@ -30,6 +31,7 @@ type AppShellProps = {
 export function AppShell({ children, width = 'reading', title, reviewCount, user }: AppShellProps) {
   return (
     <div className="flex min-h-dvh">
+      <ReadingSizeSync />
       <SideNav reviewCount={reviewCount} />
       <div className="flex min-w-0 flex-1 flex-col">
         <OfflineBanner />
