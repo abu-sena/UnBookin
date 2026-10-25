@@ -9,6 +9,7 @@ import { Resend } from 'resend';
 import { db } from '@/db';
 import { accounts, sessions, users, verificationTokens } from '@/db/schema/auth';
 import { isAdminEmail } from '@/lib/auth/admin';
+import { EMAIL_VERIFICATION_MAX_AGE_SECONDS } from '@/lib/auth/rate-limit';
 import messages from '@/messages/id.json';
 
 // The shared lazy DB proxy has Object.prototype; expose its dialect for adapter detection.
@@ -41,6 +42,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
     ResendProvider({
       apiKey: process.env.RESEND_API_KEY,
       from: process.env.EMAIL_FROM,
+      // Shared with the rate-limit window so both always describe the same token lifetime.
+      maxAge: EMAIL_VERIFICATION_MAX_AGE_SECONDS,
       async sendVerificationRequest({ identifier, url, provider }) {
         if (!provider.from) throw new Error('EMAIL_FROM is required to send verification email.');
         const copy = messages.auth.email;

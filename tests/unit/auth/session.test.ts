@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const dbMocks = vi.hoisted(() => ({ select: vi.fn() }));
+
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/auth', () => ({ auth: vi.fn() }));
+vi.mock('@/db', () => ({ db: { select: dbMocks.select } }));
 vi.mock('next/server', () => ({ connection: vi.fn(async () => undefined) }));
 vi.mock('next/navigation', () => ({
   redirect: vi.fn(() => {
@@ -14,7 +17,12 @@ vi.mock('next/navigation', () => ({
 
 import { auth } from '@/lib/auth';
 import { notFound, redirect } from 'next/navigation';
-import { getCurrentUser, requireAdmin, requireUser } from '@/lib/auth/session';
+import {
+  getCurrentUser,
+  requireAdmin,
+  requireOnboardedUser,
+  requireUser,
+} from '@/lib/auth/session';
 
 const user = {
   id: 'user-1',
@@ -23,6 +31,9 @@ const user = {
   image: null,
   role: 'user' as const,
 };
+function profileRows(rows: unknown[]) {
+  return { from: () => ({ where: () => ({ limit: async () => rows }) }) };
+}
 function mockSession(
   value: typeof user | (Omit<typeof user, 'role'> & { role: 'admin'; deletedAt?: Date }) | null,
 ) {
@@ -36,6 +47,7 @@ describe('server session guards', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockSession(null);
+    dbMocks.select.mockReturnValue(profileRows([{ onboardedAt: new Date() }]));
   });
 
   it('returns null for signed-out users', async () => {
@@ -65,5 +77,22 @@ describe('server session guards', () => {
   it('rejects sessions belonging to soft-deleted users', async () => {
     mockSession({ ...user, role: 'admin', deletedAt: new Date() });
     await expect(requireUser()).rejects.toThrow('redirect');
+  });
+  it('redirects users without a profile row to onboarding', async () => {
+    mockSession(user);
+    dbMocks.select.mockReturnValue(profileRows([]));
+    await expect(requireOnboardedUser()).rejects.toThrow('redirect');
+    expect(redirect).toHaveBeenCalledWith('/onboarding');
+  });
+  it('redirects users whose profile is not onboarded yet', async () => {
+    mockSession(user);
+    dbMocks.select.mockReturnValue(profileRows([{ onboardedAt: null }]));
+    await expect(requireOnboardedUser()).rejects.toThrow('redirect');
+    expect(redirect).toHaveBeenCalledWith('/onboarding');
+  });
+  it('permits onboarded users', async () => {
+    mockSession(user);
+    dbMocks.select.mockReturnValue(profileRows([{ onboardedAt: new Date() }]));
+    expect(await requireOnboardedUser()).toEqual(user);
   });
 });

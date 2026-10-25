@@ -40,7 +40,9 @@ async function SignInContent({ searchParams }: { searchParams: SignInSearchParam
           ? 'accessDenied'
           : params.error === 'Verification'
             ? 'verification'
-            : 'generic';
+            : params.error === 'RateLimited'
+              ? 'rateLimited'
+              : 'generic';
 
   return (
     <section className="space-y-6">

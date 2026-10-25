@@ -1,6 +1,9 @@
 import 'server-only';
+import { eq } from 'drizzle-orm';
 import { notFound, redirect } from 'next/navigation';
 import { connection } from 'next/server';
+import { db } from '@/db';
+import { profiles } from '@/db/schema';
 import { auth } from '@/lib/auth';
 import { safeCallbackUrl } from '@/lib/auth/validation';
 
@@ -25,5 +28,20 @@ export async function requireUser(currentPath = '/home') {
 export async function requireAdmin(currentPath = '/home') {
   const user = await requireUser(currentPath);
   if (user.role !== 'admin') notFound();
+  return user;
+}
+
+/**
+ * E1-01 AC3: signed-in users without `onboarded_at` always finish onboarding first.
+ * A missing profile row also counts as not onboarded.
+ */
+export async function requireOnboardedUser(currentPath = '/home') {
+  const user = await requireUser(currentPath);
+  const [profile] = await db
+    .select({ onboardedAt: profiles.onboardedAt })
+    .from(profiles)
+    .where(eq(profiles.userId, user.id))
+    .limit(1);
+  if (!profile?.onboardedAt) redirect('/onboarding');
   return user;
 }
