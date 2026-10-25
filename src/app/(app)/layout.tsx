@@ -1,9 +1,9 @@
 import { AppShell } from '@/components/layout/app-shell';
-import { requireUser } from '@/lib/auth/session';
+import { requireOnboardedUser } from '@/lib/auth/session';
 import { Suspense } from 'react';
 
 async function AuthenticatedApp({ children }: { children: React.ReactNode }) {
-  const user = await requireUser();
+  const user = await requireOnboardedUser();
   return <AppShell user={user}>{children}</AppShell>;
 }
 

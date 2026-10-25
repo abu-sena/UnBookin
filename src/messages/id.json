@@ -18,7 +18,8 @@
       "accountNotLinked": "Email ini sudah memakai cara masuk lain. Gunakan cara yang sama seperti sebelumnya.",
       "accessDenied": "Akun ini belum bisa masuk. Hubungi bantuan jika kamu membutuhkan akses.",
       "verification": "Tautan masuk sudah kedaluwarsa atau pernah digunakan. Minta tautan baru, ya.",
-      "generic": "Belum berhasil masuk. Coba lagi sebentar lagi, ya."
+      "generic": "Belum berhasil masuk. Coba lagi sebentar lagi, ya.",
+      "rateLimited": "Kamu sudah meminta 5 tautan masuk dalam sejam terakhir. Tunggu sebentar, lalu coba lagi, ya."
     },
     "email": {
       "subject": "Tautan masuk Unbookin",
@@ -395,6 +396,48 @@
     "save": "Simpan",
     "saving": "Menyimpan…",
     "saved": "Profil tersimpan."
+  },
+  "onboarding": {
+    "progress": "Langkah {current} dari {total}",
+    "back": "Kembali",
+    "next": "Lanjut",
+    "submit": "Selesai",
+    "saving": "Menyimpan…",
+    "charCount": "{count}/{max} karakter",
+    "goalHint": "Satu kalimat, 10–200 karakter.",
+    "roleSuggestionsLabel": "Saran cepat",
+    "primaryInterestLabel": "Minat utama",
+    "additionalInterestsLabel": "Minat tambahan",
+    "additionalInterestsHint": "Pilih maksimal 2. Minat utama tidak bisa dipilih lagi.",
+    "additionalInterestsFull": "Dua minat tambahan sudah dipilih. Lepas salah satu untuk mengganti.",
+    "selected": "Dipilih",
+    "primaryBadge": "Utama",
+    "primaryAria": "Pilih {name} sebagai minat utama",
+    "additionalAria": "Pilih {name} sebagai minat tambahan",
+    "finishTitle": "Profil belajar siap",
+    "finishDescription": "Kami sudah menyiapkan pengalaman belajar yang lebih relevan untukmu.",
+    "steps": {
+      "name": {
+        "title": "Siapa nama panggilanmu?",
+        "description": "Kami pakai nama ini untuk menyapamu di Beranda."
+      },
+      "role": {
+        "title": "Apa peran atau pekerjaanmu?",
+        "description": "Contoh dan latihan akan kami sesuaikan dengan peranmu."
+      },
+      "interests": {
+        "title": "Apa yang ingin kamu pelajari?",
+        "description": "Pilih satu minat utama dan maksimal dua minat tambahan."
+      },
+      "goal": {
+        "title": "Apa tujuan belajarmu?",
+        "description": "Tulis satu kalimat yang spesifik. Ini membantu kami menyusun contoh yang relevan."
+      },
+      "dailyGoal": {
+        "title": "Berapa target belajar harianmu?",
+        "description": "Pilih waktu yang realistis. Kamu bisa mengubahnya nanti."
+      }
+    }
   },
   "profile": {
     "title": "Profil",
