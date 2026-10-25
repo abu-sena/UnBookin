@@ -5,19 +5,29 @@ export const DAILY_GOAL_MINUTES = [5, 10, 20] as const;
 export const EXPERIENCE_LEVELS = ['novice', 'intermediate', 'advanced'] as const;
 export const MAX_ADDITIONAL_INTERESTS = 2;
 
+/**
+ * Field schemas shared by the full profile schema and the onboarding wizard, so each
+ * step validates against exactly the same rules the Server Action applies.
+ */
+export const displayNameFieldSchema = z.string().trim().min(1).max(40);
+export const jobRoleFieldSchema = z.string().trim().min(2).max(80);
+export const interestSlugFieldSchema = z.string().trim().min(1).max(100);
+export const goalFieldSchema = z.string().trim().min(10).max(200);
+export const dailyGoalFieldSchema = z.coerce
+  .number()
+  .refine((value) => (DAILY_GOAL_MINUTES as readonly number[]).includes(value));
+
 export const learningProfileSchema = z
   .object({
-    displayName: z.string().trim().min(1).max(40),
-    jobRole: z.string().trim().min(2).max(80),
-    primaryInterestSlug: z.string().trim().min(1).max(100),
+    displayName: displayNameFieldSchema,
+    jobRole: jobRoleFieldSchema,
+    primaryInterestSlug: interestSlugFieldSchema,
     additionalInterestSlugs: z
-      .array(z.string().trim().min(1).max(100))
+      .array(interestSlugFieldSchema)
       .max(MAX_ADDITIONAL_INTERESTS)
       .default([]),
-    goal: z.string().trim().min(10).max(200),
-    dailyGoalMinutes: z.coerce
-      .number()
-      .refine((value) => (DAILY_GOAL_MINUTES as readonly number[]).includes(value)),
+    goal: goalFieldSchema,
+    dailyGoalMinutes: dailyGoalFieldSchema,
     /** IANA zone detected in the browser; invalid or missing falls back to the DB default. */
     timezone: z.string().trim().max(64).optional(),
     /** Not asked during onboarding (default `novice`); editable in Settings. */
