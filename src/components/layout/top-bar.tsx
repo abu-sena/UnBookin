@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
-import { BellIcon, FlameIcon, UserIcon } from 'lucide-react';
+import Link from 'next/link';
+import { BellIcon, FlameIcon, SettingsIcon, UserIcon, UserRoundIcon } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,10 +21,12 @@ type TopBarProps = {
 };
 
 export async function TopBar({ title, streakCount, user }: TopBarProps) {
-  const [tCommon, tTopBar, tAuth] = await Promise.all([
+  const [tCommon, tTopBar, tAuth, tProfile, tSettings] = await Promise.all([
     getTranslations('common'),
     getTranslations('topBar'),
     getTranslations('auth'),
+    getTranslations('profile'),
+    getTranslations('settings'),
   ]);
 
   return (
@@ -67,6 +70,18 @@ export async function TopBar({ title, streakCount, user }: TopBarProps) {
               {user?.name && (
                 <DropdownMenuLabel className="max-w-56 truncate">{user.name}</DropdownMenuLabel>
               )}
+              <DropdownMenuItem asChild>
+                <Link href="/profile" className="min-h-11 w-full">
+                  <UserRoundIcon />
+                  {tProfile('title')}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/settings" className="min-h-11 w-full">
+                  <SettingsIcon />
+                  {tSettings('title')}
+                </Link>
+              </DropdownMenuItem>
               <form action={signOutAction}>
                 <DropdownMenuItem asChild>
                   <button type="submit" className="min-h-11 w-full">
