@@ -48,7 +48,7 @@ export async function PricingSection() {
                 key={family}
                 className="bg-surface border-border rounded-[var(--radius-card)] border p-5"
               >
-                <h3 className="text-h3">{monthly.name}</h3>
+                <h3 className="text-h3">{t(`pricing.plans.${family}.name`)}</h3>
                 <p className="mt-3 flex items-baseline gap-1">
                   <span
                     className="text-h2 font-bold"

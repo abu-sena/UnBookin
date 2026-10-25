@@ -275,16 +275,19 @@
       "savings": "Hemat {pct}%",
       "plans": {
         "free": {
+          "name": "Gratis",
           "bullet1": "2 Unbook per bulan",
           "bullet2": "20 pesan mentor per bulan",
           "bullet3": "Modul contoh di Originals"
         },
         "pro": {
+          "name": "Pro",
           "bullet1": "8 Unbook per bulan",
           "bullet2": "300 pesan mentor per bulan",
           "bullet3": "Akses penuh Originals"
         },
         "byok": {
+          "name": "Pro BYOK",
           "bullet1": "Unbook tanpa batas (fair use)",
           "bullet2": "Mentor tanpa batas dengan kunci sendiri",
           "bullet3": "Pilih model AI dari daftar yang diizinkan"
