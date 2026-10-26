@@ -18,8 +18,8 @@ const statusClasses: Record<UnbookStatus, string> = {
   queued: 'border-border bg-surface-2 text-text-muted',
   outlining: 'border-primary/30 bg-primary-soft text-primary',
   generating: 'border-primary/30 bg-primary-soft text-primary',
-  ready: 'border-success/30 bg-success/10 text-success',
-  failed: 'border-danger/30 bg-danger/10 text-danger',
+  ready: 'border-success/30 bg-success/10 text-text',
+  failed: 'border-danger/30 bg-danger/10 text-text',
 };
 
 function coverVariant(title: string): string {
