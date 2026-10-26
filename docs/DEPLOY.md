@@ -38,6 +38,12 @@ Urutan yang disarankan: 1 → 8. Kalau domain belum siap, bisa mulai dengan alam
 
 ## 2. Database di Neon
 
+> **Yang dipakai sekarang (26 Okt 2026):** database `unbookin-db` dibuat lewat **Vercel → unbookin → Storage →
+> Neon** (region Singapura `sin1`, paket Free, prefix `DATABASE`). Vercel otomatis mengisi `DATABASE_URL`
+> (pooled) dan `DATABASE_URL_UNPOOLED` (direct), jadi langkah 2.1–2.2 di bawah tidak perlu. Alamat direct untuk
+> migrasi ada di Vercel → Storage → `unbookin-db` → tab **.env.local** → tombol **Show secret**, baris
+> `DATABASE_URL_UNPOOLED`. Lanjutkan dari langkah 2.3 dengan alamat itu.
+
 1. Di neon.tech buat project baru: region **AWS Asia Pacific (Singapore)**, Postgres versi 17.
 2. Di halaman **Connection Details** ambil dua alamat:
    - **Pooled connection** (alamat host mengandung `-pooler`) → untuk Vercel (`DATABASE_URL`).
