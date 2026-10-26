@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { BoldIcon, BookOpenIcon, HeartIcon, ItalicIcon, UnderlineIcon } from 'lucide-react';
 import { useState } from 'react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { LibraryCard } from '@/components/library/library-card';
+import { LibraryFilterForm } from '@/components/library/library-filter-form';
 import { Sheet } from '@/components/layout/sheet';
 import { EmptyState } from '@/components/ui-kit/empty-state';
 import { ErrorState } from '@/components/ui-kit/error-state';
@@ -28,6 +30,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import type { LibraryInterestOption, LibraryItem } from '@/lib/library/types';
 
 type DevUiShowcaseProps = {
   title: string;
@@ -42,6 +45,57 @@ const radiusTokens = [
   { className: 'rounded-[var(--radius-card)]', labelKey: 'radiusCard' },
   { className: 'rounded-[var(--radius-sheet)]', labelKey: 'radiusSheet' },
 ] as const;
+
+const libraryFixtureInterests: LibraryInterestOption[] = [
+  { slug: 'leadership-management', name: 'Kepemimpinan dan Manajemen' },
+  { slug: 'personal-development-productivity', name: 'Pengembangan Diri dan Produktivitas' },
+  { slug: 'islamic-studies', name: 'Studi Islam' },
+];
+
+const libraryFixtureItems: LibraryItem[] = [
+  {
+    id: 'library-ready',
+    title: 'Good to Great',
+    author: 'Jim Collins',
+    interestName: 'Kepemimpinan dan Manajemen',
+    interestSlug: 'leadership-management',
+    status: 'ready',
+    modulesRead: 3,
+    moduleCount: 8,
+  },
+  {
+    id: 'library-generating',
+    title: 'Atomic Habits',
+    author: 'James Clear',
+    interestName: 'Pengembangan Diri dan Produktivitas',
+    interestSlug: 'personal-development-productivity',
+    status: 'generating',
+    modulesRead: 0,
+    moduleCount: 6,
+  },
+  {
+    id: 'library-failed',
+    title: 'Deep Work',
+    author: null,
+    interestName: 'Pengembangan Diri dan Produktivitas',
+    interestSlug: 'personal-development-productivity',
+    status: 'failed',
+    modulesRead: 0,
+    moduleCount: 5,
+  },
+  {
+    id: 'library-long',
+    title:
+      'Membangun Kebiasaan Membaca yang Bertahan Saat Pekerjaan Sedang Sangat Padat dan Tidak Ada Waktu Luang',
+    author:
+      'Nama Penulis yang Sangat Panjang untuk Menguji Pembungkusan Teks di Layar Ponsel yang Sempit',
+    interestName: 'Studi Islam',
+    interestSlug: 'islamic-studies',
+    status: 'outlining',
+    modulesRead: 0,
+    moduleCount: 12,
+  },
+];
 
 export function DevUiShowcase({
   title,
@@ -239,6 +293,31 @@ export function DevUiShowcase({
               <Skeleton className="h-16 w-full" />
             </div>
           </div>
+        </div>
+      </Section>
+
+      <Section title={t('sectionLibrary')}>
+        <p className="text-body text-text-muted">{t('libraryPreviewDescription')}</p>
+
+        <div>
+          <h3 className="text-h3 mb-3">{t('libraryFilterHint')}</h3>
+          <LibraryFilterForm
+            filters={{
+              q: 'kebiasaan',
+              interest: 'personal-development-productivity',
+              status: 'ready',
+            }}
+            interests={libraryFixtureInterests}
+          />
+        </div>
+
+        <div>
+          <h3 className="text-h3 mb-3">{t('libraryCardsTitle')}</h3>
+          <ul className="flex flex-col gap-3">
+            {libraryFixtureItems.map((item) => (
+              <LibraryCard key={item.id} item={item} />
+            ))}
+          </ul>
         </div>
       </Section>
 

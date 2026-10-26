@@ -117,6 +117,41 @@
       "title": "Progres"
     }
   },
+  "library": {
+    "description": "Semua Unbook pribadimu, lengkap dengan progres belajar dan statusnya.",
+    "filters": {
+      "label": "Saring pustaka",
+      "searchLabel": "Cari judul",
+      "searchPlaceholder": "Tulis judul Unbook",
+      "interestLabel": "Minat",
+      "allInterests": "Semua minat",
+      "statusLabel": "Status",
+      "allStatuses": "Semua status",
+      "apply": "Terapkan filter",
+      "reset": "Atur ulang"
+    },
+    "status": {
+      "queued": "Antre",
+      "outlining": "Menyusun kerangka",
+      "generating": "Menulis modul",
+      "ready": "Siap",
+      "failed": "Gagal"
+    },
+    "progress": "{read}/{total} modul",
+    "progressAria": "Progres modul: {read} dari {total}",
+    "authorFallback": "Penulis tidak dicantumkan",
+    "empty": {
+      "message": "Pustakamu masih kosong. Unbook buku, jurnal, atau tautan pertamamu untuk mengubahnya jadi modul belajar."
+    },
+    "noMatches": {
+      "message": "Tidak ada Unbook yang cocok dengan pencarian dan filter ini.",
+      "reset": "Tampilkan semua Unbook"
+    },
+    "error": {
+      "message": "Pustakamu belum bisa dimuat. Coba lagi sebentar lagi, ya.",
+      "retry": "Coba lagi"
+    }
+  },
   "devUi": {
     "title": "Perpustakaan UI",
     "description": "Semua token desain dan komponen Unbookin di satu tempat.",
@@ -128,6 +163,10 @@
     "sectionForms": "Formulir",
     "sectionComponents": "Komponen",
     "sectionStates": "Status kosong dan error",
+    "sectionLibrary": "Pustaka",
+    "libraryPreviewDescription": "Kartu dan filter Pustaka memakai data contoh. Coba tema terang dan gelap.",
+    "libraryFilterHint": "Filter GET yang sebenarnya, dengan opsi minat contoh.",
+    "libraryCardsTitle": "Kartu Unbook",
     "sectionNavigation": "Navigasi",
     "sectionSheet": "Lembar bawah",
     "openSheet": "Buka lembar bawah",
