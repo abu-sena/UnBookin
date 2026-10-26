@@ -7,8 +7,6 @@ import { Label } from '@/components/ui/label';
 import { getCurrentUser } from '@/lib/auth/session';
 import { emailSignInAction, googleSignInAction } from '@/lib/auth/actions';
 import { safeCallbackUrl } from '@/lib/auth/validation';
-import Link from 'next/link';
-import { BrandLogo } from '@/components/brand-logo';
 
 type SignInSearchParams = Promise<{ callbackUrl?: string; error?: string }>;
 
@@ -43,31 +41,35 @@ async function SignInContent({ searchParams }: { searchParams: SignInSearchParam
               : 'generic';
 
   return (
-    <section className="space-y-6">
-      <div className="space-y-2">
-        <Link href="/" className="mb-4 inline-flex min-h-11 items-center">
-          <BrandLogo className="w-44" sizes="176px" />
-        </Link>
-        <h1 className="text-h1">{t('title')}</h1>
-        <p className="text-muted-foreground">{t('description')}</p>
-      </div>
+    <section className="space-y-6" aria-labelledby="sign-in-heading">
+      <header className="space-y-2 text-center">
+        <h1 id="sign-in-heading" className="text-h1 tracking-tight text-balance">
+          {t('title')}
+        </h1>
+        <p className="text-muted-foreground text-small mx-auto max-w-[32ch] leading-relaxed font-normal text-pretty">
+          {t('description')}
+        </p>
+      </header>
       {params.error && (
-        <p role="alert" className="text-danger text-small">
+        <p
+          role="alert"
+          className="text-danger bg-danger/10 text-small rounded-[var(--radius-input)] p-3 leading-relaxed text-pretty"
+        >
           {t(`errors.${errorKey}`)}
         </p>
       )}
       <form action={googleSignInAction}>
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
-        <Button type="submit" variant="outline" className="min-h-11 w-full">
+        <Button type="submit" variant="outline" className="min-h-12 w-full whitespace-normal">
           {t('google')}
         </Button>
       </form>
       <div className="flex items-center gap-3">
-        <div className="bg-border h-px flex-1" />
-        <span className="text-muted-foreground text-small">{t('divider')}</span>
-        <div className="bg-border h-px flex-1" />
+        <div className="bg-border h-px flex-1" aria-hidden="true" />
+        <span className="text-muted-foreground text-caption">{t('divider')}</span>
+        <div className="bg-border h-px flex-1" aria-hidden="true" />
       </div>
-      <form action={emailSignInAction} className="space-y-4">
+      <form action={emailSignInAction} className="space-y-5">
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
         <div className="space-y-2">
           <Label htmlFor="email">{t('emailLabel')}</Label>
@@ -77,14 +79,20 @@ async function SignInContent({ searchParams }: { searchParams: SignInSearchParam
             type="email"
             autoComplete="email"
             inputMode="email"
+            aria-describedby="email-hint"
             required
             maxLength={254}
             placeholder={t('emailPlaceholder')}
-            className="min-h-11"
+            className="min-h-12 rounded-[var(--radius-input)] md:text-base"
           />
+          <p
+            id="email-hint"
+            className="text-muted-foreground text-small leading-relaxed font-normal text-pretty"
+          >
+            {t('emailHint')}
+          </p>
         </div>
-        <p className="text-muted-foreground text-small">{t('emailHint')}</p>
-        <Button type="submit" className="min-h-11 w-full">
+        <Button type="submit" className="min-h-12 w-full whitespace-normal">
           {t('sendLink')}
         </Button>
       </form>
