@@ -3,7 +3,15 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { BadgeRule } from '../lib/game/badge-rules';
 import { PlanLimits } from '../lib/billing/plan-limits';
-import { badges, domains, interests, missionTemplates, plans, priceVariants } from './schema';
+import {
+  aiTaskConfigs,
+  badges,
+  domains,
+  interests,
+  missionTemplates,
+  plans,
+  priceVariants,
+} from './schema';
 import {
   badgeSeeds,
   domainSeeds,
@@ -12,6 +20,7 @@ import {
   planSeeds,
   priceVariantSeeds,
 } from './seed-data';
+import { buildEmbeddingTaskConfigRow, resolveEmbeddingModelFromEnv } from './embedding-config';
 
 config({ path: ['.env.local', '.env'], quiet: true });
 
@@ -64,8 +73,23 @@ async function seed() {
           .values(row)
           .onConflictDoUpdate({ target: missionTemplates.slug, set: row });
       }
+      // Optional embedding model config: only seeded when EMBEDDING_MODEL is
+      // set to a non-empty, non-comment value. All other seed data is
+      // preserved either way.
+      const embeddingModel = resolveEmbeddingModelFromEnv(process.env);
+      if (embeddingModel) {
+        const row = buildEmbeddingTaskConfigRow(embeddingModel);
+        await tx
+          .insert(aiTaskConfigs)
+          .values(row)
+          .onConflictDoUpdate({ target: aiTaskConfigs.task, set: row });
+      }
     });
-    console.info('Seed complete: interests, domains, plans, badges, mission templates.');
+    console.info(
+      resolveEmbeddingModelFromEnv(process.env)
+        ? 'Seed complete: interests, domains, plans, badges, mission templates, embedding config.'
+        : 'Seed complete: interests, domains, plans, badges, mission templates (no EMBEDDING_MODEL configured).',
+    );
   } finally {
     await client.end();
   }
