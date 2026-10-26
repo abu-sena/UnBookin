@@ -1,0 +1,11 @@
+Generation mode: built-in image_gen
+
+Use case: logo-brand.
+Asset type: primary brand logo for UnBookin, an AI-assisted learning platform that turns books and articles into understanding, real-world application, and demonstrated mastery.
+Primary request: Create one refined, modern, philosophical and memorable logo, comprising one distinctive abstract symbol on the left and the exact wordmark "UnBookin" on the right.
+Concept: knowledge opening into action. Design an elegantly reductive geometric symbol that can be read as a lowercase/uppercase U and an open book, with its right page subtly unfolding upward to suggest progress and applied knowledge. The metaphor must be integrated into one coherent compact silhouette, not a collage of separate icons. Two or three bold precisely balanced folds/planes at most, with generous negative space and consistent optical weight. It should remain clear at favicon size.
+Style/medium: professional flat vector-style brand identity, crisp clean edges, custom geometry, quiet intellectual confidence, contemporary and approachable. Original design.
+Color palette: indigo #4338CA for the symbol; deep ink #1C1917 for the wordmark. Solid flat colors only, no gradient.
+Typography: exceptionally polished modern geometric/humanist sans serif, medium-bold weight, balanced kerning, friendly open counters; exact capitalization "UnBookin" (U n B o o k i n). Text must be flawlessly legible.
+Composition: single horizontal logo lockup, symbol to the left, wordmark to the right, excellent proportions, centered on a wide transparent canvas with generous clear space. Large logo occupies most of the width. Genuine transparent alpha background.
+Constraints: Render ONLY the symbol and "UnBookin". No additional text, tagline, labels, concept board, multiple versions, frames, mockups, paper texture, shadows, 3D, light effects, watermarks. Avoid generic AI sparkles, brains, graduation caps, lightbulbs, infinity signs and busy linework. Prioritize beauty, distinctiveness and small-size readability.

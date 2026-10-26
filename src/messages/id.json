@@ -1,6 +1,6 @@
 {
   "auth": {
-    "title": "Masuk ke Unbookin",
+    "title": "Masuk ke UnBookin",
     "description": "Lanjutkan perjalanan belajarmu tanpa kata sandi.",
     "google": "Masuk dengan Google",
     "divider": "atau lewat email",
@@ -22,9 +22,9 @@
       "rateLimited": "Kamu sudah meminta 5 tautan masuk dalam sejam terakhir. Tunggu sebentar, lalu coba lagi, ya."
     },
     "email": {
-      "subject": "Tautan masuk Unbookin",
-      "intro": "Halo! Gunakan tautan berikut untuk masuk ke Unbookin.",
-      "action": "Masuk ke Unbookin",
+      "subject": "Tautan masuk UnBookin",
+      "intro": "Halo! Gunakan tautan berikut untuk masuk ke UnBookin.",
+      "action": "Masuk ke UnBookin",
       "expiry": "Tautan ini hanya bisa digunakan sekali dan berlaku selama 24 jam.",
       "ignore": "Jika kamu tidak meminta tautan ini, abaikan email ini."
     }
@@ -42,7 +42,7 @@
     "copied": "Tautan berhasil disalin.",
     "copyFailed": "Tautan belum tersalin. Salin langsung dari kolom tautan, ya.",
     "whatsapp": "Bagikan lewat WhatsApp",
-    "shareText": "Yuk, gabung daftar tunggu Unbookin bersamaku! {link}",
+    "shareText": "Yuk, gabung daftar tunggu UnBookin bersamaku! {link}",
     "boost": "Setiap teman yang bergabung lewat tautanmu menaikkan posisimu 10 tingkat.",
     "errors": {
       "invalidInput": "Periksa email dan isianmu, lalu coba lagi, ya.",
@@ -51,20 +51,20 @@
       "generic": "Belum berhasil mendaftar. Coba lagi sebentar lagi, ya."
     },
     "email": {
-      "subject": "Kamu sudah masuk daftar tunggu Unbookin!",
-      "intro": "Terima kasih sudah bergabung dengan daftar tunggu Unbookin.",
+      "subject": "Kamu sudah masuk daftar tunggu UnBookin!",
+      "intro": "Terima kasih sudah bergabung dengan daftar tunggu UnBookin.",
       "position": "Kamu di antrean ke-{position}.",
       "share": "Bagikan tautan rujukanmu kepada teman:",
       "boost": "Setiap teman yang bergabung lewat tautanmu menaikkan posisimu 10 tingkat."
     }
   },
   "common": {
-    "appName": "Unbookin",
+    "appName": "UnBookin",
     "tagline": "Unbook anything. Master everything.",
     "close": "Tutup"
   },
   "metadata": {
-    "title": "Unbookin — Platform belajar dari buku, jurnal, dan tautan",
+    "title": "UnBookin — Platform belajar dari buku, jurnal, dan tautan",
     "description": "Ubah buku, jurnal, dan tautan menjadi modul belajar Pahami, Terapkan, dan Buktikan dengan kuis, review terjadwal, dan gamifikasi."
   },
   "nav": {
@@ -154,8 +154,9 @@
   },
   "devUi": {
     "title": "Perpustakaan UI",
-    "description": "Semua token desain dan komponen Unbookin di satu tempat.",
+    "description": "Semua token desain dan komponen UnBookin di satu tempat.",
     "sectionTheme": "Tema",
+    "sectionBrand": "Identitas merek",
     "sectionColors": "Warna",
     "sectionTypography": "Tipografi",
     "sectionRadius": "Sudut",
@@ -339,17 +340,17 @@
     },
     "faq": {
       "title": "Pertanyaan umum",
-      "q1": "Apa itu Unbookin?",
+      "q1": "Apa itu UnBookin?",
       "a1": "Platform belajar berbasis AI yang mengubah buku, jurnal, dan tautan menjadi modul Pahami, Terapkan, Buktikan — lengkap dengan kuis, review terjadwal, dan gamifikasi.",
       "q2": "Apakah buku atau file yang saya unggah aman?",
       "a2": "Hanya kamu yang bisa membaca konten unggahanmu. Tidak ada URL publik untuk konten itu, dan kamu bisa menghapusnya kapan saja.",
       "q3": "AI apa yang dipakai?",
-      "a3": "Unbookin memakai model kelas utama lewat OpenRouter. Dengan paket Pro BYOK, kamu bisa memakai kunci model sendiri dari daftar yang diizinkan.",
+      "a3": "UnBookin memakai model kelas utama lewat OpenRouter. Dengan paket Pro BYOK, kamu bisa memakai kunci model sendiri dari daftar yang diizinkan.",
       "q4": "Bagaimana privasi data saya?",
       "a4": "Data milikmu. Kamu bisa mengekspor seluruh data atau menghapus akun secara permanen kapan saja.",
       "q5": "Berapa harganya?",
       "a5": "Ada paket Gratis. Paket berbayar mulai dari puluhan ribu rupiah per bulan, dan paket tahunan lebih hemat — angka terkini ada di bagian harga di atas.",
-      "q6": "Kapan Unbookin diluncurkan?",
+      "q6": "Kapan UnBookin diluncurkan?",
       "a6": "Daftar tunggu dibuka sekarang. Undangan dikirim bertahap menjelang peluncuran publik."
     }
   },
@@ -360,14 +361,14 @@
     },
     "syarat": {
       "title": "Syarat Layanan",
-      "intro": "Halaman ini akan memuat ketentuan penggunaan platform Unbookin.",
+      "intro": "Halaman ini akan memuat ketentuan penggunaan platform UnBookin.",
       "p1": "Ketentuan mengenai akun, langganan, pembayaran, dan pembatalan akan diuraikan di sini.",
-      "p2": "Rincian hak dan kewajiban pengguna serta batasan tanggung jawab Unbookin menyusul setelah peninjauan hukum.",
+      "p2": "Rincian hak dan kewajiban pengguna serta batasan tanggung jawab UnBookin menyusul setelah peninjauan hukum.",
       "p3": "Setiap perubahan ketentuan akan selalu diumumkan di halaman ini."
     },
     "privasi": {
       "title": "Kebijakan Privasi",
-      "intro": "Halaman ini akan memuat cara Unbookin mengumpulkan, memakai, dan melindungi data kamu.",
+      "intro": "Halaman ini akan memuat cara UnBookin mengumpulkan, memakai, dan melindungi data kamu.",
       "p1": "Rincian data yang dikumpulkan, dasar pemrosesan, dan masa retensi akan diuraikan di sini.",
       "p2": "Hak kamu atas ekspor dan penghapusan data akan dijelaskan setelah peninjauan hukum.",
       "p3": "Cara menghubungi kami terkait data pribadi dan proses permintaannya menyusul di bagian ini."
@@ -387,9 +388,9 @@
     },
     "footer": {
       "navLabel": "Tautan legal",
-      "rights": "© 2026 Unbookin"
+      "rights": "© 2026 UnBookin"
     },
-    "ogImageAlt": "Unbookin — Unbook anything. Master everything."
+    "ogImageAlt": "UnBookin — Unbook anything. Master everything."
   },
   "profileForm": {
     "labels": {
@@ -484,7 +485,7 @@
   "profile": {
     "title": "Profil",
     "description": "Ringkasan perjalanan belajarmu.",
-    "unnamed": "Pengguna Unbookin",
+    "unnamed": "Pengguna UnBookin",
     "level": "Level",
     "levelValue": "Level {level}",
     "totalXp": "Total XP",

@@ -1,5 +1,7 @@
 import { ImageResponse } from 'next/og';
 import messages from '@/messages/id.json';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 
 /*
  * Hex literals are allowed ONLY in this file: `ImageResponse` (satori) renders
@@ -14,7 +16,6 @@ const COLORS = {
   textMuted: '#78716C', // --text-muted (light)
   primary: '#4338CA', // --primary (light)
   primarySoft: '#EEF2FF', // --primary-soft (light)
-  primaryFg: '#FFFFFF', // --primary-fg (light)
   xp: '#F59E0B', // --xp (light)
 };
 
@@ -22,7 +23,9 @@ export const alt = messages.marketing.ogImageAlt;
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
-export default function OgImage() {
+export default async function OgImage() {
+  const logo = await readFile(join(process.cwd(), 'public/branding/unbookin-logo.png'));
+
   return new ImageResponse(
     <div
       style={{
@@ -36,23 +39,15 @@ export default function OgImage() {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 56,
-            height: 56,
-            borderRadius: 12,
-            backgroundColor: COLORS.primary,
-            color: COLORS.primaryFg,
-            fontSize: 32,
-            fontWeight: 700,
-          }}
-        >
-          U
-        </div>
-        <div style={{ color: COLORS.text, fontSize: 32, fontWeight: 700 }}>Unbookin</div>
+        {/* ImageResponse embeds the local artwork directly; next/image is for browser output. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={`data:image/png;base64,${logo.toString('base64')}`}
+          alt={messages.common.appName}
+          width={300}
+          height={67}
+          style={{ objectFit: 'contain' }}
+        />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

@@ -11,6 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { signOutAction } from '@/lib/auth/actions';
+import { BrandLogo } from '@/components/brand-logo';
 
 type TopBarProps = {
   user?: { name?: string | null; image?: string | null };
@@ -21,8 +22,7 @@ type TopBarProps = {
 };
 
 export async function TopBar({ title, streakCount, user }: TopBarProps) {
-  const [tCommon, tTopBar, tAuth, tProfile, tSettings] = await Promise.all([
-    getTranslations('common'),
+  const [tTopBar, tAuth, tProfile, tSettings] = await Promise.all([
     getTranslations('topBar'),
     getTranslations('auth'),
     getTranslations('profile'),
@@ -32,7 +32,13 @@ export async function TopBar({ title, streakCount, user }: TopBarProps) {
   return (
     <header className="border-border bg-background/90 sticky top-0 z-40 border-b backdrop-blur">
       <div className="flex h-14 items-center justify-between gap-2 px-4 lg:px-6">
-        <h1 className="text-h3 truncate">{title ?? tCommon('appName')}</h1>
+        {title ? (
+          <h1 className="text-h3 truncate">{title}</h1>
+        ) : (
+          <Link href="/home" className="inline-flex min-h-11 min-w-0 items-center">
+            <BrandLogo className="w-28 sm:w-36" sizes="(min-width: 640px) 144px, 112px" />
+          </Link>
+        )}
 
         <div className="flex items-center gap-1">
           <span

@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label';
 import { getCurrentUser } from '@/lib/auth/session';
 import { emailSignInAction, googleSignInAction } from '@/lib/auth/actions';
 import { safeCallbackUrl } from '@/lib/auth/validation';
+import Link from 'next/link';
+import { BrandLogo } from '@/components/brand-logo';
 
 type SignInSearchParams = Promise<{ callbackUrl?: string; error?: string }>;
 
@@ -25,11 +27,7 @@ export default function SignInPage({ searchParams }: { searchParams: SignInSearc
 
 async function SignInContent({ searchParams }: { searchParams: SignInSearchParams }) {
   if (await getCurrentUser()) redirect('/home');
-  const [params, t, common] = await Promise.all([
-    searchParams,
-    getTranslations('auth'),
-    getTranslations('common'),
-  ]);
+  const [params, t] = await Promise.all([searchParams, getTranslations('auth')]);
   const callbackUrl = safeCallbackUrl(params.callbackUrl);
   const errorKey =
     params.error === 'InvalidEmail'
@@ -47,7 +45,9 @@ async function SignInContent({ searchParams }: { searchParams: SignInSearchParam
   return (
     <section className="space-y-6">
       <div className="space-y-2">
-        <p className="text-primary text-h3 font-semibold">{common('appName')}</p>
+        <Link href="/" className="mb-4 inline-flex min-h-11 items-center">
+          <BrandLogo className="w-44" sizes="176px" />
+        </Link>
         <h1 className="text-h1">{t('title')}</h1>
         <p className="text-muted-foreground">{t('description')}</p>
       </div>

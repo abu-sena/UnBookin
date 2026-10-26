@@ -1,12 +1,12 @@
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { Button } from '@/components/ui/button';
+import { BrandLogo } from '@/components/brand-logo';
 
 /** Public marketing shell (E0-01): header with wordmark + CTA, footer legal. */
 export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
-  const [marketing, common, legal] = await Promise.all([
+  const [marketing, legal] = await Promise.all([
     getTranslations('marketing'),
-    getTranslations('common'),
     getTranslations('legal'),
   ]);
 
@@ -14,8 +14,8 @@ export default async function MarketingLayout({ children }: { children: React.Re
     <div className="flex min-h-dvh flex-col">
       <header className="border-border bg-background/95 sticky top-0 z-40 border-b backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-[1120px] items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="text-h3 font-bold">
-            {common('appName')}
+          <Link href="/" className="inline-flex min-h-11 shrink-0 items-center">
+            <BrandLogo className="w-32 sm:w-40" sizes="(min-width: 640px) 160px, 128px" />
           </Link>
           <div className="flex items-center gap-1 sm:gap-2">
             <Link
@@ -58,7 +58,12 @@ export default async function MarketingLayout({ children }: { children: React.Re
               {legal('hakCipta.title')}
             </Link>
           </nav>
-          <p className="text-muted-foreground text-small">{marketing('footer.rights')}</p>
+          <div className="flex shrink-0 flex-col gap-3">
+            <Link href="/" className="inline-flex min-h-11 items-center self-start">
+              <BrandLogo className="w-32" sizes="128px" loading="lazy" />
+            </Link>
+            <p className="text-muted-foreground text-small">{marketing('footer.rights')}</p>
+          </div>
         </div>
       </footer>
     </div>
