@@ -73,3 +73,9 @@ PDF 200 halaman dengan embedding terbukti; pustaka saja belum memenuhi gerbang i
 - Berikutnya: E2-01, E2-02, dan E2-03 AC3. Rencana pipeline masih menunggu
   persetujuan sesuai `CLAUDE.md`; kredensial R2, Inngest, dan OpenRouter lokal
   belum terisi untuk pengujian integrasi nyata. Jangan menandai M3 selesai.
+- Worktree `codex/m3-library` dipertahankan karena aplikasi menolaknya untuk
+  diarsipkan sebagai checkout utama chat. Direktori data sesi worker di
+  `../UnBookin-wt/_orchestration/data/` juga dipertahankan: penghapusan ditolak
+  pemeriksaan otomatis dengan alasan `blocked by policy`. Koordinator tidak
+  menyalin berkas autentikasi ke direktori ini. Server sementara worktree sudah
+  dihentikan; pratinjau memakai checkout asal pada `http://localhost:3000/dev/ui`.
