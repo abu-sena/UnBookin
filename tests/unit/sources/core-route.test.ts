@@ -12,6 +12,7 @@ vi.mock('@/lib/sources/queries', () => ({
 }));
 
 import { GET } from '@/app/api/sources/[unbookId]/route';
+import * as routeModule from '@/app/api/sources/[unbookId]/route';
 
 const USER_ID = '8f9e3f1e-5d2a-4c6e-9b4d-1a2b3c4d5e6f';
 const UNBOOK_ID = 'b2c3d4e5-6a7b-4c8d-9e0f-1a2b3c4d5e6f';
@@ -85,15 +86,22 @@ describe('GET /api/sources/[unbookId]', () => {
     await expect(response.json()).resolves.toEqual(progress);
   });
 
-  it('maps internal query failures to a plain 404 without leaking detail', async () => {
+  it('maps transient internal failures to a retryable safe 503 without leaking detail', async () => {
     mocks.getCurrentUser.mockResolvedValue({ id: USER_ID });
     mocks.loadProgress.mockRejectedValue(new Error('connection refused secret-details'));
 
     const response = await GET(routeRequest(), routeContext());
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(503);
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
     const body = await response.text();
-    expect(JSON.parse(body)).toEqual({ error: 'notFound' });
+    expect(JSON.parse(body)).toEqual({ error: 'processingFailed' });
     expect(body).not.toContain('secret-details');
+  });
+
+  it('exports no removed route segment config (Cache Components)', () => {
+    // `dynamic` was removed in Next 16 with Cache Components; the route must
+    // rely on request-time APIs (auth session) instead.
+    expect('dynamic' in routeModule).toBe(false);
   });
 });

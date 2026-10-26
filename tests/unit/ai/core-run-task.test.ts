@@ -87,6 +87,32 @@ describe('runTask(embedding)', () => {
     expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
+  it('sanitizes a config-lookup driver error into a safe SourceError', async () => {
+    mocks.select.mockImplementation(
+      () =>
+        ({
+          from: () => ({
+            where: () => ({
+              limit: async () => {
+                throw new Error('db-secret: connection refused via driver pq://internal');
+              },
+            }),
+          }),
+        }) as never,
+    );
+
+    const error = await runTask('embedding', { texts: ['halo'] }, { userId: USER_ID }).catch(
+      (caught: unknown) => caught,
+    );
+
+    expect(error).toMatchObject({ code: 'embeddingUnavailable' });
+    expect((error as Error).message).toBe('embeddingUnavailable');
+    expect(JSON.stringify(error)).not.toContain('db-secret');
+    // The failure happened before any provider call or usage logging.
+    expect(mocks.fetch).not.toHaveBeenCalled();
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
   it('requires the platform key without reading any model from env', async () => {
     vi.stubEnv('OPENROUTER_API_KEY', undefined);
 
@@ -247,10 +273,71 @@ describe('runTask(embedding)', () => {
       byok: false,
       status: 'succeeded',
       inputTokens: 12,
-      outputTokens: 24,
+      outputTokens: 0,
       error: null,
     });
     expect(JSON.stringify(logValues)).not.toContain(SENTINEL_TEXT);
     expect(JSON.stringify(logValues)).not.toContain('platform-key');
+  });
+
+  it('never records total_tokens as output tokens (no double counting)', async () => {
+    mocks.fetch.mockResolvedValue(
+      embeddingsResponse([{ index: 0, embedding: vector(1) }], {
+        prompt_tokens: 12,
+        total_tokens: 24,
+        cost: 0.0002,
+      }),
+    );
+
+    const result = await runTask('embedding', { texts: ['a'] }, { userId: USER_ID });
+
+    const logValues = mocks.recordedValues.at(-1) as Record<string, unknown>;
+    expect(logValues.inputTokens).toBe(12);
+    // Embeddings have NO output tokens; total_tokens covers the whole request.
+    expect(logValues.outputTokens).toBe(0);
+    expect(result.costUsd).toBeCloseTo(0.0002);
+  });
+
+  it('records null usage when the provider omits it entirely', async () => {
+    mocks.fetch.mockResolvedValue(embeddingsResponse([{ index: 0, embedding: vector(1) }]));
+
+    const result = await runTask('embedding', { texts: ['a'] }, { userId: USER_ID });
+
+    const logValues = mocks.recordedValues.at(-1) as Record<string, unknown>;
+    expect(logValues.inputTokens).toBeNull();
+    expect(logValues.outputTokens).toBeNull();
+    expect(logValues.costUsd).toBeNull();
+    expect(result.costUsd).toBeNull();
+  });
+
+  it('rejects invalid usage metadata instead of writing malformed rows', async () => {
+    mocks.fetch.mockResolvedValue(
+      embeddingsResponse([{ index: 0, embedding: vector(1) }], {
+        prompt_tokens: -5,
+        total_tokens: 1.5,
+        cost: Number.POSITIVE_INFINITY,
+      }),
+    );
+
+    await runTask('embedding', { texts: ['a'] }, { userId: USER_ID });
+
+    let logValues = mocks.recordedValues.at(-1) as Record<string, unknown>;
+    expect(logValues.status).toBe('succeeded');
+    expect(logValues.inputTokens).toBeNull();
+    expect(logValues.costUsd).toBeNull();
+
+    // Malicious cost beyond the numeric(12,6) column range is dropped too.
+    mocks.fetch.mockResolvedValue(
+      embeddingsResponse([{ index: 0, embedding: vector(1) }], {
+        prompt_tokens: 10,
+        cost: 12345678.5,
+      }),
+    );
+    await runTask('embedding', { texts: ['b'] }, { userId: USER_ID });
+
+    logValues = mocks.recordedValues.at(-1) as Record<string, unknown>;
+    expect(logValues.inputTokens).toBe(10);
+    expect(logValues.outputTokens).toBe(0);
+    expect(logValues.costUsd).toBeNull();
   });
 });

@@ -221,14 +221,27 @@ describe('createInlineSource (text)', () => {
     expect(mocks.deleteObject).not.toHaveBeenCalled();
   });
 
-  it('marks the flow failed and compensates the object when queueing fails', async () => {
-    fake.results.push([{ id: USER_ID }], [{ id: INTEREST_ID }], [], [{ id: 'unb-1' }], [], []);
+  it('marks the flow failed and keeps the text object for retry when queueing fails', async () => {
+    // reservation tx, then markQueueFailed tx: source lock + unbook recheck.
+    fake.results.push(
+      [{ id: USER_ID }],
+      [{ id: INTEREST_ID }],
+      [],
+      [{ id: 'unb-1' }],
+      [{ id: SOURCE_ID }],
+      [{ id: 'unb-1' }],
+      [],
+      [],
+    );
     mocks.sendEvent.mockRejectedValue(new SourceError('jobsUnavailable'));
 
     await expect(createInlineSource(USER_ID, textInput)).rejects.toMatchObject({
       code: 'jobsUnavailable',
     });
 
+    // The committed source keeps its raw text file: the retryable row would
+    // be unusable without it.
+    expect(mocks.deleteObject).not.toHaveBeenCalled();
     expect(fake.recorded.updates.map((entry) => entry.table)).toEqual([sources, unbooks]);
     expect(fake.recorded.updates[0]?.set).toMatchObject({
       status: 'failed',
@@ -238,7 +251,16 @@ describe('createInlineSource (text)', () => {
       status: 'failed',
       currentStage: 'failed',
     });
-    // Compensation: no committed row, so the object must not outlive the call.
+  });
+
+  it('compensates (deletes) the unreferenced object when the reservation fails', async () => {
+    mocks.getAllowance.mockResolvedValue(allowance({ remaining: 0 }));
+
+    await expect(createInlineSource(USER_ID, textInput)).rejects.toMatchObject({
+      code: 'quotaExceeded',
+    });
+
+    expect(fake.recorded.inserts).toHaveLength(0);
     expect(mocks.deleteObject).toHaveBeenCalledTimes(1);
   });
 });

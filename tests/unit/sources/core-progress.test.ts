@@ -58,27 +58,31 @@ describe('loadSourceProgressForUser', () => {
     });
   });
 
-  it('filters every query by the server identity and never exposes it', async () => {
+  it('authorizes the base unbook row: WHERE covers id AND user_id with the session identity', async () => {
     const rec = createRecordingDatabase([[progressRow()], [{ total: 0, embedded: 0 }]]);
 
     await loadSourceProgressForUser(USER_ID, UNBOOK_ID, rec.database);
 
     const [mainSql] = rec.queries.map((query) => query.sql);
     expect(mainSql).toContain('left join');
-    expect(mainSql).toContain('"user_id"');
-    // The unbook id and the session identity are the only user-supplied params.
-    expect(rec.queries[0]?.params).toEqual(expect.arrayContaining([USER_ID, UNBOOK_ID]));
+    // The join predicate alone is NOT authorization: the base row must be
+    // filtered by BOTH the unbook id and the unbook owner.
+    expect(mainSql).toMatch(/where \("unbooks"\."id" = \$2 and "unbooks"\."user_id" = \$3\)/);
+    // $1 is the join's session identity; the WHERE binds the requested id and
+    // the SAME session identity (never a client-supplied owner).
+    expect(rec.queries[0]?.params).toEqual([USER_ID, UNBOOK_ID, USER_ID, 1]);
     expect(rec.queries[1]?.params).toEqual([SOURCE_ID]);
-    expect(rec.queries[1]?.sql).toContain('filter');
-    expect(rec.queries[1]?.sql).toContain('is not null');
   });
 
-  it('returns null for an unknown or not-owned unbook', async () => {
+  it('returns null for an unknown or not-owned unbook and never reads chunks', async () => {
     const rec = createRecordingDatabase([[]]);
 
     const progress = await loadSourceProgressForUser(USER_ID, UNBOOK_ID, rec.database);
 
     expect(progress).toBeNull();
+    // Another user's unbook (filtered out by the owner predicate) never
+    // reaches the chunk-count query either.
+    expect(rec.queries).toHaveLength(1);
   });
 
   it('rejects a malformed unbook id without querying', async () => {
@@ -181,8 +185,21 @@ describe('stage and error parsing', () => {
     expect(deriveProgressStage('failed', 'ready', null)).toBe('failed');
     expect(deriveProgressStage('queued', 'failed', null)).toBe('failed');
     expect(deriveProgressStage('queued', 'extracting', null)).toBe('reading');
-    // A parseable stored stage always wins.
-    expect(deriveProgressStage('ready', 'ready', 'embedding')).toBe('embedding');
+  });
+
+  it('decides terminal statuses first so stale stages cannot fake progress', () => {
+    // ready/failed unbooks and failed sources STOP a stale stored stage.
+    expect(deriveProgressStage('ready', 'ready', 'embedding')).toBe('ready');
+    expect(deriveProgressStage('ready', 'ready', 'uploading')).toBe('ready');
+    expect(deriveProgressStage('failed', 'ready', 'embedding')).toBe('failed');
+    expect(deriveProgressStage('queued', 'failed', 'ingested')).toBe('failed');
+  });
+
+  it('preserves the nonterminal handoff and pipeline stages', () => {
+    // queued unbook + ready source + `ingested` stage is a REAL handoff.
+    expect(deriveProgressStage('queued', 'ready', 'ingested')).toBe('ingested');
+    expect(deriveProgressStage('queued', 'extracting', 'embedding')).toBe('embedding');
+    expect(deriveProgressStage('queued', 'ready', 'weird-vendor-value')).toBe('reading');
   });
 
   it('maps unknown stored error codes safely', () => {

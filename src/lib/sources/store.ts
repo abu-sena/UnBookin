@@ -111,7 +111,17 @@ export async function prepareFileSource(
   return { sourceId, unbookId, uploadUrl: signed.uploadUrl, mimeType };
 }
 
-/** Queue failure leaves a safe, retryable failed state, never a stuck queue. */
+/**
+ * Queue failure leaves a safe, retryable failed state, never a stuck queue.
+ *
+ * State guards (the send acknowledgement may fail AFTER the event was already
+ * delivered and processed): the pair is locked `sources` FOR UPDATE first
+ * (same order as every other source flow), the Unbook must still be owned,
+ * linked to this source, and parked at `queued` + stage `reading` (the exact
+ * pre-send state). Ready/failed sources, progressed stages (`ingested`,
+ * `outlining`, ...), new retry work and deleted rows are left untouched — a
+ * failed mark must never resurrect or regress committed pipeline progress.
+ */
 export async function markQueueFailed(
   userId: string,
   sourceId: string,
@@ -119,10 +129,43 @@ export async function markQueueFailed(
   code: 'jobsUnavailable',
 ): Promise<void> {
   await db.transaction(async (tx) => {
+    const [source] = await tx
+      .select({ id: sources.id })
+      .from(sources)
+      .where(and(eq(sources.id, sourceId), eq(sources.userId, userId)))
+      .for('update');
+    // Deleted rows are never resurrected.
+    if (!source) return;
+
+    const [unbook] = await tx
+      .select({ id: unbooks.id })
+      .from(unbooks)
+      .where(
+        and(
+          eq(unbooks.id, unbookId),
+          eq(unbooks.userId, userId),
+          // The source must belong to this Unbook.
+          eq(unbooks.sourceId, sourceId),
+          // Still waiting for the queue: nothing has picked the work up.
+          eq(unbooks.status, 'queued'),
+          eq(unbooks.currentStage, 'reading'),
+        ),
+      )
+      .for('update');
+    // Already finished, progressed past `reading`, or retried: leave it alone.
+    if (!unbook) return;
+
     await tx
       .update(sources)
       .set({ status: 'failed', errorCode: code })
-      .where(and(eq(sources.id, sourceId), eq(sources.userId, userId)));
+      .where(
+        and(
+          eq(sources.id, sourceId),
+          eq(sources.userId, userId),
+          // Preserve `ready` (and any pipeline-written status).
+          eq(sources.status, 'uploaded'),
+        ),
+      );
     await tx
       .update(unbooks)
       .set({ status: 'failed', currentStage: 'failed' })
@@ -143,8 +186,11 @@ export type InlineSourceInput = {
  * and the `source/uploaded` event is sent after the reservation commits.
  *
  * Text content lives in its own `source.txt` object, written before any row
- * exists; if the reservation then fails the object is deleted (compensation),
- * so a failed request never reserves capacity nor leaves an unowned file.
+ * exists. Compensation is scoped to the reservation ONLY: if the DB
+ * transaction fails, no row references the object, so it is deleted. If the
+ * reservation COMMITS but the queue send fails, the rows are marked
+ * recoverably failed and the object is KEPT — the retryable source would be
+ * unusable without its raw text.
  */
 export async function createInlineSource(
   userId: string,
@@ -163,8 +209,9 @@ export async function createInlineSource(
     await putSourceText(fileKey, input.text);
   }
 
+  let unbookId: string;
   try {
-    const unbookId = await db.transaction(async (tx) => {
+    unbookId = await db.transaction(async (tx) => {
       await lockUserRow(tx, userId);
       const now = new Date();
       const allowance = await getSourceAllowance(userId, now, { database: tx });
@@ -200,16 +247,9 @@ export async function createInlineSource(
       if (!unbook) throw new SourceError('processingFailed');
       return unbook.id;
     });
-
-    try {
-      await sendSourceUploaded({ sourceId, userId, unbookId });
-    } catch {
-      await markQueueFailed(userId, sourceId, unbookId, 'jobsUnavailable');
-      throw new SourceError('jobsUnavailable');
-    }
-
-    return { sourceId, unbookId };
   } catch (error) {
+    // The reservation did not commit: the object is unreferenced and must not
+    // outlive the request. A committed source keeps its file for retry.
     if (fileKey) {
       try {
         await deleteSourceObject(fileKey);
@@ -219,4 +259,13 @@ export async function createInlineSource(
     }
     throw error;
   }
+
+  try {
+    await sendSourceUploaded({ sourceId, userId, unbookId });
+  } catch {
+    await markQueueFailed(userId, sourceId, unbookId, 'jobsUnavailable');
+    throw new SourceError('jobsUnavailable');
+  }
+
+  return { sourceId, unbookId };
 }

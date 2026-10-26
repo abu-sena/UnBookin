@@ -117,13 +117,26 @@ describe('finalizeSourceUpload', () => {
   });
 
   it('revalidates the actual size against the CURRENT plan limits', async () => {
-    fake.results.push([sourceRow]);
-    mocks.head.mockResolvedValue({ sizeBytes: 21 * 1024 * 1024, mimeType: 'application/pdf' });
+    // Matching presigned size, but beyond the plan maximum.
+    const oversized = 21 * 1024 * 1024;
+    fake.results.push([{ ...sourceRow, sizeBytes: oversized }]);
+    mocks.head.mockResolvedValue({ sizeBytes: oversized, mimeType: 'application/pdf' });
 
     await expect(finalizeSourceUpload(USER_ID, SOURCE_ID)).rejects.toMatchObject({
       code: 'fileTooLarge',
     });
     expect(fake.recorded.transactionCount).toBe(0);
+  });
+
+  it('rejects a size mismatch against the presigned metadata even below plan limits', async () => {
+    fake.results.push([sourceRow]);
+    mocks.head.mockResolvedValue({ sizeBytes: 2048, mimeType: 'application/pdf' });
+
+    await expect(finalizeSourceUpload(USER_ID, SOURCE_ID)).rejects.toMatchObject({
+      code: 'invalidInput',
+    });
+    expect(fake.recorded.transactionCount).toBe(0);
+    expect(mocks.sendUploaded).not.toHaveBeenCalled();
   });
 
   it('claims the transition under a source lock and sends one event', async () => {
@@ -159,6 +172,17 @@ describe('finalizeSourceUpload', () => {
     expect(mocks.sendUploaded).not.toHaveBeenCalled();
   });
 
+  it('never sends a job for a source claimed by cancellation', async () => {
+    // owned source, tx lock, unbook lookup, claim update returns 0 rows
+    // (stage is `cancelling`), source metadata update, re-read of the unbook.
+    fake.results.push([sourceRow], [sourceRow], [{ id: UNBOOK_ID }], [], [], [{ id: UNBOOK_ID }]);
+
+    const result = await finalizeSourceUpload(USER_ID, SOURCE_ID);
+
+    expect(result).toEqual({ unbookId: UNBOOK_ID });
+    expect(mocks.sendUploaded).not.toHaveBeenCalled();
+  });
+
   it('marks the flow failed (recoverable) when the queue send fails', async () => {
     fake.results.push(
       [sourceRow],
@@ -166,6 +190,8 @@ describe('finalizeSourceUpload', () => {
       [{ id: UNBOOK_ID }],
       [{ id: UNBOOK_ID }],
       [],
+      [sourceRow],
+      [{ id: UNBOOK_ID }],
       [],
       [],
     );
@@ -185,38 +211,71 @@ describe('finalizeSourceUpload', () => {
       currentStage: 'failed',
     });
   });
+
+  it('never regresses a completed pair when the send acknowledgement fails late', async () => {
+    // The event WAS delivered and processed; by the time the acknowledgement
+    // fails the source is already `ready`. markQueueFailed must leave the
+    // finished pair untouched (the guarded unbook recheck returns no row).
+    fake.results.push(
+      [sourceRow],
+      [sourceRow],
+      [{ id: UNBOOK_ID }],
+      [{ id: UNBOOK_ID }],
+      [],
+      [{ ...sourceRow, status: 'ready' }],
+      [],
+    );
+    mocks.sendUploaded.mockRejectedValue(new SourceError('jobsUnavailable'));
+
+    await expect(finalizeSourceUpload(USER_ID, SOURCE_ID)).rejects.toMatchObject({
+      code: 'jobsUnavailable',
+    });
+
+    expect(fake.recorded.updates).toHaveLength(2); // claim + metadata only
+    expect(fake.recorded.updates.at(-1)?.set).toEqual({
+      mimeType: 'application/pdf',
+      sizeBytes: 1024,
+    });
+  });
 });
 
 describe('cancelSourceUpload', () => {
   it('refuses to cancel once processing started (clear invalid state)', async () => {
-    fake.results.push([sourceRow], [{ id: UNBOOK_ID, status: 'queued', currentStage: 'reading' }]);
+    // owned source, claim tx lock, unbook lookup, claim update returns 0 rows.
+    fake.results.push([sourceRow], [sourceRow], [{ id: UNBOOK_ID }], []);
 
     await expect(cancelSourceUpload(USER_ID, SOURCE_ID)).rejects.toMatchObject({
       code: 'invalidInput',
     });
     expect(mocks.deleteObject).not.toHaveBeenCalled();
-    expect(fake.recorded.transactionCount).toBe(0);
+    expect(fake.recorded.deletes).toHaveLength(0);
     expect(mocks.sendDeleted).not.toHaveBeenCalled();
   });
 
   it('fails without DB changes when storage is unavailable (retryable cancel)', async () => {
-    fake.results.push(
-      [sourceRow],
-      [{ id: UNBOOK_ID, status: 'queued', currentStage: 'uploading' }],
-    );
+    fake.results.push([sourceRow], [sourceRow], [{ id: UNBOOK_ID }], [{ id: UNBOOK_ID }], []);
     mocks.deleteObject.mockRejectedValue(new SourceError('storageUnavailable'));
 
     await expect(cancelSourceUpload(USER_ID, SOURCE_ID)).rejects.toMatchObject({
       code: 'storageUnavailable',
     });
-    expect(fake.recorded.transactionCount).toBe(0);
+
+    // The claim and its restoration both happened; nothing was deleted.
+    expect(mocks.deleteObject).toHaveBeenCalledTimes(1);
+    expect(fake.recorded.updates.map((entry) => entry.set)).toEqual([
+      { currentStage: 'cancelling' },
+      { currentStage: 'uploading' },
+    ]);
+    expect(fake.recorded.deletes).toHaveLength(0);
     expect(mocks.sendDeleted).not.toHaveBeenCalled();
   });
 
   it('deletes file, unbook, chunks and source, then sends the cancellation event', async () => {
     fake.results.push(
       [sourceRow],
-      [{ id: UNBOOK_ID, status: 'queued', currentStage: 'uploading' }],
+      [sourceRow],
+      [{ id: UNBOOK_ID }],
+      [{ id: UNBOOK_ID }],
       [sourceRow],
       [{ id: UNBOOK_ID }],
       [],
@@ -243,7 +302,9 @@ describe('cancelSourceUpload', () => {
     const keyless = { ...sourceRow, fileKey: null };
     fake.results.push(
       [keyless],
-      [{ id: UNBOOK_ID, status: 'queued', currentStage: 'uploading' }],
+      [keyless],
+      [{ id: UNBOOK_ID }],
+      [{ id: UNBOOK_ID }],
       [keyless],
       [{ id: UNBOOK_ID }],
       [],
@@ -257,26 +318,48 @@ describe('cancelSourceUpload', () => {
     expect(mocks.sendDeleted).toHaveBeenCalledTimes(1);
   });
 
-  it('surfaces an invalid state when a finalize won the race after the file was deleted', async () => {
-    fake.results.push(
-      [sourceRow],
-      [{ id: UNBOOK_ID, status: 'queued', currentStage: 'uploading' }],
-      [sourceRow],
-      [],
-    );
+  it('losing the claim race never deletes the file of the winning finalize', async () => {
+    // finalize claimed `reading` first: the claim UPDATE returns zero rows and
+    // NO storage delete happens — the running job keeps its file.
+    fake.results.push([sourceRow], [sourceRow], [{ id: UNBOOK_ID }], []);
 
     await expect(cancelSourceUpload(USER_ID, SOURCE_ID)).rejects.toMatchObject({
       code: 'invalidInput',
     });
-    expect(mocks.deleteObject).toHaveBeenCalledTimes(1);
+    expect(mocks.deleteObject).not.toHaveBeenCalled();
     expect(fake.recorded.deletes).toHaveLength(0);
     expect(mocks.sendDeleted).not.toHaveBeenCalled();
+  });
+
+  it('claims cancellation under the source lock before deleting storage', async () => {
+    fake.results.push(
+      [sourceRow],
+      [sourceRow],
+      [{ id: UNBOOK_ID }],
+      [{ id: UNBOOK_ID }],
+      [sourceRow],
+      [{ id: UNBOOK_ID }],
+      [],
+      [],
+      [],
+    );
+
+    await cancelSourceUpload(USER_ID, SOURCE_ID);
+
+    // The claim UPDATE (stage `cancelling`) happens BEFORE the destructive
+    // storage call, inside its own committed claim transaction.
+    expect(fake.recorded.updates[0]?.set).toEqual({ currentStage: 'cancelling' });
+    const claimOrder = fake.db.update.mock.invocationCallOrder[0] ?? 0;
+    const storageOrder = mocks.deleteObject.mock.invocationCallOrder[0] ?? 0;
+    expect(claimOrder).toBeLessThan(storageOrder);
   });
 
   it('never fails after the data is gone just because the cancel event failed', async () => {
     fake.results.push(
       [sourceRow],
-      [{ id: UNBOOK_ID, status: 'queued', currentStage: 'uploading' }],
+      [sourceRow],
+      [{ id: UNBOOK_ID }],
+      [{ id: UNBOOK_ID }],
       [sourceRow],
       [{ id: UNBOOK_ID }],
       [],
@@ -366,6 +449,8 @@ describe('retrySourceProcessing', () => {
       [failedSource],
       [{ id: UNBOOK_ID }],
       [],
+      [failedSource],
+      [{ id: UNBOOK_ID }],
       [],
       [],
     );

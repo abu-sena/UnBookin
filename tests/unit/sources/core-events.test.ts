@@ -107,6 +107,77 @@ describe('sendSourceUploaded', () => {
       code: 'jobsUnavailable',
     });
   });
+
+  it('treats an empty receipt (ids: []) as jobsUnavailable, never as success', async () => {
+    stubEnv({ NODE_ENV: 'test', INNGEST_DEV: '1' });
+    mocks.send.mockResolvedValue({ ids: [] });
+
+    await expect(sendSourceUploaded(payload)).rejects.toMatchObject({
+      code: 'jobsUnavailable',
+    });
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats a malformed receipt as jobsUnavailable', async () => {
+    stubEnv({ NODE_ENV: 'test', INNGEST_DEV: '1' });
+
+    mocks.send.mockResolvedValue(undefined);
+    await expect(sendSourceUploaded(payload)).rejects.toMatchObject({
+      code: 'jobsUnavailable',
+    });
+
+    mocks.send.mockResolvedValue({ nope: true });
+    await expect(sendSourceDeleted(payload)).rejects.toMatchObject({
+      code: 'jobsUnavailable',
+    });
+
+    mocks.send.mockResolvedValue({ ids: [42, '', null] });
+    await expect(sendSourceUploaded(payload)).rejects.toMatchObject({
+      code: 'jobsUnavailable',
+    });
+  });
+
+  it('accepts a real receipt with event ids', async () => {
+    stubEnv({ NODE_ENV: 'test', INNGEST_DEV: '1' });
+    mocks.send.mockResolvedValue({ ids: ['evt-1', 'evt-2'] });
+
+    await expect(sendSourceUploaded(payload)).resolves.toBeUndefined();
+  });
+});
+
+describe('inngest client dev-mode guard', () => {
+  async function importRealClient() {
+    vi.resetModules();
+    return vi.importActual<typeof import('@/inngest/client')>('@/inngest/client');
+  }
+
+  it('stays in production (signature verification) even with INNGEST_DEV=true', async () => {
+    stubEnv({ NODE_ENV: 'production', INNGEST_EVENT_KEY: 'key', INNGEST_DEV: 'true' });
+
+    const { inngest } = await importRealClient();
+    expect(inngest.mode).toBe('cloud');
+  });
+
+  it('never enables dev mode in production without the flag either', async () => {
+    stubEnv({ NODE_ENV: 'production', INNGEST_EVENT_KEY: 'key', INNGEST_DEV: undefined });
+
+    const { inngest } = await importRealClient();
+    expect(inngest.mode).toBe('cloud');
+  });
+
+  it('enables dev mode only for the approved explicit local flag in development', async () => {
+    stubEnv({ NODE_ENV: 'test', INNGEST_DEV: '1' });
+
+    const { inngest } = await importRealClient();
+    expect(inngest.mode).toBe('dev');
+  });
+
+  it('keeps dev mode off in development without the flag', async () => {
+    stubEnv({ NODE_ENV: 'test', INNGEST_DEV: undefined });
+
+    const { inngest } = await importRealClient();
+    expect(inngest.mode).toBe('cloud');
+  });
 });
 
 describe('sendSourceDeleted', () => {

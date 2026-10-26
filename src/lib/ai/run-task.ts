@@ -41,14 +41,55 @@ const embeddingsResponseSchema = z.object({
       embedding: z.array(z.number()),
     }),
   ),
+  // Usage fields are UNTRUSTED provider metadata (validated/sanitized before
+  // any DB write below); a malformed value must not fail a valid embedding
+  // response.
   usage: z
     .object({
-      prompt_tokens: z.number().optional(),
-      total_tokens: z.number().optional(),
-      cost: z.number().optional(),
+      prompt_tokens: z.unknown().optional(),
+      total_tokens: z.unknown().optional(),
+      cost: z.unknown().optional(),
     })
     .optional(),
 });
+
+type EmbeddingUsage = NonNullable<z.infer<typeof embeddingsResponseSchema>['usage']>;
+
+type UsageMetadata = {
+  inputTokens: number | null;
+  outputTokens: number | null;
+  costUsd: number | null;
+};
+
+/** `ai_calls.cost_usd` is numeric(12,6); larger values must not be written. */
+const COST_USD_DB_MAX = 999_999.999999;
+
+function sanitizeTokenCount(value: unknown): number | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
+function sanitizeCost(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return null;
+  return value > COST_USD_DB_MAX ? null : value;
+}
+
+/**
+ * Provider usage is UNTRUSTED metadata: token counts must be nonnegative
+ * integers and the cost nonnegative, finite and within the DB numeric range;
+ * anything else is logged as null instead of writing malformed rows.
+ *
+ * Embedding APIs have NO output tokens — `total_tokens` covers the whole
+ * request and must never be recorded as output (double counting); output
+ * tokens are 0 when usage exists and null when there is none.
+ */
+function sanitizeUsage(usage: EmbeddingUsage | undefined): UsageMetadata {
+  if (!usage) return { inputTokens: null, outputTokens: null, costUsd: null };
+  return {
+    inputTokens: sanitizeTokenCount(usage.prompt_tokens),
+    outputTokens: 0,
+    costUsd: sanitizeCost(usage.cost),
+  };
+}
 
 type ConfigCache = { model: string; expiresAt: number };
 let configCache: ConfigCache | null = null;
@@ -128,14 +169,23 @@ export async function runTask(
     throw new SourceError('invalidInput');
   }
 
-  const model = await resolveEmbeddingModel();
+  // The config lookup sits INSIDE the safe boundary: a DB driver outage must
+  // surface as a safe `SourceError`, never a raw driver message. A missing
+  // active config stays `configurationMissing`.
+  let model: string;
+  try {
+    model = await resolveEmbeddingModel();
+  } catch (error) {
+    if (error instanceof SourceError) throw error;
+    throw new SourceError('embeddingUnavailable');
+  }
 
   const apiKey = process.env.OPENROUTER_API_KEY?.trim();
   if (!apiKey) throw new SourceError('configurationMissing');
   const baseUrl = process.env.OPENROUTER_BASE_URL?.trim() || DEFAULT_OPENROUTER_BASE_URL;
 
   const startedAt = Date.now();
-  let usage: z.infer<typeof embeddingsResponseSchema>['usage'];
+  let usage: EmbeddingUsage | undefined;
   let embeddings: number[][];
 
   try {
@@ -160,31 +210,33 @@ export async function runTask(
     embeddings = reorderEmbeddings(parsedResponse.data.data, texts.length);
   } catch (error) {
     const code = error instanceof SourceError ? error.code : 'embeddingUnavailable';
+    const sanitized = sanitizeUsage(usage);
     await logAiCall({
       userId: options.userId,
       model,
       status: 'failed',
-      inputTokens: usage?.prompt_tokens ?? null,
-      outputTokens: usage?.total_tokens ?? null,
-      costUsd: usage?.cost ?? null,
+      inputTokens: sanitized.inputTokens,
+      outputTokens: sanitized.outputTokens,
+      costUsd: sanitized.costUsd,
       latencyMs: Date.now() - startedAt,
       errorCode: code,
     });
     throw new SourceError(code);
   }
 
+  const sanitized = sanitizeUsage(usage);
   await logAiCall({
     userId: options.userId,
     model,
     status: 'succeeded',
-    inputTokens: usage?.prompt_tokens ?? null,
-    outputTokens: usage?.total_tokens ?? null,
-    costUsd: usage?.cost ?? null,
+    inputTokens: sanitized.inputTokens,
+    outputTokens: sanitized.outputTokens,
+    costUsd: sanitized.costUsd,
     latencyMs: Date.now() - startedAt,
     errorCode: null,
   });
 
-  return { embeddings, costUsd: usage?.cost ?? null };
+  return { embeddings, costUsd: sanitized.costUsd };
 }
 
 /**

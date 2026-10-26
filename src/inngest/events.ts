@@ -52,7 +52,19 @@ async function sendSourceEvent(
 
   assertJobsConfigured();
   try {
-    await inngest.send({ name: eventName, data: parsed.data, id: eventId });
+    const receipt: unknown = await inngest.send({
+      name: eventName,
+      data: parsed.data,
+      id: eventId,
+    });
+    // The SDK can RESOLVE with an empty receipt (unconfigured/offline dev
+    // fallback returns `ids: []`). Only a receipt with at least one event id
+    // counts as delivered; anything else is a recoverable failure so sources
+    // are never left queued forever.
+    const ids = (receipt as { ids?: unknown } | null | undefined)?.ids;
+    const delivered =
+      Array.isArray(ids) && ids.some((id) => typeof id === 'string' && id.length > 0);
+    if (!delivered) throw new SourceError('jobsUnavailable');
   } catch (error) {
     // Never surface vendor/network detail; the caller maps this to a safe,
     // retryable failed state.

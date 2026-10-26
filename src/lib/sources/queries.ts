@@ -30,20 +30,23 @@ export function parseStoredStage(raw: string | null | undefined): SourceProgress
 }
 
 /**
- * Derive a controlled stage from the persisted statuses. A parseable
- * `current_stage` always wins; otherwise the enum statuses decide.
+ * Derive a controlled stage from the persisted statuses. TERMINAL statuses are
+ * decided first so a stale (or still-running) `current_stage` can never make a
+ * finished flow appear perpetually processing; a parseable nonterminal stage
+ * then wins over the remaining enum statuses. Unknown stored strings are
+ * re-derived from the statuses instead (privacy + correctness).
  */
 export function deriveProgressStage(
   unbookStatus: SourceProgress['unbookStatus'],
   sourceStatus: SourceProgress['sourceStatus'],
   storedStage: string | null | undefined,
 ): SourceProgressStage {
+  if (unbookStatus === 'ready') return 'ready';
+  if (unbookStatus === 'failed' || sourceStatus === 'failed') return 'failed';
   const parsed = parseStoredStage(storedStage);
   if (parsed) return parsed;
-  if (unbookStatus === 'ready') return 'ready';
   if (unbookStatus === 'outlining') return 'outlining';
   if (unbookStatus === 'generating') return 'generating';
-  if (unbookStatus === 'failed' || sourceStatus === 'failed') return 'failed';
   return 'reading';
 }
 
@@ -111,7 +114,9 @@ export async function loadSourceProgressForUser(
     // The owner predicate repeats on the join so an Unbook can never surface
     // another user's source data.
     .leftJoin(sources, and(eq(unbooks.sourceId, sources.id), eq(sources.userId, userId)))
-    .where(eq(unbooks.id, unbookId))
+    // Authorization on the BASE row: the join predicate alone does not hide
+    // another user's Unbook title/status/progress.
+    .where(and(eq(unbooks.id, unbookId), eq(unbooks.userId, userId)))
     .limit(1);
 
   if (!row) return null;
