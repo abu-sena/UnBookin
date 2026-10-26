@@ -284,7 +284,14 @@ const defaultTransport: SafeTransport = (request) => {
     };
 
     // Pin: ignore the hostname argument, always answer with the validated IP.
-    const pinnedLookup: LookupFunctionLike = (_hostname, _options, callback) => {
+    // Node >= 20 drives automatic family selection with `{ all: true }` and
+    // then requires an answers array; `{ all: false }` wants one address/family
+    // pair. Returning the wrong shape yields ERR_INVALID_IP_ADDRESS.
+    const pinnedLookup: LookupFunctionLike = (_hostname, options, callback) => {
+      if (options.all) {
+        callback(null, [{ address: request.address, family: request.family }]);
+        return;
+      }
       callback(null, request.address, request.family);
     };
 
@@ -418,15 +425,22 @@ export async function fetchSafeUrl(
 
   let current = assertSafeUrl(url);
   for (let hop = 0; ; hop += 1) {
-    // One bound per hop: DNS resolution, headers and body all fit inside it.
+    // One bound per hop: DNS resolution, headers and body share a single
+    // deadline. The transport only ever receives the remaining budget, and
+    // once DNS times out no transport can start, even if the resolver later
+    // resolves (the sequential awaits abandon the lookup continuation).
+    const deadline = Date.now() + timeoutMs;
     let response: SafeTransportResponse;
     try {
-      response = await withTimeout(
-        (async () => {
-          const { address, family } = await resolvePublicAddress(current.hostname, lookup);
-          return transport({ url: current, address, family, timeoutMs, maxBytes });
-        })(),
+      const { address, family } = await withTimeout(
+        resolvePublicAddress(current.hostname, lookup),
         timeoutMs,
+      );
+      const remainingMs = deadline - Date.now();
+      if (remainingMs < 1) throw new SourceError('fetchFailed');
+      response = await withTimeout(
+        transport({ url: current, address, family, timeoutMs: remainingMs, maxBytes }),
+        remainingMs,
       );
     } catch (error) {
       if (error instanceof SourceError) throw error;

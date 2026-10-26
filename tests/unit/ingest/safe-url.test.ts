@@ -1,13 +1,17 @@
 import { EventEmitter } from 'node:events';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fetchSafeUrl, isPublicAddress } from '@/lib/ingest/safe-url';
+import { fetchSafeUrl, isPublicAddress, type DnsAnswer } from '@/lib/ingest/safe-url';
 import type { SourceErrorCode } from '@/lib/sources/errors';
 
 vi.mock('server-only', () => ({}));
 
-const { httpsRequest } = vi.hoisted(() => ({ httpsRequest: vi.fn() }));
+const { httpsRequest, dnsLookup } = vi.hoisted(() => ({
+  httpsRequest: vi.fn(),
+  dnsLookup: vi.fn(),
+}));
 
 vi.mock('node:https', () => ({ default: { request: httpsRequest } }));
+vi.mock('node:dns', () => ({ promises: { lookup: dnsLookup } }));
 
 interface RequestStub extends EventEmitter {
   end: () => void;
@@ -20,11 +24,13 @@ interface ResponseStub extends EventEmitter {
   destroy: () => void;
 }
 
+type PinnedLookupAnswer = string | Array<{ address: string; family: number }>;
+
 type PinnedLookupOptions = {
   lookup: (
     hostname: string,
-    options: unknown,
-    callback: (err: null, address: string, family: number) => void,
+    options: { all?: boolean },
+    callback: (err: null, address: PinnedLookupAnswer, family?: number) => void,
   ) => void;
 };
 
@@ -33,6 +39,7 @@ type CapturedRequest = {
   port: number;
   servername?: string;
   headers: Record<string, string>;
+  agent?: boolean;
   lookup: PinnedLookupOptions['lookup'];
 };
 
@@ -98,6 +105,7 @@ async function expectCode(promise: Promise<unknown>, code: SourceErrorCode) {
 
 beforeEach(() => {
   publicLookup.mockImplementation(async () => [{ address: PUBLIC_IPV4, family: 4 }]);
+  dnsLookup.mockReset();
 });
 
 afterEach(() => {
@@ -283,6 +291,32 @@ describe('fetchSafeUrl', () => {
           deps: { lookup, transport: transportOf([]).transport },
         }),
         'invalidUrl',
+      );
+    });
+
+    it('resolves through the default node:dns promises boundary when no lookup is injected', async () => {
+      dnsLookup.mockResolvedValue([{ address: PUBLIC_IPV4, family: 4 }]);
+      const { transport, calls } = transportOf([
+        { status: 200, headers: { 'content-type': 'text/plain' }, body: 'ok' },
+      ]);
+      const result = await fetchSafeUrl(`https://${PUBLIC_HOSTNAME}/book`, {
+        maxBytes: 10_000,
+        deps: { transport },
+      });
+      expect(dnsLookup).toHaveBeenCalledWith(PUBLIC_HOSTNAME, { all: true, verbatim: true });
+      expect(calls[0]!.address).toBe(PUBLIC_IPV4);
+      expect(calls[0]!.family).toBe(4);
+      expect(Buffer.from(result.bytes).toString()).toBe('ok');
+    });
+
+    it('maps default resolver failures to fetchFailed', async () => {
+      dnsLookup.mockRejectedValue(new Error('ENOTFOUND'));
+      await expectCode(
+        fetchSafeUrl(`https://${PUBLIC_HOSTNAME}/book`, {
+          maxBytes: 10_000,
+          deps: { transport: transportOf([]).transport },
+        }),
+        'fetchFailed',
       );
     });
   });
@@ -491,18 +525,78 @@ describe('fetchSafeUrl', () => {
       await expectCode(promise, 'fetchFailed');
       expect(transport).not.toHaveBeenCalled();
     });
+
+    it('never starts the transport after a DNS timeout even when the resolver resolves later', async () => {
+      vi.useFakeTimers();
+      try {
+        const transport = vi.fn(async () => {
+          throw new Error('transport must not run after a DNS timeout');
+        });
+        let releaseLookup: ((answers: DnsAnswer[]) => void) | undefined;
+        const lookup = vi.fn(
+          () =>
+            new Promise<DnsAnswer[]>((resolve) => {
+              releaseLookup = resolve;
+            }),
+        );
+        const promise = fetchSafeUrl(`https://${PUBLIC_HOSTNAME}/late-dns`, {
+          maxBytes: 10_000,
+          timeoutMs: 50,
+          deps: { lookup, transport },
+        });
+        const expectation = expect(promise).rejects.toMatchObject({
+          name: 'SourceError',
+          code: 'fetchFailed',
+        });
+        await vi.advanceTimersByTimeAsync(60);
+        await expectation;
+        releaseLookup?.([{ address: PUBLIC_IPV4, family: 4 }]);
+        await vi.advanceTimersByTimeAsync(20);
+        expect(transport).not.toHaveBeenCalled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('gives the transport only the remaining budget after DNS resolves', async () => {
+      const budgets: number[] = [];
+      const transport = vi.fn(async (request: { timeoutMs: number }) => {
+        budgets.push(request.timeoutMs);
+        return {
+          status: 200,
+          headers: { 'content-type': 'text/plain' },
+          body: new TextEncoder().encode('ok'),
+        };
+      });
+      const lookup = vi.fn(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        return [{ address: PUBLIC_IPV4, family: 4 }];
+      });
+      await fetchSafeUrl(`https://${PUBLIC_HOSTNAME}/budget`, {
+        maxBytes: 10_000,
+        timeoutMs: 200,
+        deps: { lookup, transport },
+      });
+      expect(budgets).toHaveLength(1);
+      expect(budgets[0]!).toBeLessThan(200);
+      expect(budgets[0]!).toBeGreaterThan(0);
+    });
   });
 
   describe('pinned default transport', () => {
     it('pins the validated address, keeps Host and TLS servername, streams the body', async () => {
       let captured: CapturedRequest | undefined;
-      const pinnedAnswer: Array<[null, string, number] | [Error, string, number]> = [];
+      const pinnedResults: Array<{ all?: boolean; address: PinnedLookupAnswer; family?: number }> =
+        [];
       let res: ResponseStub | undefined;
       httpsRequest.mockImplementationOnce(
         (options: CapturedRequest, cb: (r: ResponseStub) => void) => {
           captured = options;
-          options.lookup('attacker.example', {}, (err, address, family) => {
-            pinnedAnswer.push([err, address, family]);
+          options.lookup('attacker.example', { all: true }, (err, address, family) => {
+            pinnedResults.push({ all: true, address, family });
+          });
+          options.lookup('attacker.example', { all: false }, (err, address, family) => {
+            pinnedResults.push({ all: false, address, family });
           });
           res = stubResponse(200, { 'content-type': 'text/html; charset=utf-8' });
           return stubRequest(cb, res, (target) => {
@@ -524,7 +618,11 @@ describe('fetchSafeUrl', () => {
       expect(captured?.headers['Accept-Encoding']).toBe('identity');
       expect(captured?.headers.Cookie).toBeUndefined();
       expect(captured?.headers.Authorization).toBeUndefined();
-      expect(pinnedAnswer).toEqual([[null, PUBLIC_IPV4, 4]]);
+      expect(captured?.agent).toBe(false);
+      expect(pinnedResults).toEqual([
+        { all: true, address: [{ address: PUBLIC_IPV4, family: 4 }] },
+        { all: false, address: PUBLIC_IPV4, family: 4 },
+      ]);
       expect(result.url).toBe(`https://${PUBLIC_HOSTNAME}/artikel`);
       expect(result.contentType).toBe('text/html');
       expect(Buffer.from(result.bytes).toString()).toBe('<html></html>');

@@ -35,10 +35,17 @@ fetchSafeUrl(
    public/private answer sets never pass).
 3. **DNS pinning** — the validated address is pinned via a custom `lookup`
    callback on `node:http/https.request`; no second DNS resolution happens.
-   `Host` header and TLS `servername` keep the original hostname; the socket
-   connects only to the validated address (DNS rebinding is a no-op).
-4. **Transport bounds** — ≤15 s per hop, ≤5 hops, every redirect target
-   revalidated end to end (URL policy + full DNS validation + pinned request).
+   The callback honours both call shapes: `{ all: true }` (Node 20+ automatic
+   family selection) gets `[{ address, family }]`, `{ all: false }` gets
+   `address, family`. `Host` header and TLS `servername` keep the original
+   hostname; the socket connects only to the validated address (DNS rebinding
+   is a no-op). The default resolver is `node:dns` `promises.lookup`.
+4. **Transport bounds** — one shared deadline per hop covers DNS + headers +
+   body: DNS gets up to `timeoutMs`, the transport only the remaining budget,
+   and once DNS times out the transport can never start (even if the resolver
+   resolves later). The default transport aborts and destroys the active
+   request on timeout. ≤5 hops, every redirect target revalidated end to end
+   (URL policy + full DNS validation + pinned request).
    Redirect/non-200 bodies are destroyed, never buffered. Only a `200` with
    content type `text/html`, `application/xhtml+xml` or `text/plain` succeeds;
    absent/unsupported types fail; any `content-encoding` other than `identity`
@@ -60,11 +67,14 @@ fetchSafeUrl(
 ## Tests
 
 `tests/unit/ingest/safe-url.test.ts` — no real network. Injected resolver/transport
-plus a `node:https` module mock cover: valid fetch with pinning/Host/SNI, private
+plus `node:https` and `node:dns` module mocks cover: valid fetch with pinning/Host/SNI
+(pinned `lookup` exercised at the wire boundary with both `{ all: true }` and
+`{ all: false }`), the default `node:dns` promises resolver boundary, private
 literals and IPv4-mapped IPv6, mixed public/private DNS, credentials/ports, redirect
 to private address and private-DNS host, redirect loop cap, timeout before headers,
-hung DNS, oversized `Content-Length`, lying streamed size, unsupported/gzip types,
-relative redirects, and `isPublicAddress` range coverage.
+hung DNS, DNS timeout with a late resolver result (transport never starts), remaining
+transport budget after DNS, oversized `Content-Length`, lying streamed size,
+unsupported/gzip types, relative redirects, and `isPublicAddress` range coverage.
 
 ## Limitations / follow-ups
 
