@@ -61,8 +61,11 @@ Urutan yang disarankan: 1 → 8. Kalau domain belum siap, bisa mulai dengan alam
    harga varian, lencana, dan misi; aman dijalankan ulang.
 4. Cek di **SQL Editor** Neon: `select count(*) from interests;` harus menghasilkan `4`.
 
-> Aturan ke depan: setiap ada migrasi baru (folder `drizzle/` berubah), jalankan langkah 3 **sebelum** kode
-> barunya di-deploy. Menurut `CLAUDE.md`, migrasi production hanya dijalankan oleh atau atas izin founder.
+> **Sejak 26 Okt 2026 (izin founder):** build production di Vercel menjalankan migrasi otomatis
+> (`scripts/vercel-build.mjs`, memakai `DATABASE_URL_UNPOOLED`) sebelum `next build`. Build preview tidak
+> menyentuh database. Seed hanya berjalan bila env `RUN_SEED=1` ada; isi sekali, deploy, lalu hapus lagi.
+> Kalau migrasi gagal, build dihentikan sehingga versi lama tetap berjalan. Langkah 3 manual di atas tidak
+> lagi wajib, tapi tetap bisa dipakai.
 
 ## 3. Buat `AUTH_SECRET` baru
 
