@@ -130,6 +130,10 @@ describe('createSourceUploadUrl', () => {
     });
     expect(SOURCE_UPLOAD_URL_TTL_SECONDS).toBe(300);
 
+    expect(mocks.clientOptions[0]).toMatchObject({
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+    });
+
     const command = firstCommand();
     expect(command.kind).toBe('PutObject');
     expect(command.input).toMatchObject({

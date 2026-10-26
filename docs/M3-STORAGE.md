@@ -1,7 +1,7 @@
 # M3 — Source storage, validation and entitlement
 
 This document covers the storage/quota foundation used by the source upload and
-ingest work (E2-01, E2-04). It does not add UI, Server Actions, Inngest
+library work (E2-01, E2-03). It does not add UI, Server Actions, Inngest
 functions or database migrations.
 
 ## Storage configuration
@@ -27,8 +27,13 @@ Bucket setup requirements:
 - Keep the bucket private. The app never creates download URLs for clients.
 - Allow `PUT`, `HEAD`, `GET` and `DELETE` for the token on `sources/*`.
 - If uploads come from a browser, allow the app origin in the bucket CORS
-  policy for `PUT` with `content-type` and `content-length` headers.
+  policy for `PUT` with the `content-type` (and `content-length`) headers.
+  The browser itself sets `Content-Length` from the uploaded `File`; JS must
+  not set it manually because it is a forbidden header name.
 - Do not expose the token through `NEXT_PUBLIC_*` variables.
+
+CORS and credentials on a live bucket must still be verified with a real
+upload before the upload UI ships.
 
 ## Object keys
 
@@ -69,6 +74,11 @@ createSourceUploadUrl(input: {
 - `content-type` and `content-length` are signed where the provider supports
   it. The browser must send the same values it submitted, otherwise the upload
   is rejected by the provider.
+- The S3 client is configured with `requestChecksumCalculation:
+  'WHEN_REQUIRED'` so the signature carries no checksum of the empty bytes
+  the server sees while presigning. A real S3/R2 bucket would otherwise
+  reject the nonempty browser upload with `BadDigest`. Server-side uploads
+  with a real body stay covered by the SDK's integrity defaults.
 - The URL is for one exact key. There is no public arbitrary-key signing API.
 
 ```ts
@@ -176,8 +186,9 @@ Actions:
 - No multipart upload; a single presigned `PUT` is assumed. Very large files on
   unstable mobile networks may need multipart in a later milestone.
 - No malware scanning, retention job or lifecycle rule is configured here.
-- Real R2/S3 integration is not exercised by unit tests (the SDK is mocked).
-  Configure a development bucket and verify CORS/credentials before the upload
-  UI ships.
+- Real R2/S3 integration is not exercised by unit tests (upload signing uses
+  the real SDK presigner against a fake local endpoint, everything else mocks
+  the SDK). Configure a development bucket and verify CORS/credentials before
+  the upload UI ships.
 - `S3_FORCE_PATH_STYLE` is not exposed; if a self-hosted S3 provider requires
   path-style addressing, add it deliberately with a compatibility test.

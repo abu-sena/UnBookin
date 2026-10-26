@@ -55,6 +55,12 @@ function getStorageClient(): StorageClient {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
       },
+      // Presigned browser PUTs carry no body here, so the SDK default
+      // (WHEN_SUPPORTED) would sign a checksum of empty bytes and a real
+      // bucket would reject the nonempty upload with BadDigest. R2 is
+      // compatible with WHEN_REQUIRED, which only signs checksums when the
+      // request actually requires one.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
     });
     cachedClientIdentity = identity;
     cachedBucket = config.bucket;
