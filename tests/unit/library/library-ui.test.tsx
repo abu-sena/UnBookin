@@ -1,16 +1,23 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LibraryCard } from '@/components/library/library-card';
 import { LibraryFilterForm } from '@/components/library/library-filter-form';
 import { LibraryResults } from '@/components/library/library-results';
+import { SourceUploadContext } from '@/components/sources/upload-trigger';
 import messages from '@/messages/id.json';
 import type { LibraryItem, UnbookStatus } from '@/lib/library/types';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: vi.fn(), replace: vi.fn() }),
+}));
+vi.mock('@/lib/sources/actions', () => ({ deleteMyUnbook: vi.fn() }));
+vi.mock('@/hooks/use-media-query', () => ({ useMediaQuery: () => true }));
 
 afterEach(cleanup);
 
 const readyItem: LibraryItem = {
-  id: 'unbook-1',
+  id: '123e4567-e89b-42d3-a456-426614174000',
   title: 'Good to Great',
   author: 'Jim Collins',
   interestName: 'Kepemimpinan dan Manajemen',
@@ -50,6 +57,24 @@ describe('LibraryCard', () => {
     ).toBeInTheDocument();
   });
 
+  it('links a real UUID Unbook to its status page and keeps delete a sibling, not nested', () => {
+    mountCard(readyItem);
+
+    const link = screen.getByRole('link', { name: readyItem.title });
+    expect(link).toHaveAttribute('href', `/unbook/${readyItem.id}`);
+    expect(
+      screen.getByRole('button', { name: messages.sources.delete.trigger }),
+    ).toBeInTheDocument();
+    expect(within(link).queryByRole('button')).toBeNull();
+  });
+
+  it('keeps non-UUID dev fixture cards purely presentational', () => {
+    mountCard({ ...readyItem, id: 'unbook-preview' });
+
+    expect(screen.queryByRole('link')).toBeNull();
+    expect(screen.queryByRole('button', { name: messages.sources.delete.trigger })).toBeNull();
+  });
+
   it('falls back to a localised author label and wraps very long text', () => {
     const longItem: LibraryItem = {
       ...readyItem,
@@ -83,12 +108,26 @@ describe('LibraryCard', () => {
 });
 
 describe('LibraryResults', () => {
-  it('explains a genuinely empty library without fake upload, delete or retry actions', () => {
-    mount(<LibraryResults items={[]} hasAnyUnbooks={false} />);
+  it('opens the shared upload flow from the genuine empty state CTA', () => {
+    const openUpload = vi.fn();
+    mount(
+      <SourceUploadContext.Provider value={{ openUpload }}>
+        <LibraryResults items={[]} hasAnyUnbooks={false} />
+      </SourceUploadContext.Provider>,
+    );
 
     expect(screen.getByText(messages.library.empty.message)).toBeInTheDocument();
     expect(screen.queryByRole('link')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: messages.library.empty.action }));
+    expect(openUpload).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders no inert CTA when the upload context is missing', () => {
+    mount(<LibraryResults items={[]} hasAnyUnbooks={false} />);
+
+    expect(screen.getByText(messages.library.empty.message)).toBeInTheDocument();
     expect(screen.queryByRole('button')).toBeNull();
+    expect(screen.queryByRole('link')).toBeNull();
   });
 
   it('offers a real /library reset link when filters match nothing', () => {

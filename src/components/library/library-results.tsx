@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import { BookOpenIcon, SearchXIcon } from 'lucide-react';
 import { EmptyState } from '@/components/ui-kit/empty-state';
 import { LibraryCard } from '@/components/library/library-card';
+import { useSourceUpload } from '@/components/sources/upload-trigger';
 import type { LibraryItem } from '@/lib/library/types';
 
 type LibraryResultsProps = {
@@ -13,12 +14,14 @@ type LibraryResultsProps = {
 
 /**
  * E2-03 AC1: the library list plus the two distinct empty states. A genuinely
- * empty library explains what will appear here once upload exists; a filtered
- * search offers a working reset link. No upload/delete/retry placeholders are
- * rendered because those flows are not part of this increment.
+ * empty library offers one real CTA that opens the shared upload sheet through
+ * the app shell's SourceUploadContext; without that context (isolated
+ * previews) only the explanatory message renders — never an inert button. A
+ * filtered search offers a working reset link.
  */
 export function LibraryResults({ items, hasAnyUnbooks }: LibraryResultsProps) {
   const t = useTranslations('library');
+  const upload = useSourceUpload();
 
   if (items.length > 0) {
     return (
@@ -41,5 +44,12 @@ export function LibraryResults({ items, hasAnyUnbooks }: LibraryResultsProps) {
     );
   }
 
-  return <EmptyState icon={BookOpenIcon} message={t('empty.message')} />;
+  return (
+    <EmptyState
+      icon={BookOpenIcon}
+      message={t('empty.message')}
+      actionLabel={upload ? t('empty.action') : undefined}
+      onAction={upload ? upload.openUpload : undefined}
+    />
+  );
 }

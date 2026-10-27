@@ -141,7 +141,8 @@
     "progressAria": "Progres modul: {read} dari {total}",
     "authorFallback": "Penulis tidak dicantumkan",
     "empty": {
-      "message": "Pustakamu masih kosong. Unbook buku, jurnal, atau tautan pertamamu untuk mengubahnya jadi modul belajar."
+      "message": "Pustakamu masih kosong. Unbook buku, jurnal, atau tautan pertamamu untuk mengubahnya jadi modul belajar.",
+      "action": "Unbook bacaan pertamamu"
     },
     "noMatches": {
       "message": "Tidak ada Unbook yang cocok dengan pencarian dan filter ini.",
@@ -308,6 +309,31 @@
       "error": {
         "message": "Progres pemrosesan belum bisa dimuat. Coba lagi sebentar lagi, ya.",
         "retry": "Coba lagi"
+      }
+    },
+    "delete": {
+      "trigger": "Hapus Unbook ini",
+      "title": "Hapus Unbook ini?",
+      "description": "Tindakan ini permanen. Unbook beserta file dan modul belajarnya akan dihapus dan tidak bisa dikembalikan.",
+      "cancel": "Batal",
+      "confirm": "Hapus",
+      "pending": "Menghapus…",
+      "errors": {
+        "invalidInput": "Ada isian yang belum pas. Periksa lagi, ya.",
+        "rightsRequired": "Centang persetujuan hak akses untuk melanjutkan.",
+        "fileType": "Pilih file PDF atau EPUB yang valid.",
+        "fileTooLarge": "Ukuran bacaan melebihi batas paket ini.",
+        "pagesExceeded": "Bacaan melebihi batas halaman paket ini.",
+        "quotaExceeded": "Kuota Unbook bulan ini sudah habis.",
+        "storageUnavailable": "Penyimpanan sedang tidak tersedia. Unbook belum dihapus. Coba lagi sebentar lagi, ya.",
+        "jobsUnavailable": "Layanan pemrosesan sedang tidak tersedia. Coba lagi nanti, ya.",
+        "embeddingUnavailable": "Pemrosesan teks sedang tidak tersedia. Coba lagi sebentar lagi, ya.",
+        "invalidUrl": "Tautan belum valid.",
+        "fetchFailed": "Koneksi ke server bermasalah. Periksa sambunganmu, lalu coba lagi.",
+        "noText": "File ini berupa gambar; versi ini belum mendukung OCR.",
+        "notFound": "Unbook itu sudah tidak ada. Buka ulang Pustaka.",
+        "processingFailed": "Unbook belum bisa dihapus. Coba lagi sebentar lagi, ya.",
+        "configurationMissing": "Layanan belum siap. Coba lagi nanti atau hubungi bantuan."
       }
     }
   },
