@@ -41,6 +41,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { LibraryInterestOption, LibraryItem } from '@/lib/library/types';
+import { LearningShowcase } from './learning-showcase';
 
 type DevUiShowcaseProps = {
   title: string;
@@ -171,6 +172,7 @@ export function DevUiShowcase({
 }: DevUiShowcaseProps) {
   const t = useTranslations('devUi');
   const tUpload = useTranslations('sources.upload');
+  const tLearning = useTranslations('module.showcase');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [previewAdapter] = useState(() => createPreviewSourceUploadAdapter());
 
@@ -415,6 +417,10 @@ export function DevUiShowcase({
               />
             </div>
           </div>
+        </Section>
+
+        <Section title={tLearning('title')}>
+          <LearningShowcase />
         </Section>
 
         <Section title={t('sectionNavigation')}>
