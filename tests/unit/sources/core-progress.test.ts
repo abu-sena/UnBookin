@@ -30,6 +30,8 @@ function progressRow(overrides: Record<string, unknown> = {}) {
     sourceId: SOURCE_ID,
     sourceStatus: 'ready',
     sourceErrorCode: null,
+    moduleCount: 5,
+    modulesCompleted: 2,
     ...overrides,
   };
 }
@@ -54,6 +56,8 @@ describe('loadSourceProgressForUser', () => {
       progressPct: 40,
       embeddedChunks: 3,
       totalChunks: 5,
+      moduleCount: 5,
+      modulesCompleted: 2,
       errorCode: null,
     });
   });
@@ -72,6 +76,9 @@ describe('loadSourceProgressForUser', () => {
     // the SAME session identity (never a client-supplied owner).
     expect(rec.queries[0]?.params).toEqual([USER_ID, UNBOOK_ID, USER_ID, 1]);
     expect(rec.queries[1]?.params).toEqual([SOURCE_ID]);
+    expect(mainSql).toContain('"modules"."content" is not null');
+    expect(mainSql).toContain("not (\"modules\".\"content\" ? 'pending')");
+    expect(mainSql).toContain('"modules"."unbook_id" = "unbooks"."id"');
   });
 
   it('returns null for an unknown or not-owned unbook and never reads chunks', async () => {
@@ -130,6 +137,12 @@ describe('loadSourceProgressForUser', () => {
     expect(progress?.errorCode).toBe('processingFailed');
   });
 
+  it('maps generation failure on a ready source without a source error', async () => {
+    const rec = createRecordingDatabase([[progressRow({ unbookStatus: 'failed', currentStage: 'tagging' })], [{ total: 2, embedded: 2 }]]);
+    const progress = await loadSourceProgressForUser(USER_ID, UNBOOK_ID, rec.database);
+    expect(progress).toMatchObject({ stage: 'failed', errorCode: 'generationUnavailable', moduleCount: 5, modulesCompleted: 2 });
+  });
+
   it('passes known safe error codes through', async () => {
     const rec = createRecordingDatabase([
       [
@@ -172,6 +185,8 @@ describe('getMySourceProgress', () => {
 describe('stage and error parsing', () => {
   it('accepts only the controlled stage union', () => {
     expect(parseStoredStage('embedding')).toBe('embedding');
+    expect(parseStoredStage('tagging')).toBe('tagging');
+    expect(deriveProgressStage('generating', 'ready', 'tagging')).toBe('tagging');
     expect(parseStoredStage(' uploading ')).toBe('uploading');
     expect(parseStoredStage('chunked-by-vendor')).toBeNull();
     expect(parseStoredStage('')).toBeNull();

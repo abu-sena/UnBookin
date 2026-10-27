@@ -1,7 +1,7 @@
 import 'server-only';
 import { and, asc, count, eq, sql } from 'drizzle-orm';
 import { db } from '@/db';
-import { interests, sourceChunks, sources, unbooks } from '@/db/schema';
+import { interests, modules, sourceChunks, sources, unbooks } from '@/db/schema';
 import { getSourceAllowance } from '@/lib/billing/source-quota';
 import { requireUser } from '@/lib/auth/session';
 import { isSourceErrorCode, type SourceErrorCode } from './errors';
@@ -106,6 +106,8 @@ export async function loadSourceProgressForUser(
       unbookStatus: unbooks.status,
       progressPct: unbooks.progressPct,
       currentStage: unbooks.currentStage,
+      moduleCount: unbooks.moduleCount,
+      modulesCompleted: sql<number>`(select count(*) from ${modules} where ${modules.unbookId} = ${unbooks.id} and ${modules.content} is not null and not (${modules.content} ? 'pending'))`.mapWith(Number),
       sourceId: sources.id,
       sourceStatus: sources.status,
       sourceErrorCode: sources.errorCode,
@@ -150,7 +152,14 @@ export async function loadSourceProgressForUser(
     progressPct: row.progressPct,
     embeddedChunks,
     totalChunks,
-    errorCode: failed ? parseStoredErrorCode(row.sourceErrorCode) : null,
+    moduleCount: Number(row.moduleCount ?? 0),
+    modulesCompleted: Number(row.modulesCompleted ?? 0),
+    errorCode: failed
+      ? (parseStoredErrorCode(row.sourceErrorCode) ??
+        (row.unbookStatus === 'failed' && row.sourceStatus === 'ready'
+          ? 'generationUnavailable'
+          : null))
+      : null,
   };
 }
 

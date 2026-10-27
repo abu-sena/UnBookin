@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 import { retrySourceProcessing } from '@/lib/sources/actions';
 import { SOURCE_ERROR_CODES, type SourceErrorCode } from '@/lib/sources/errors';
 import { SOURCE_PROGRESS_STAGES, type SourceProgress } from '@/lib/sources/types';
@@ -26,7 +27,7 @@ function isFailedProgress(progress: SourceProgress): boolean {
  */
 function isTerminalProgress(progress: SourceProgress): boolean {
   if (isFailedProgress(progress) || progress.unbookStatus === 'ready') return true;
-  return progress.stage === 'ready' || progress.stage === 'ingested' || progress.stage === 'failed';
+  return progress.stage === 'ready' || progress.stage === 'failed';
 }
 
 function isCount(value: unknown): value is number {
@@ -60,6 +61,7 @@ function parseProgressPayload(payload: unknown, unbookId: string): SourceProgres
   if (!isPercent(data.progressPct) || !isCount(data.embeddedChunks) || !isCount(data.totalChunks))
     return null;
   if (data.errorCode !== null && !isInUnion(SOURCE_ERROR_CODES, data.errorCode)) return null;
+  if (!isCount(data.moduleCount) || !isCount(data.modulesCompleted)) return null;
 
   return {
     unbookId,
@@ -71,6 +73,8 @@ function parseProgressPayload(payload: unknown, unbookId: string): SourceProgres
     progressPct: data.progressPct,
     embeddedChunks: data.embeddedChunks,
     totalChunks: data.totalChunks,
+    moduleCount: data.moduleCount,
+    modulesCompleted: data.modulesCompleted,
     errorCode: data.errorCode,
   } satisfies SourceProgress;
 }
@@ -115,7 +119,7 @@ function SourceProcessingPoller({
 
   useEffect(() => {
     if (removed || signedOut) return;
-    // An already-ingested/ready/failed flow never starts polling.
+    // An already-ready/failed flow never starts polling.
     if (pollNonce === 0 && isTerminalProgress(progressRef.current)) return;
 
     let cancelled = false;
@@ -241,7 +245,7 @@ function SourceProcessingPoller({
   }
 
   return (
-    <SourceProgressCard progress={progress}>
+    <ProcessingProgressCard progress={progress}>
       {connectionLost ? (
         <div role="alert" className="flex w-full min-w-0 flex-col gap-2">
           <p className="text-warning text-small break-words">{t('connection.error')}</p>
@@ -262,7 +266,52 @@ function SourceProcessingPoller({
           </Button>
         </div>
       ) : null}
+      {!isFailedProgress(progress) && progress.unbookStatus === 'ready' ? (
+        <Button asChild className="min-h-11 self-start">
+          <Link href={`/unbook/${progress.unbookId}`}>{t('readyAction')}</Link>
+        </Button>
+      ) : null}
       {children}
-    </SourceProgressCard>
+    </ProcessingProgressCard>
+  );
+}
+
+/** Generation labels need real counts; the shared ingest preview stays compatible. */
+function ProcessingProgressCard({
+  progress,
+  children,
+}: {
+  progress: SourceProgress;
+  children: ReactNode;
+}) {
+  const t = useTranslations('sources.progress');
+  const stage = progress.stage;
+  if (
+    isFailedProgress(progress) ||
+    progress.unbookStatus === 'ready' ||
+    (stage !== 'outlining' && stage !== 'generating' && stage !== 'tagging')
+  ) {
+    return <SourceProgressCard progress={progress}>{children}</SourceProgressCard>;
+  }
+  const label =
+    stage === 'generating'
+      ? t('modules', { done: progress.modulesCompleted ?? 0, total: progress.moduleCount ?? 0 })
+      : t(`stage.${stage}`);
+  return (
+    <section className="bg-surface border-border flex w-full min-w-0 flex-col gap-3 rounded-[var(--radius-card)] border p-4">
+      <h2 className="text-h3 min-w-0 break-words">{progress.title}</h2>
+      <p role="status" className="text-text-muted text-small break-words">
+        {label}
+      </p>
+      <Progress
+        className="motion-reduce:[&_[data-slot=progress-indicator]]:transition-none"
+        value={progress.progressPct}
+        aria-label={t('barAria', { percent: progress.progressPct })}
+      />
+      <span className="text-caption text-text-muted self-end tabular-nums">
+        {t('pct', { percent: progress.progressPct })}
+      </span>
+      {children}
+    </section>
   );
 }
