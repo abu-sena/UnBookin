@@ -15,7 +15,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed.ts",
-    "eval:engine": "tsx scripts/eval-engine.ts",
+    "eval:engine": "tsx --conditions=react-server scripts/eval-engine.ts",
     "vercel-build": "node scripts/vercel-build.mjs"
   },
   "dependencies": {
