@@ -1,5 +1,6 @@
 import { getTranslations } from 'next-intl/server';
 import { notFound } from 'next/navigation';
+import { SourceDeleteButton } from '@/components/sources/source-delete-button';
 import { SourceProcessingView } from '@/components/sources/source-processing-view';
 import { PageHeader } from '@/components/ui-kit/page-header';
 import { getMySourceProgress } from '@/lib/sources/queries';
@@ -22,7 +23,9 @@ export default async function UnbookPage({ params }: UnbookPageProps) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('page.title')} description={t('page.description')} />
-      <SourceProcessingView initialProgress={progress} />
+      <SourceProcessingView initialProgress={progress}>
+        <SourceDeleteButton unbookId={progress.unbookId} title={progress.title} returnToLibrary />
+      </SourceProcessingView>
     </div>
   );
 }

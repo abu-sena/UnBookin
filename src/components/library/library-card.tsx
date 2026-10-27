@@ -1,8 +1,11 @@
 'use client';
 
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { SourceDeleteButton } from '@/components/sources/source-delete-button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { unbookIdSchema } from '@/lib/sources/schema';
 import { cn } from '@/lib/utils';
 import type { LibraryItem, UnbookStatus } from '@/lib/library/types';
 
@@ -44,13 +47,39 @@ type LibraryCardProps = {
 /**
  * E2-03 AC1: one Unbook card with a deterministic CSS title cover (no image
  * column exists in the schema), metadata, actual pipeline status and module
- * reading progress. Presentational only — all data is passed in.
+ * reading progress. A real UUID id links the card to its status page and adds
+ * a sibling delete control; dev fixtures with non-UUID ids stay purely
+ * presentational (no links, no actions).
  */
 export function LibraryCard({ item }: LibraryCardProps) {
   const t = useTranslations('library');
   const total = Math.max(0, item.moduleCount);
   const read = Math.min(Math.max(0, item.modulesRead), total);
   const percent = total === 0 ? 0 : Math.round((read / total) * 100);
+  const parsedId = unbookIdSchema.safeParse(item.id);
+  const unbookId = parsedId.success ? parsedId.data : null;
+
+  const statusBadge = (
+    <Badge variant="outline" className={cn('shrink-0', statusClasses[item.status])}>
+      {t(`status.${item.status}`)}
+    </Badge>
+  );
+
+  const metaLine = (
+    <div className="text-caption text-text-muted flex flex-wrap items-center gap-x-2 gap-y-1">
+      <span className="[overflow-wrap:anywhere] break-words">{item.interestName}</span>
+      <span aria-hidden="true">·</span>
+      <span className="tabular-nums">{t('progress', { read, total: item.moduleCount })}</span>
+    </div>
+  );
+
+  const progressBar = (
+    <Progress
+      value={percent}
+      aria-label={t('progressAria', { read, total: item.moduleCount })}
+      className="h-1.5 flex-1"
+    />
+  );
 
   return (
     <li className="border-border bg-surface flex min-w-0 gap-3 rounded-[var(--radius-card)] border p-3 shadow-[var(--shadow-card)]">
@@ -65,27 +94,38 @@ export function LibraryCard({ item }: LibraryCardProps) {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <h2 className="text-h3 [overflow-wrap:anywhere] break-words">{item.title}</h2>
-        <p className="text-small text-text-muted [overflow-wrap:anywhere] break-words">
-          {item.author?.trim() || t('authorFallback')}
-        </p>
-
-        <div className="text-caption text-text-muted flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="[overflow-wrap:anywhere] break-words">{item.interestName}</span>
-          <span aria-hidden="true">·</span>
-          <span className="tabular-nums">{t('progress', { read, total: item.moduleCount })}</span>
-        </div>
-
-        <div className="mt-0.5 flex flex-wrap items-center gap-2">
-          <Badge variant="outline" className={cn('shrink-0', statusClasses[item.status])}>
-            {t(`status.${item.status}`)}
-          </Badge>
-          <Progress
-            value={percent}
-            aria-label={t('progressAria', { read, total: item.moduleCount })}
-            className="h-1.5 flex-1"
-          />
-        </div>
+        {unbookId ? (
+          <>
+            <Link
+              href={`/unbook/${unbookId}`}
+              aria-label={item.title}
+              className="focus-visible:border-ring focus-visible:ring-ring/50 -m-1 flex min-h-[44px] flex-col items-start justify-center gap-1.5 rounded-[var(--radius-input)] border-transparent p-1 outline-none focus-visible:ring-[3px]"
+            >
+              <h2 className="text-h3 [overflow-wrap:anywhere] break-words">{item.title}</h2>
+              <p className="text-small text-text-muted [overflow-wrap:anywhere] break-words">
+                {item.author?.trim() || t('authorFallback')}
+              </p>
+              {metaLine}
+              <div className="flex flex-wrap items-center gap-2">{statusBadge}</div>
+            </Link>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
+              {progressBar}
+              <SourceDeleteButton unbookId={unbookId} title={item.title} />
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="text-h3 [overflow-wrap:anywhere] break-words">{item.title}</h2>
+            <p className="text-small text-text-muted [overflow-wrap:anywhere] break-words">
+              {item.author?.trim() || t('authorFallback')}
+            </p>
+            {metaLine}
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
+              {statusBadge}
+              {progressBar}
+            </div>
+          </>
+        )}
       </div>
     </li>
   );

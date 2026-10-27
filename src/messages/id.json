@@ -141,7 +141,8 @@
     "progressAria": "Progres modul: {read} dari {total}",
     "authorFallback": "Penulis tidak dicantumkan",
     "empty": {
-      "message": "Pustakamu masih kosong. Unbook buku, jurnal, atau tautan pertamamu untuk mengubahnya jadi modul belajar."
+      "message": "Pustakamu masih kosong. Unbook buku, jurnal, atau tautan pertamamu untuk mengubahnya jadi modul belajar.",
+      "action": "Unbook bacaan pertamamu"
     },
     "noMatches": {
       "message": "Tidak ada Unbook yang cocok dengan pencarian dan filter ini.",
