@@ -1,6 +1,6 @@
 # Rencana M4 — Mesin generasi
 
-Status: **disetujui founder 27 Okt 2026; implementasi berjalan**. Kode M3 telah
+Status: **disetujui founder 27 Okt 2026; kode selesai 27 Okt 2026 (eval `--fake` 5/5 lulus); evaluasi nyata menunggu model dan kunci**. Kode M3 telah
 dideploy pada `50c603e`; layanan cloud masih menunggu konfigurasi founder.
 Dokumen ini menyiapkan kelanjutan, bukan mengaktifkan pipeline baru.
 
