@@ -6,26 +6,14 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { count, eq } from 'drizzle-orm';
 import * as schema from '@/db/schema';
-import { isAnswerCorrect, scoreAttempt, weakConcepts } from '@/lib/learning/quiz-scoring';
-import { firstDueAt } from '@/lib/learning/leitner';
-import { awardXp } from '@/lib/game/xp';
-import {
-  MODULE_READ,
-  QUIZ_PASS,
-  QUIZ_PERFECT_BONUS,
-  REVIEW_DAILY,
-  XP_EVENT_TYPES,
-  XP_REF_TYPES,
-} from '@/lib/game/xp-rules';
-import { localDate } from '@/lib/learning/leitner';
 
 /**
  * REAL-DB check on the isolated local database. SKIPPED unless
  * LEARNING_DB_URL is set; the runner exports:
  *   DATABASE_URL=postgres://unbookin:unbookin@127.0.0.1:5432/unbookin_m3_test_20261027
  *   LEARNING_DB_URL=same
- * Creates its own user + unbook + module + quiz + 5 cards, runs the XP flows
- * twice each, asserts user_stats.total_xp = 70, then deletes everything.
+ * Creates its own user + unbook + module + quiz + 5 cards, runs the real store
+ * services twice each, asserts user_stats.total_xp = 70, then deletes everything.
  */
 const URL = process.env.LEARNING_DB_URL ?? '';
 
@@ -100,6 +88,17 @@ describe.skipIf(!URL)('learning real-DB check (isolated local DB)', () => {
           chunkRefs: [CHUNK_ID],
         })),
       );
+      await db.insert(schema.quizQuestions).values({
+        quizId: QUIZ_ID,
+        sortOrder: 6,
+        bloomLevel: 'evaluate',
+        type: 'short_answer',
+        prompt: 'Jelaskan dengan kata-katamu.',
+        correct: 'Jawaban model.',
+        rubric: ['1', '2', '3', '4'],
+        explanation: 'karena',
+        chunkRefs: [CHUNK_ID],
+      });
       const cardIds = Array.from({ length: 5 }, (_, index) => index).map(
         (index) => `b8c9d0e1-0000-4000-8000-00000000001${index}`,
       );
@@ -113,133 +112,69 @@ describe.skipIf(!URL)('learning real-DB check (isolated local DB)', () => {
         })),
       );
 
+      // Exercise the REAL store services against this database (lazy `@/db` reads DATABASE_URL).
+      process.env.DATABASE_URL = URL;
+      const store = await import('@/lib/learning/store');
+      const me = { userId: USER_ID };
+
+      // --- foreign users cannot touch this module ---
+      await expect(
+        store.markModuleRead({ userId: 'a1b2c3d4-0000-4000-8000-0000000000ff' }, { moduleId: MODULE_ID }),
+      ).rejects.toMatchObject({ code: 'notFound' });
+
       // --- markModuleRead twice: XP 20 once, 5 card_states ---
-      const timeZone = 'Asia/Jakarta';
-      const now = new Date();
-
       for (const run of [1, 2]) {
-        await db.transaction(async (tx) => {
-          const readAt = run === 1 ? now : undefined;
-          await tx
-            .insert(schema.moduleProgress)
-            .values({ userId: USER_ID, moduleId: MODULE_ID, status: 'read', ...(readAt ? { readAt } : {}) })
-            .onConflictDoUpdate({
-              target: [schema.moduleProgress.userId, schema.moduleProgress.moduleId],
-              set: { status: 'read' },
-            });
-          await awardXp(tx, {
-            userId: USER_ID,
-            type: XP_EVENT_TYPES.MODULE_READ,
-            amount: MODULE_READ,
-            refType: XP_REF_TYPES.MODULE,
-            refId: MODULE_ID,
-          });
-          const dueAt = firstDueAt(new Date(), timeZone);
-          await tx
-            .insert(schema.cardStates)
-            .values(
-              cardIds.map((cardId) => ({ userId: USER_ID, cardId, box: 0, dueAt })),
-            )
-            .onConflictDoNothing({ target: [schema.cardStates.userId, schema.cardStates.cardId] });
-        });
+        const read = await store.markModuleRead(me, { moduleId: MODULE_ID });
+        expect(read.xpAwarded).toBe(run === 1);
+        expect(read.cardsQueued).toBe(5);
       }
-
-      const [readCount] = await db
+      const [queued] = await db
         .select({ value: count() })
-        .from(schema.xpEvents)
-        .where(eq(schema.xpEvents.type, XP_EVENT_TYPES.MODULE_READ));
-      expect(Number(readCount?.value)).toBe(1);
-
-      const cardStateRows = await db
-        .select()
         .from(schema.cardStates)
         .where(eq(schema.cardStates.userId, USER_ID));
-      expect(cardStateRows).toHaveLength(5);
-      expect(cardStateRows.every((row) => row.box === 0)).toBe(true);
+      expect(Number(queued?.value)).toBe(5);
 
-      // --- finishQuizAttempt at 100% twice: XP 40 once (30 + 10 perfect) ---
-      const answers = Object.fromEntries(
-        (await db.select().from(schema.quizQuestions).where(eq(schema.quizQuestions.quizId, QUIZ_ID))).map(
-          (question) => [question.id, { type: 'mcq', index: 0 }],
-        ),
-      );
+      // --- queued-but-unrated cards never earn review XP ---
+      expect((await store.completeReviewSession(me)).xpAwarded).toBe(false);
+
+      // --- quiz at 100% twice: 30 + 10 XP once per module ---
       const questions = await db
-        .select()
+        .select({ id: schema.quizQuestions.id, type: schema.quizQuestions.type })
         .from(schema.quizQuestions)
         .where(eq(schema.quizQuestions.quizId, QUIZ_ID));
-      const score = scoreAttempt(
-        questions.map((question) => ({
-          id: question.id,
-          type: question.type,
-          correct: question.correct,
-          bloomLevel: question.bloomLevel,
-          chunkRefs: [...question.chunkRefs],
-        })),
-        answers as Record<string, unknown>,
-      );
-      expect(score.scorePct).toBe(100);
-      expect(score.passed).toBe(true);
-      expect(weakConcepts([], {}).chunkIds).toEqual([]);
-
       for (const run of [1, 2]) {
-        await db.transaction(async (tx) => {
-          await tx.insert(schema.quizAttempts).values({
-            userId: USER_ID,
-            quizId: QUIZ_ID,
-            answers,
-            scorePct: 100,
-            passed: true,
-            finishedAt: now,
-          });
-          void run;
-          if (score.passed) {
-            await awardXp(tx, {
-              userId: USER_ID,
-              type: XP_EVENT_TYPES.QUIZ_PASS,
-              amount: QUIZ_PASS,
-              refType: XP_REF_TYPES.MODULE_QUIZ,
-              refId: MODULE_ID,
+        const { attemptId } = await store.startQuizAttempt(me, { quizId: QUIZ_ID });
+        for (const question of questions) {
+          if (question.type === 'short_answer') {
+            const feedback = await store.recordQuizAnswer(me, {
+              attemptId,
+              questionId: question.id,
+              answer: 'Jawaban saya.',
             });
-            if (score.scorePct === 100) {
-              await awardXp(tx, {
-                userId: USER_ID,
-                type: XP_EVENT_TYPES.QUIZ_PERFECT_BONUS,
-                amount: QUIZ_PERFECT_BONUS,
-                refType: XP_REF_TYPES.MODULE_QUIZ,
-                refId: MODULE_ID,
-              });
-            }
+            expect(feedback).toMatchObject({ needsGrading: true, modelAnswer: 'Jawaban model.' });
+            await store.recordShortAnswerGrade(me, {
+              attemptId,
+              questionId: question.id,
+              grade: run === 1 ? { grade: 4 } : { selfGraded: true, correct: true },
+            });
+            continue;
           }
-        });
-      }
-
-      // --- rateReviewCard + completeReviewSession twice: XP 10 once ---
-      const day = localDate(now, timeZone);
-      const goodAnswer = { type: 'mcq', index: 0 };
-      expect(isAnswerCorrect({ id: 'x', type: 'mcq', correct: 0 }, goodAnswer)).toBe(true);
-
-      for (const run of [1, 2]) {
-        await db.transaction(async (tx) => {
-          const box = run === 1 ? 0 : 1;
-          await tx
-            .update(schema.cardStates)
-            .set({ box, lastResult: 'good', reviewedCount: run })
-            .where(eq(schema.cardStates.cardId, cardIds[0]!));
-          await awardXp(tx, {
-            userId: USER_ID,
-            type: XP_EVENT_TYPES.REVIEW_DAILY,
-            amount: REVIEW_DAILY,
-            refType: XP_REF_TYPES.REVIEW,
-            refId: (await import('@/lib/game/xp')).dailyRefId(USER_ID, day),
+          const feedback = await store.recordQuizAnswer(me, {
+            attemptId,
+            questionId: question.id,
+            answer: 0,
           });
-        });
+          expect(feedback.correct).toBe(true);
+        }
+        const finished = await store.finishQuizAttempt(me, { attemptId });
+        expect(finished).toMatchObject({ scorePct: 100, passed: true, xpAwarded: run === 1 });
       }
 
-      const [reviewCount] = await db
-        .select({ value: count() })
-        .from(schema.xpEvents)
-        .where(eq(schema.xpEvents.type, XP_EVENT_TYPES.REVIEW_DAILY));
-      expect(Number(reviewCount?.value)).toBe(1);
+      // --- rate one card, then complete the session twice: 10 XP once ---
+      const rated = await store.rateReviewCard(me, { cardId: cardIds[0]!, result: 'good' });
+      expect(rated.box).toBe(1);
+      expect((await store.completeReviewSession(me)).xpAwarded).toBe(true);
+      expect((await store.completeReviewSession(me)).xpAwarded).toBe(false);
 
       // --- total ---
       const [stats] = await db
@@ -258,6 +193,8 @@ describe.skipIf(!URL)('learning real-DB check (isolated local DB)', () => {
       await db.delete(schema.sources).where(eq(schema.sources.id, SOURCE_ID));
       await db.delete(schema.interests).where(eq(schema.interests.id, INTEREST_ID));
       await client.end();
+      const shared = (globalThis as { unbookinDb?: { $client: { end: () => Promise<void> } } }).unbookinDb;
+      await shared?.$client.end();
     }
   });
 });

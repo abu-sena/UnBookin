@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, eq, gte, isNull, sql } from 'drizzle-orm';
+import { and, eq, gte, isNotNull, isNull, sql } from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
 import { db } from '@/db';
@@ -25,7 +25,7 @@ import {
   XP_EVENT_TYPES,
   XP_REF_TYPES,
 } from '@/lib/game/xp-rules';
-import { firstDueAt, localDate, scheduleCard } from './leitner';
+import { firstDueAt, localDate, scheduleCard, startOfLocalDay } from './leitner';
 import { LearningError } from './errors';
 import {
   assertIdentity,
@@ -374,7 +374,8 @@ export async function recordQuizAnswer(
   input: { attemptId: string; questionId: string; answer: unknown },
 ): Promise<AnswerFeedback & { correct?: boolean }> {
   const parsed = z
-    .strictObject({ attemptId: attemptIdSchema, questionId: questionIdSchema })
+    // `answer` is validated per question type below, once the question is known.
+    .strictObject({ attemptId: attemptIdSchema, questionId: questionIdSchema, answer: z.unknown() })
     .safeParse(input);
   if (!parsed.success) throw new LearningError('invalidInput');
   assertIdentity(identity);
@@ -454,11 +455,10 @@ export async function recordShortAnswerGrade(
   input: { attemptId: string; questionId: string; grade: unknown },
 ): Promise<{ graded: true }> {
   const parsed = z
-    .strictObject({ attemptId: attemptIdSchema, questionId: questionIdSchema })
+    .strictObject({ attemptId: attemptIdSchema, questionId: questionIdSchema, grade: z.unknown() })
     .safeParse(input);
   if (!parsed.success) throw new LearningError('invalidInput');
-  assertIdentity(identity);
-  const grade = shortAnswerGradeSchema.safeParse(input.grade);
+  const grade = shortAnswerGradeSchema.safeParse(parsed.data.grade);
   if (!grade.success) throw new LearningError('invalidInput');
   assertIdentity(identity);
 
@@ -604,11 +604,19 @@ export async function completeReviewSession(
   return db.transaction(async (tx) => {
     const timeZone = await identityTimeZone(tx, identity.userId);
     const dayStart = localDate(now, timeZone);
-    const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    // Only cards actually rated since local midnight count; cards merely queued by
+    // markModuleRead have no last_result and must not earn review XP.
+    const since = startOfLocalDay(now, timeZone);
     const [reviewed] = await tx
       .select({ value: sql<number>`count(*)` })
       .from(cardStates)
-      .where(and(eq(cardStates.userId, identity.userId), gte(cardStates.updatedAt, since)));
+      .where(
+        and(
+          eq(cardStates.userId, identity.userId),
+          isNotNull(cardStates.lastResult),
+          gte(cardStates.updatedAt, since),
+        ),
+      );
     const reviewedToday = Number(reviewed?.value ?? 0);
     if (reviewedToday < 1) return { xpAwarded: false, reviewedToday: 0 };
 
