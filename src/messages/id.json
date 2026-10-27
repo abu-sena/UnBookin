@@ -262,7 +262,7 @@
       "fallbackStage": "Memproses bacaan…",
       "ready": "Siap dipelajari.",
       "readyAction": "Buka Unbook",
-      "modules": "Menulis modul {done} dari {total}",
+      "modules": "{done} dari {total} modul selesai ditulis",
       "failedFallback": "Pemrosesan belum berhasil. Coba lagi sebentar lagi, ya.",
       "ingested": "Bacaan tersimpan. Menyiapkan modul…",
       "ingestedAction": "Buka Pustaka",

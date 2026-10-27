@@ -154,7 +154,7 @@ describe('SourceProcessingView poller', () => {
     );
 
     await advance(POLL_INTERVAL_MS);
-    expect(screen.getByText('Menulis modul 2 dari 5')).toBeInTheDocument();
+    expect(screen.getByText('2 dari 5 modul selesai ditulis')).toBeInTheDocument();
     await advance(POLL_INTERVAL_MS);
     expect(screen.getByRole('link', { name: copy.readyAction })).toHaveAttribute('href', `/unbook/${UNBOOK_ID}`);
     // Only ready/failed stop the loop, not the ingest handoff.
