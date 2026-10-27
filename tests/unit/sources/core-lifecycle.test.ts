@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   deleteObject: vi.fn(),
   sendUploaded: vi.fn(),
   sendDeleted: vi.fn(),
+  sendRequested: vi.fn(),
   getAllowance: vi.fn(),
 }));
 
@@ -12,6 +13,7 @@ vi.mock('server-only', () => ({}));
 vi.mock('@/inngest/events', () => ({
   sendSourceUploaded: mocks.sendUploaded,
   sendSourceDeleted: mocks.sendDeleted,
+  sendUnbookRequested: mocks.sendRequested,
 }));
 
 vi.mock('@/lib/billing/source-quota', async (importOriginal) => {
@@ -77,6 +79,7 @@ beforeEach(() => {
     mocks.deleteObject,
     mocks.sendUploaded,
     mocks.sendDeleted,
+    mocks.sendRequested,
     mocks.getAllowance,
   ]) {
     mock.mockReset();
@@ -465,6 +468,41 @@ describe('cancelSourceUpload', () => {
 describe('retrySourceProcessing', () => {
   const failedSource = { ...sourceRow, status: 'failed', errorCode: 'jobsUnavailable' };
 
+  function queueGenerationRetry() {
+    const readySource = { ...sourceRow, status: 'ready' };
+    fake.results.push(
+      [{ id: UNBOOK_ID, sourceId: SOURCE_ID, status: 'failed' }],
+      [readySource], [{ id: USER_ID }], [readySource], [{ id: UNBOOK_ID }],
+    );
+  }
+
+  it('retries generation with fresh event IDs and preserves source and modules', async () => {
+    queueGenerationRetry();
+    await retrySourceProcessing(USER_ID, UNBOOK_ID);
+    queueGenerationRetry();
+    await retrySourceProcessing(USER_ID, UNBOOK_ID);
+    expect(mocks.sendUploaded).not.toHaveBeenCalled();
+    expect(mocks.sendRequested).toHaveBeenCalledTimes(2);
+    const ids = mocks.sendRequested.mock.calls.map((call) => call[1].eventId as string);
+    expect(ids[0]).toMatch(new RegExp(`^unbook-requested-retry:${UNBOOK_ID}:[0-9a-f-]{36}$`));
+    expect(ids[0]).not.toBe(ids[1]);
+    expect(mocks.sendRequested.mock.calls[0]?.[0]).toEqual({ userId: USER_ID, sourceId: SOURCE_ID, unbookId: UNBOOK_ID });
+    expect(fake.recorded.updates.map((entry) => entry.table)).toEqual([unbooks, unbooks]);
+    expect(fake.recorded.updates[0]?.set).toEqual({ status: 'queued', currentStage: 'ingested', progressPct: 100 });
+    expect(fake.recorded.deletes).toHaveLength(0);
+    expect(mocks.getAllowance.mock.calls[0]?.[2]).toMatchObject({ database: fake.tx, excludeUnbookId: UNBOOK_ID });
+  });
+
+  it('restores only the generation handoff on send failure, leaving source ready', async () => {
+    queueGenerationRetry();
+    fake.results.push([{ ...sourceRow, status: 'ready' }], []);
+    mocks.sendRequested.mockRejectedValueOnce(new Error('private vendor detail'));
+    await expect(retrySourceProcessing(USER_ID, UNBOOK_ID)).rejects.toMatchObject({ code: 'jobsUnavailable' });
+    expect(fake.recorded.updates.map((entry) => entry.table)).toEqual([unbooks, unbooks]);
+    expect(fake.recorded.updates.at(-1)?.set).toEqual({ status: 'failed', currentStage: 'failed' });
+    expect(mocks.sendUploaded).not.toHaveBeenCalled();
+  });
+
   it('refuses to retry a source that is not failed', async () => {
     fake.results.push([{ id: UNBOOK_ID, sourceId: SOURCE_ID, status: 'ready' }]);
 
@@ -502,6 +540,8 @@ describe('retrySourceProcessing', () => {
     });
     expect(fake.recorded.updates[1]?.set).toEqual({ status: 'uploaded', errorCode: null });
     expect(mocks.sendUploaded).toHaveBeenCalledTimes(1);
+    expect(mocks.sendRequested).not.toHaveBeenCalled();
+    expect(mocks.sendUploaded.mock.calls[0]?.[1].eventId).toMatch(new RegExp(`^source-uploaded-retry:${UNBOOK_ID}:[0-9a-f-]{36}$`));
   });
 
   it('rejects the retry when serialized capacity is exhausted', async () => {
