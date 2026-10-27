@@ -228,8 +228,8 @@ describe('createInlineSource (text)', () => {
       [{ id: INTEREST_ID }],
       [],
       [{ id: 'unb-1' }],
-      [{ id: SOURCE_ID }],
-      [{ id: 'unb-1' }],
+      [{ id: SOURCE_ID, status: 'uploaded' }],
+      [{ id: 'unb-1', status: 'queued', currentStage: 'reading' }],
       [],
       [],
     );

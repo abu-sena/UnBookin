@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { and, count, eq, ne } from 'drizzle-orm';
 import { db } from '@/db';
 import { sourceChunks, sources, unbooks, users } from '@/db/schema';
+import type { Unbook } from '@/db/schema';
 import { getSourceAllowance, validateSourceFileSize } from '@/lib/billing/source-quota';
 import { SourceError } from '@/lib/sources/errors';
 import { isOwnedSourceObjectKey } from '@/lib/storage/keys';
@@ -34,9 +35,9 @@ export type FinalizedUpload = { unbookId: string };
 
 /**
  * Finalize a pending upload (E2-01 AC3): verify what actually landed in
- * storage (HEAD) against the stored metadata — the MIME type, the EXACT
+ * storage (HEAD) against the stored metadata - the MIME type, the EXACT
  * `sizeBytes` recorded at presign time (a swapped/different file is rejected
- * even when its size sits below the plan limit) and the CURRENT plan limits —
+ * even when its size sits below the plan limit) and the CURRENT plan limits -
  * then claim the state transition `uploading -> reading` with a guarded UPDATE
  * so repeated or concurrent completions cannot double-queue a job. A source
  * claimed by cancellation (`cancelling`) is never treated as a submitted
@@ -72,7 +73,7 @@ export async function finalizeSourceUpload(
     if (!locked) throw new SourceError('notFound');
 
     const [unbook] = await tx
-      .select({ id: unbooks.id })
+      .select({ id: unbooks.id, currentStage: unbooks.currentStage })
       .from(unbooks)
       .where(and(eq(unbooks.sourceId, sourceId), eq(unbooks.userId, userId)))
       .limit(1);
@@ -94,10 +95,20 @@ export async function finalizeSourceUpload(
       )
       .returning({ id: unbooks.id });
 
-    await tx
-      .update(sources)
-      .set({ mimeType: actual.mimeType, sizeBytes: actual.sizeBytes })
-      .where(eq(sources.id, sourceId));
+    // Cancellation/deletion won the race: never report success for a pair that
+    // is being torn down and never enqueue a job for it.
+    if (!claimed && (unbook.currentStage === 'cancelling' || unbook.currentStage === 'deleting')) {
+      throw new SourceError('invalidInput');
+    }
+
+    if (claimed) {
+      await tx
+        .update(sources)
+        .set({ mimeType: actual.mimeType, sizeBytes: actual.sizeBytes })
+        .where(
+          and(eq(sources.id, sourceId), eq(sources.userId, userId), eq(sources.status, 'uploaded')),
+        );
+    }
 
     return claimed?.id ?? null;
   });
@@ -123,66 +134,62 @@ export async function finalizeSourceUpload(
 }
 
 /**
- * Cancel a pending upload: allowed only while the source is still waiting for
- * the file (`queued` + stage `uploading`). The cancellation is first CLAIMED
- * atomically under the `sources` row lock (internal stage `cancelling`), so a
- * concurrent finalize can never enqueue a job for a cancelling source — and a
- * losing cancel can never delete the file of a legitimately running job. Only
- * after the claim commits is the file deleted (a 404 is success); if storage
- * fails, the uploadable stage is restored and every DB reference is kept so
- * the cancel can be retried. The owned Unbook, chunks and source rows are then
- * removed in one transaction guarded by the lock (finalize winning means NO
- * storage delete; cancel winning means finalize sends NO job). Cancelling
- * after the job was queued fails with a clear `invalidInput` instead of
- * silently deleting pipeline work. No DB transaction is held across network
- * I/O.
+ * Cancel a pending upload. The claim (`cancelling`) is committed under the
+ * owned source + Unbook locks BEFORE any storage call, so a concurrent
+ * finalize can never enqueue a job for a pair being torn down. A repeated
+ * cancel accepts an existing `cancelling` claim (recovery after a storage
+ * success followed by a DB failure), while a pair claimed by deletion is
+ * rejected. Missing rows are idempotent success. No transaction spans the
+ * storage call.
  */
 export async function cancelSourceUpload(userId: string, sourceId: string): Promise<void> {
   const source = await loadOwnedSource(userId, sourceId);
-  if (!source) throw new SourceError('notFound');
+  // Already gone: nothing destructive remains.
+  if (!source) return;
 
   if (source.fileKey && !isOwnedSourceObjectKey(source.fileKey, userId, sourceId)) {
     throw new SourceError('invalidInput');
   }
 
-  // Claim BEFORE any destructive storage call. `cancelling` is an internal
-  // value in the existing free-text `current_stage` column (no migration).
-  const claimedUnbookId = await db.transaction(async (tx) => {
+  const claim = await db.transaction(async (tx) => {
     const locked = await lockOwnedSource(tx, userId, sourceId);
-    if (!locked) throw new SourceError('notFound');
+    if (!locked) return null;
 
     const [unbook] = await tx
-      .select({ id: unbooks.id })
+      .select({ id: unbooks.id, currentStage: unbooks.currentStage })
       .from(unbooks)
       .where(and(eq(unbooks.sourceId, sourceId), eq(unbooks.userId, userId)))
       .for('update');
-    if (!unbook) throw new SourceError('notFound');
+    if (!unbook) return null;
 
-    const [claimed] = await tx
-      .update(unbooks)
-      .set({ currentStage: 'cancelling' })
-      .where(
-        and(
-          eq(unbooks.id, unbook.id),
-          eq(unbooks.userId, userId),
-          eq(unbooks.currentStage, 'uploading'),
-          eq(unbooks.status, 'queued'),
-        ),
-      )
-      .returning({ id: unbooks.id });
-    return claimed?.id ?? null;
+    if (unbook.currentStage === 'deleting') throw new SourceError('invalidInput');
+
+    if (unbook.currentStage !== 'cancelling') {
+      if (unbook.currentStage !== 'uploading') throw new SourceError('invalidInput');
+      const [claimed] = await tx
+        .update(unbooks)
+        .set({ currentStage: 'cancelling' })
+        .where(
+          and(
+            eq(unbooks.id, unbook.id),
+            eq(unbooks.userId, userId),
+            eq(unbooks.sourceId, sourceId),
+            eq(unbooks.currentStage, 'uploading'),
+            eq(unbooks.status, 'queued'),
+          ),
+        )
+        .returning({ id: unbooks.id });
+      if (!claimed) throw new SourceError('invalidInput');
+    }
+
+    return { unbookId: unbook.id, fileKey: locked.fileKey ?? null };
   });
 
-  // Finalize (or the pipeline) already claimed the work: refuse WITHOUT
-  // touching the file that job depends on.
-  if (claimedUnbookId === null) throw new SourceError('invalidInput');
+  if (claim === null) return;
 
-  if (source.fileKey) {
+  if (claim.fileKey) {
     try {
-      // Missing object (never uploaded / already gone) is success; unavailable
-      // storage restores the uploadable state and keeps every DB reference so
-      // the cancel can be retried.
-      await deleteSourceObject(source.fileKey);
+      await deleteSourceObject(claim.fileKey);
     } catch (error) {
       await restoreUploadableStage(userId, sourceId);
       throw error;
@@ -191,47 +198,45 @@ export async function cancelSourceUpload(userId: string, sourceId: string): Prom
 
   await db.transaction(async (tx) => {
     const locked = await lockOwnedSource(tx, userId, sourceId);
-    if (!locked) return; // Rows already gone; nothing left to delete.
+    if (!locked) return;
 
-    // Only a still-cancelling pair is deleted; anything else means a retry or
-    // pipeline write happened in between and is left untouched.
-    const [stillCancelling] = await tx
-      .select({ id: unbooks.id })
+    const [unbook] = await tx
+      .select({ id: unbooks.id, currentStage: unbooks.currentStage })
       .from(unbooks)
       .where(
         and(
-          eq(unbooks.id, claimedUnbookId),
+          eq(unbooks.id, claim.unbookId),
           eq(unbooks.userId, userId),
-          eq(unbooks.currentStage, 'cancelling'),
-          eq(unbooks.status, 'queued'),
+          eq(unbooks.sourceId, sourceId),
         ),
       )
       .for('update');
-    if (!stillCancelling) return;
 
-    // The source FK on `unbooks` is SET NULL, so the Unbook is deleted
-    // explicitly; chunks are deleted explicitly as well for determinism.
-    await tx
-      .delete(unbooks)
-      .where(and(eq(unbooks.id, claimedUnbookId), eq(unbooks.userId, userId)));
-    await tx.delete(sourceChunks).where(eq(sourceChunks.sourceId, sourceId));
-    await tx.delete(sources).where(and(eq(sources.id, sourceId), eq(sources.userId, userId)));
+    if (unbook && unbook.currentStage !== 'cancelling') return;
+
+    if (unbook) {
+      await tx
+        .delete(unbooks)
+        .where(and(eq(unbooks.id, claim.unbookId), eq(unbooks.userId, userId)));
+    }
+    const refs = await countSourceRefsInTx(tx, sourceId);
+    if (refs === 0) {
+      await tx.delete(sourceChunks).where(eq(sourceChunks.sourceId, sourceId));
+      await tx.delete(sources).where(and(eq(sources.id, sourceId), eq(sources.userId, userId)));
+    }
   });
 
-  // Best-effort cancellation signal for jobs that may have started in a race
-  // window. The ingest side must verify row existence before any write; a send
-  // failure here is never reported after the data is already gone.
   try {
-    await sendSourceDeleted({ sourceId, userId, unbookId: claimedUnbookId });
+    await sendSourceDeleted({ sourceId, userId, unbookId: claim.unbookId });
   } catch {
-    // Intentionally ignored.
+    // Best effort: the data is already gone.
   }
 }
 
 /**
  * Restore the uploadable state after a failed storage deletion (guarded to the
- * exact cancelling claim). Best effort: the original storage error is the one
- * surfaced to the caller.
+ * exact `cancelling` claim). Best effort: the original storage error is the
+ * one surfaced to the caller.
  */
 async function restoreUploadableStage(userId: string, sourceId: string): Promise<void> {
   try {
@@ -316,12 +321,16 @@ export async function retrySourceProcessing(userId: string, unbookId: string): P
 }
 
 /**
- * Delete one owned Unbook (E2-03 AC3). Storage is deleted FIRST so a storage
- * failure preserves every DB reference and the user can retry. The source row
- * (and its chunks/file) is only removed when no OTHER Unbook references it;
- * shared or foreign sources are never touched. Locking order: `sources` row
- * FOR UPDATE first, then `unbooks`/`source_chunks` deletes. Missing Unbook is
- * a safe notFound; an already-missing object is idempotent success.
+ * Delete one owned Unbook (E2-03 AC3).
+ *
+ * Storage is deleted FIRST so a storage failure preserves every DB reference.
+ * A `deleting` claim is committed under the owned `sources` + `unbooks` locks
+ * BEFORE the storage call, so an ingest service can never write after the
+ * snapshot and a repeated delete can recover a DB failure that happened after
+ * the object was already gone. The object is deleted only when this Unbook is
+ * the last reference; shared sources and source-less personal originals are
+ * preserved. Missing rows are a safe notFound; an already-missing object is
+ * idempotent success.
  */
 export async function deleteOwnedUnbook(userId: string, unbookId: string): Promise<void> {
   const [unbook] = await db
@@ -331,36 +340,137 @@ export async function deleteOwnedUnbook(userId: string, unbookId: string): Promi
     .limit(1);
   if (!unbook) throw new SourceError('notFound');
 
-  const source = unbook.sourceId !== null ? await loadOwnedSource(userId, unbook.sourceId) : null;
-  const sharedRefs = unbook.sourceId !== null ? await countOtherRefs(unbook.sourceId, unbookId) : 0;
+  const claim = await db.transaction(async (tx) => {
+    let source = null;
+    if (unbook.sourceId !== null) {
+      source = await lockOwnedSource(tx, userId, unbook.sourceId);
+    }
 
-  if (source?.fileKey && sharedRefs === 0) {
-    if (!isOwnedSourceObjectKey(source.fileKey, userId, source.id)) {
+    const [lockedUnbook] = await tx
+      .select({
+        id: unbooks.id,
+        sourceId: unbooks.sourceId,
+        status: unbooks.status,
+        currentStage: unbooks.currentStage,
+      })
+      .from(unbooks)
+      .where(and(eq(unbooks.id, unbookId), eq(unbooks.userId, userId)))
+      .for('update');
+    if (!lockedUnbook) return null;
+
+    const previousStage = lockedUnbook.currentStage;
+    if (previousStage !== 'deleting') {
+      const [claimed] = await tx
+        .update(unbooks)
+        .set({ currentStage: 'deleting' })
+        .where(and(eq(unbooks.id, unbookId), eq(unbooks.userId, userId)))
+        .returning({ id: unbooks.id });
+      if (!claimed) return null;
+    }
+
+    const sourceId = lockedUnbook.sourceId;
+    const sharedRefs = sourceId !== null ? await countOtherRefsInTx(tx, sourceId, unbookId) : 0;
+    const fileKey = source && sharedRefs === 0 ? (source.fileKey ?? null) : null;
+
+    return {
+      unbookId,
+      sourceId,
+      fileKey,
+      previousStatus: lockedUnbook.status,
+      previousStage,
+    };
+  });
+
+  if (claim === null) return;
+
+  if (claim.fileKey) {
+    if (!isOwnedSourceObjectKey(claim.fileKey, userId, claim.sourceId ?? '')) {
       throw new SourceError('invalidInput');
     }
-    await deleteSourceObject(source.fileKey);
+    try {
+      await deleteSourceObject(claim.fileKey);
+    } catch (error) {
+      await restoreAfterDeleteStorageFailure(userId, claim);
+      throw error;
+    }
   }
 
   await db.transaction(async (tx) => {
-    if (source) {
-      const locked = await lockOwnedSource(tx, userId, source.id);
-      if (!locked) throw new SourceError('notFound');
-      const refsNow = await countOtherRefsInTx(tx, source.id, unbookId);
+    const lockedSource =
+      claim.sourceId !== null ? await lockOwnedSource(tx, userId, claim.sourceId) : null;
+
+    const [lockedUnbook] = await tx
+      .select({ id: unbooks.id, currentStage: unbooks.currentStage })
+      .from(unbooks)
+      .where(and(eq(unbooks.id, unbookId), eq(unbooks.userId, userId)))
+      .for('update');
+    if (!lockedUnbook) return;
+    if (lockedUnbook.currentStage !== 'deleting') return;
+
+    await tx.delete(unbooks).where(and(eq(unbooks.id, unbookId), eq(unbooks.userId, userId)));
+
+    if (claim.sourceId !== null && lockedSource) {
+      const refsNow = await countSourceRefsInTx(tx, claim.sourceId);
       if (refsNow === 0) {
-        await tx.delete(sourceChunks).where(eq(sourceChunks.sourceId, source.id));
-        await tx.delete(sources).where(and(eq(sources.id, source.id), eq(sources.userId, userId)));
+        await tx.delete(sourceChunks).where(eq(sourceChunks.sourceId, claim.sourceId));
+        await tx
+          .delete(sources)
+          .where(and(eq(sources.id, claim.sourceId), eq(sources.userId, userId)));
       }
     }
-    await tx.delete(unbooks).where(and(eq(unbooks.id, unbookId), eq(unbooks.userId, userId)));
   });
+
+  if (claim.sourceId !== null) {
+    try {
+      await sendSourceDeleted({ sourceId: claim.sourceId, userId, unbookId });
+    } catch {
+      // Best effort: the data is already gone.
+    }
+  }
 }
 
-async function countOtherRefs(sourceId: string, unbookId: string): Promise<number> {
-  const [row] = await db
-    .select({ value: count() })
-    .from(unbooks)
-    .where(and(eq(unbooks.sourceId, sourceId), ne(unbooks.id, unbookId)));
-  return Number(row?.value ?? 0);
+type DeleteClaim = {
+  unbookId: string;
+  sourceId: string | null;
+  fileKey: string | null;
+  previousStatus: Unbook['status'];
+  previousStage: string | null;
+};
+
+/**
+ * A storage failure keeps every DB reference. Restoring a running ingest stage
+ * would be misleading because the job may have exited when it observed the
+ * `deleting` claim, so unfinished ingest flows become a safe retryable failed
+ * state; terminal/uploading states are restored exactly.
+ */
+async function restoreAfterDeleteStorageFailure(userId: string, claim: DeleteClaim): Promise<void> {
+  const running = new Set(['reading', 'chunking', 'embedding']);
+  try {
+    await db.transaction(async (tx) => {
+      if (claim.sourceId !== null) await lockOwnedSource(tx, userId, claim.sourceId);
+      const [lockedUnbook] = await tx
+        .select({ id: unbooks.id, currentStage: unbooks.currentStage })
+        .from(unbooks)
+        .where(and(eq(unbooks.id, claim.unbookId), eq(unbooks.userId, userId)))
+        .for('update');
+      if (!lockedUnbook || lockedUnbook.currentStage !== 'deleting') return;
+
+      if (claim.previousStage !== null && running.has(claim.previousStage)) {
+        await tx
+          .update(unbooks)
+          .set({ status: 'failed', currentStage: 'failed' })
+          .where(and(eq(unbooks.id, claim.unbookId), eq(unbooks.userId, userId)));
+        return;
+      }
+
+      await tx
+        .update(unbooks)
+        .set({ status: claim.previousStatus, currentStage: claim.previousStage })
+        .where(and(eq(unbooks.id, claim.unbookId), eq(unbooks.userId, userId)));
+    });
+  } catch {
+    // Intentionally ignored: the storage error is reported instead.
+  }
 }
 
 function countOtherRefsInTx(tx: Transaction, sourceId: string, unbookId: string) {
@@ -368,5 +478,13 @@ function countOtherRefsInTx(tx: Transaction, sourceId: string, unbookId: string)
     .select({ value: count() })
     .from(unbooks)
     .where(and(eq(unbooks.sourceId, sourceId), ne(unbooks.id, unbookId)))
+    .then((rows) => Number(rows[0]?.value ?? 0));
+}
+
+function countSourceRefsInTx(tx: Transaction, sourceId: string) {
+  return tx
+    .select({ value: count() })
+    .from(unbooks)
+    .where(eq(unbooks.sourceId, sourceId))
     .then((rows) => Number(rows[0]?.value ?? 0));
 }

@@ -130,12 +130,13 @@ export async function markQueueFailed(
 ): Promise<void> {
   await db.transaction(async (tx) => {
     const [source] = await tx
-      .select({ id: sources.id })
+      .select({ id: sources.id, status: sources.status })
       .from(sources)
       .where(and(eq(sources.id, sourceId), eq(sources.userId, userId)))
       .for('update');
-    // Deleted rows are never resurrected.
-    if (!source) return;
+    // Deleted rows are never resurrected, and a pipeline that already moved the
+    // source past `uploaded` (e.g. `extracting`) owns the pair now.
+    if (!source || source.status !== 'uploaded') return;
 
     const [unbook] = await tx
       .select({ id: unbooks.id })
@@ -169,7 +170,15 @@ export async function markQueueFailed(
     await tx
       .update(unbooks)
       .set({ status: 'failed', currentStage: 'failed' })
-      .where(and(eq(unbooks.id, unbookId), eq(unbooks.userId, userId)));
+      .where(
+        and(
+          eq(unbooks.id, unbookId),
+          eq(unbooks.userId, userId),
+          eq(unbooks.sourceId, sourceId),
+          eq(unbooks.status, 'queued'),
+          eq(unbooks.currentStage, 'reading'),
+        ),
+      );
   });
 }
 
