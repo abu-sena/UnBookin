@@ -8,6 +8,9 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { LibraryCard } from '@/components/library/library-card';
 import { LibraryFilterForm } from '@/components/library/library-filter-form';
 import { Sheet } from '@/components/layout/sheet';
+import { SourceUploadProvider } from '@/components/sources/source-upload-provider';
+import { createPreviewSourceUploadAdapter } from '@/components/sources/upload-preview-adapter';
+import { useSourceUpload } from '@/components/sources/upload-trigger';
 import { EmptyState } from '@/components/ui-kit/empty-state';
 import { ErrorState } from '@/components/ui-kit/error-state';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -104,6 +107,7 @@ export function DevUiShowcase({
   bottomNavSlot,
 }: DevUiShowcaseProps) {
   const t = useTranslations('devUi');
+  const tUpload = useTranslations('sources.upload');
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -329,6 +333,15 @@ export function DevUiShowcase({
         <p className="text-caption text-text-muted">{t('sheetDescription')}</p>
       </Section>
 
+      <Section title={tUpload('title')}>
+        <SourceUploadProvider
+          adapter={createPreviewSourceUploadAdapter()}
+          onNavigate={() => undefined}
+        >
+          <UploadPreviewDemo />
+        </SourceUploadProvider>
+      </Section>
+
       <Section title={t('sectionSheet')}>
         <Button onClick={() => setSheetOpen(true)}>{t('openSheet')}</Button>
         <Sheet
@@ -347,6 +360,12 @@ export function DevUiShowcase({
       </Section>
     </div>
   );
+}
+
+function UploadPreviewDemo() {
+  const t = useTranslations('sources.upload');
+  const upload = useSourceUpload();
+  return <Button onClick={() => upload?.openUpload()}>{t('trigger')}</Button>;
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

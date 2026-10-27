@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { PlusIcon } from 'lucide-react';
 import { navItems } from '@/components/layout/nav-items';
+import { SourceUploadTrigger } from '@/components/sources/upload-trigger';
 import { cn } from '@/lib/utils';
 
 type BottomNavProps = {
@@ -40,8 +41,7 @@ export function BottomNav({ reviewCount = 0 }: BottomNavProps) {
         ))}
 
         <div className="flex justify-center">
-          <button
-            type="button"
+          <SourceUploadTrigger
             aria-label={t('unbookAria')}
             className={cn(
               'text-primary-fg bg-primary -translate-y-4',
@@ -51,7 +51,7 @@ export function BottomNav({ reviewCount = 0 }: BottomNavProps) {
             )}
           >
             <PlusIcon className="size-6" aria-hidden="true" />
-          </button>
+          </SourceUploadTrigger>
         </div>
 
         {navItems.slice(2).map((item) => (

@@ -152,6 +152,106 @@
       "retry": "Coba lagi"
     }
   },
+  "sources": {
+    "upload": {
+      "trigger": "Unbook",
+      "title": "Unbook bacaan baru",
+      "description": "Pilih cara menambahkan bacaan, lalu isi judul dan minatnya sekali saja.",
+      "choicesLabel": "Cara menambahkan bacaan",
+      "modes": {
+        "file": "Unggah file",
+        "fileHint": "PDF atau EPUB",
+        "url": "Tempel tautan",
+        "urlHint": "Artikel atau halaman web",
+        "text": "Tempel teks",
+        "textHint": "Teks yang sudah kamu salin"
+      },
+      "context": {
+        "loading": "Memeriksa batas paketmu…",
+        "error": "Batas paket belum bisa dimuat.",
+        "retry": "Coba lagi",
+        "plan": "Paket {plan}",
+        "remaining": "Sisa {remaining} dari {capacity} Unbook bulan ini",
+        "exhausted": "Kuota Unbook bulan ini sudah habis.",
+        "limits": "Maksimal {pages} halaman dan {size} MB per bacaan",
+        "interestsEmpty": "Minat belum tersedia. Coba muat ulang."
+      },
+      "plans": {
+        "free": "Gratis",
+        "pro": "Pro",
+        "byok": "Pro BYOK"
+      },
+      "fields": {
+        "title": "Judul",
+        "titlePlaceholder": "Contoh: Atomic Habits",
+        "titleError": "Isi judul bacaan (maksimal 220 karakter).",
+        "interest": "Minat",
+        "interestPlaceholder": "Pilih minat",
+        "interestError": "Pilih satu minat yang tersedia.",
+        "file": "File PDF atau EPUB",
+        "fileHint": "Hanya PDF atau EPUB, maksimal {size} MB.",
+        "fileSelected": "{name} ({size} MB)",
+        "fileError": "Pilih file PDF atau EPUB yang valid.",
+        "fileTooLarge": "File melebihi batas {size} MB paket ini.",
+        "url": "Tautan",
+        "urlPlaceholder": "https://contoh.com/artikel",
+        "urlError": "Masukkan tautan http atau https yang valid tanpa kredensial.",
+        "text": "Teks",
+        "textPlaceholder": "Tempel teks bacaan di sini",
+        "textCount": "{count}/{max} karakter",
+        "textHint": "Maksimal {max} karakter atau {size} MB.",
+        "textError": "Isi teks bacaan yang akan di-Unbook.",
+        "rights": "Saya memiliki atau berhak mengakses file ini dan hanya memakainya untuk belajar pribadi.",
+        "rightsError": "Centang persetujuan ini untuk melanjutkan.",
+        "progressLabel": "Progres unggahan",
+        "progressValue": "{percent}% terunggah",
+        "saving": "Menyimpan…",
+        "preparing": "Menyiapkan unggahan…",
+        "uploading": "Mengunggah…",
+        "finalizing": "Menyelesaikan…",
+        "cancelling": "Membatalkan…"
+      },
+      "actions": {
+        "submit": "Unbook sekarang",
+        "cancelUpload": "Batalkan unggahan",
+        "continueUpload": "Lanjutkan",
+        "close": "Tutup",
+        "retry": "Coba lagi",
+        "restart": "Mulai ulang",
+        "retryCleanup": "Bersihkan lagi",
+        "openLibrary": "Buka Pustaka",
+        "openUnbook": "Lihat bacaan"
+      },
+      "close": {
+        "title": "Unggahan sedang berjalan",
+        "fileDescription": "Batalkan unggahan, atau lanjutkan sampai selesai. Menutup di tengah proses bisa meninggalkan data sementara.",
+        "inlineDescription": "Permintaan sedang diproses. Tunggu sampai selesai agar tidak membuat data ganda."
+      },
+      "recovery": {
+        "queue": "Bacaan sudah tersimpan, tetapi antrean pemrosesan sedang tidak tersedia. Periksa Pustaka sebelum membuat Unbook baru.",
+        "finalized": "Unggahan sudah selesai diproses sebelum pembatalan sempat diterapkan. Buka bacaan yang sudah dibuat, jangan unggah ulang.",
+        "cleanupFailed": "Data sementara belum bisa dibersihkan. Coba bersihkan lagi sebelum menutup."
+      },
+      "errors": {
+        "generic": "Ada yang salah saat memproses bacaanmu. Coba lagi sebentar lagi, ya.",
+        "invalidInput": "Ada isian yang belum pas. Periksa lagi, ya.",
+        "rightsRequired": "Centang persetujuan hak akses untuk melanjutkan.",
+        "fileType": "Pilih file PDF atau EPUB yang valid.",
+        "fileTooLarge": "Ukuran bacaan melebihi batas {limit} MB paket ini. Naikkan paket untuk batas lebih besar.",
+        "pagesExceeded": "Bacaan melebihi batas {limit} halaman paket ini. Naikkan paket atau pilih bacaan yang lebih pendek.",
+        "quotaExceeded": "Kuota Unbook bulan ini habis (sisa {remaining} dari {capacity}). Naikkan paket untuk melanjutkan.",
+        "storageUnavailable": "Penyimpanan file sedang tidak tersedia. Coba lagi sebentar lagi, ya.",
+        "jobsUnavailable": "Antrean pemrosesan sedang tidak tersedia. Periksa Pustaka sebelum mencoba lagi.",
+        "embeddingUnavailable": "Pemrosesan teks sedang tidak tersedia. Coba lagi sebentar lagi, ya.",
+        "invalidUrl": "Tautan belum valid. Gunakan alamat http atau https tanpa nama pengguna dan kata sandi.",
+        "fetchFailed": "Tautan belum bisa dibaca. Periksa alamatnya atau coba lagi nanti.",
+        "noText": "File ini berupa gambar; versi ini belum mendukung OCR.",
+        "notFound": "Bacaan itu sudah tidak ada. Coba muat ulang Pustaka.",
+        "processingFailed": "Bacaan belum bisa diproses. Coba lagi sebentar lagi, ya.",
+        "configurationMissing": "Layanan unggah belum siap. Coba lagi nanti atau hubungi bantuan."
+      }
+    }
+  },
   "devUi": {
     "title": "Perpustakaan UI",
     "description": "Semua token desain dan komponen Unbookin di satu tempat.",
