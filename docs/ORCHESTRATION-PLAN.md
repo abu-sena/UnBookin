@@ -147,3 +147,31 @@ Pemanggilan pnpm otomatis oleh worker sempat menghapus node_modules.
 Koordinator menghentikan worker, memulihkan dependensi dari lockfile tanpa
 mengubah paket, lalu melanjutkannya. Seluruh worker berikutnya wajib memakai
 binary lokal langsung; pengelolaan dependensi hanya dilakukan koordinator.
+
+### Pembaruan eksekusi M3 (27 Oktober 2026)
+
+Untuk kelanjutan ini, daftar ringan dari founder berlaku tepat sesuai urutan:
+DeepSeek Free OpenCode → GLM Free OpenCode → Sonnet Low 9Router → DeepSeek Free
+9Router → GLM Free 9Router → GLM Z.ai. Alias yang tersedia untuk pilihan
+terakhir adalah `9router/glm/glm-5.3-flash`. Cadangan worker Codex secara
+ eksplisit ditolak founder. Pengecekan ulang pada sore hari masih menunjukkan
+empat pilihan awal dibatasi kuota dan pilihan kelima tidak tersedia.
+
+Tugas besar dipecah menjadi tugas kecil: layanan ingest privat, perbaikan
+fixture lifecycle, kartu dan polling progres, halaman status, konfirmasi
+hapus, serta integrasi pustaka. Koordinator menguji hasil secara mandiri.
+Pipeline lokal memakai PostgreSQL dan Inngest nyata dengan penyimpanan serta
+embedding HTTP sintetis; kredensial cloud tidak digunakan untuk fixture.
+
+Drive C hampir penuh sempat menggagalkan alokasi memori dan merusak cache
+ dependensi. Cache build dipindahkan secara dapat dipulihkan ke drive D.
+Dependensi dipasang ulang dari lockfile tanpa perubahan versi; satu paket
+Sentry yang masih kosong dipulihkan dari tarball resmi dengan SHA-512 yang
+sama dengan lockfile. Tidak ada proteksi keamanan yang dimatikan. Sementara
+server pengujian aktif, jumlah worker dibatasi sesuai memori virtual tersedia.
+
+Founder mengizinkan deployment sebelum berhenti dan meminta batas berhenti
+pada sisa kuota Codex 10%. Konfigurasi produksi yang dibaca hanya nama
+variabelnya: kunci R2, Inngest, dan OpenRouter belum tersedia. Deployment
+kode tetap dilaksanakan setelah pemeriksaan; aktivasi ingest produksi
+memerlukan konfigurasi pada `docs/M3-SETUP.md`.

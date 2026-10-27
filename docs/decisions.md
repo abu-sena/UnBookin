@@ -28,3 +28,7 @@
 | 2026-10-25 | Pengaturan M2 hanya mengaktifkan Profil belajar dan Tampilan; Model AI, Langganan, Notifikasi, Privasi tampil sebagai "Segera hadir". | Fitur itu dibangun di M8–M10. |
 | 2026-10-26 | Production: Vercel proyek `unbookin` (`unbookin.vercel.app`, Hobby), database Neon `unbookin-db` dibuat lewat integrasi Vercel Storage (Singapura `sin1`, Free, Neon Auth mati), env prefix `DATABASE` → `DATABASE_URL` dan `DATABASE_URL_UNPOOLED`. Google OAuth: project GCP `unbookin`, mode Testing, test user `tanyawijanarko@gmail.com`. | Disetujui founder; kunci tidak pernah disalin manual oleh koordinator. |
 | 2026-10-26 | Build production Vercel menjalankan `pnpm db:migrate` otomatis (koneksi `DATABASE_URL_UNPOOLED`) sebelum `next build`; seed hanya bila `RUN_SEED=1`; build preview tidak menyentuh database. | Izin founder; menghindari migrasi manual dengan kunci di laptop. Preview memakai database yang sama, jadi migrasi dari cabang belum di-merge tidak boleh berjalan. |
+
+## Kelanjutan dan deployment — 27 Oktober 2026
+
+Founder meminta pekerjaan diteruskan sampai sisa kuota Codex mencapai 10% dan secara eksplisit meminta deployment sebelum sesi berhenti. Deployment M3 melalui proyek Vercel/GitHub yang sudah ada diizinkan setelah pemeriksaan lulus. Model worker tetap hanya daftar OpenCode yang dipilih founder. Konfigurasi layanan nyata tetap diisi terpisah oleh founder; jangan menyalin rahasia ke chat atau memakai nilai uji lokal pada production. Tidak ada perubahan skema, harga, atau batas paket dalam increment ini.
