@@ -738,6 +738,70 @@
       "previewText": "Pemimpin terbaik membangun sistem, bukan panggung. Ukuran huruf ini berlaku untuk semua teks bacaan di modul, jadi kamu bisa membaca lebih lama dengan nyaman."
     }
   },
+  "reader": {
+    "unbook": {
+      "pathTitle": "Jalur modul",
+      "progress": "{done} dari {total} modul selesai",
+      "progressAria": "Progres Unbook: {done} dari {total} modul selesai",
+      "continue": "Lanjutkan",
+      "allDoneTitle": "Semua modul selesai",
+      "allDoneBody": "Kamu sudah menyelesaikan seluruh modul di Unbook ini. Ulangi modul mana pun kapan saja untuk menguatkan ingatanmu.",
+      "loadingTitle": "Menyiapkan jalur modulmu…",
+      "loadingDescription": "Sebentar lagi kamu bisa mulai belajar."
+    },
+    "module": {
+      "back": "Kembali ke Unbook",
+      "minutes": "{minutes} menit",
+      "tabsLabel": "Bagian modul",
+      "tabs": {
+        "understand": "Pahami",
+        "apply": "Terapkan",
+        "prove": "Buktikan"
+      },
+      "toolbar": {
+        "readingSizeLabel": "Ukuran huruf bacaan",
+        "sizes": {
+          "small": "Kecil",
+          "medium": "Sedang",
+          "large": "Besar"
+        }
+      },
+      "understand": {
+        "bigIdeaLabel": "Big Idea",
+        "whyTitle": "Kenapa penting untukmu",
+        "quoteLabel": "Kutipan kunci",
+        "quotePage": "hlm. {page}",
+        "endSentinel": "Akhir bagian Pahami",
+        "expertAssumptions": "Asumsi",
+        "expertEvidence": "Bukti",
+        "expertCritiques": "Kritik",
+        "expertCompare": "Bandingkan dengan"
+      },
+      "apply": {
+        "caseStudyLabel": "Studi kasus",
+        "howToApply": "Cara menerapkan",
+        "toolsLabel": "Alat bantu",
+        "commonMistakesLabel": "Kesalahan umum",
+        "checklistSaveError": "Centang belum tersimpan. Coba lagi, ya.",
+        "actionSaveError": "Aksi belum bisa disimpan. Coba lagi, ya."
+      },
+      "prove": {
+        "quizTitle": "Uji pemahamanmu",
+        "questionCount": "{count} soal",
+        "startQuiz": "Mulai kuis",
+        "noQuiz": "Kuis untuk modul ini belum tersedia. Kamu tetap bisa membaca ulang kapan saja.",
+        "reviewTitle": "Kartu review modul ini",
+        "reviewCount": "{count} kartu",
+        "noReview": "Belum ada kartu review untuk modul ini."
+      },
+      "nextModule": "Modul berikutnya",
+      "readDone": "Modul ini sudah selesai dibaca."
+    },
+    "errors": {
+      "message": "Modul belum bisa dimuat. Coba lagi sebentar lagi, ya.",
+      "retry": "Coba lagi"
+    }
+  },
   "module": {
     "path": {
       "listAria": "Jalur modul",
