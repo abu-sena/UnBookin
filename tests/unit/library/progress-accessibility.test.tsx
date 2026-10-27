@@ -1,10 +1,12 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LibraryCard } from '@/components/library/library-card';
 import { Progress } from '@/components/ui/progress';
 import messages from '@/messages/id.json';
 import type { LibraryItem } from '@/lib/library/types';
+
+vi.mock('@/lib/sources/actions', () => ({ deleteMyUnbook: vi.fn() }));
 
 afterEach(cleanup);
 
