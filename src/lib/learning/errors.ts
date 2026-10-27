@@ -1,4 +1,10 @@
-export const LEARNING_ERROR_CODES = ['invalidInput', 'notFound', 'notReady', 'failed'] as const;
+export const LEARNING_ERROR_CODES = [
+  'invalidInput',
+  'notFound',
+  'notReady',
+  'failed',
+  'gradingUnavailable',
+] as const;
 export type LearningErrorCode = (typeof LEARNING_ERROR_CODES)[number];
 
 /** A safe, typed learning error; the message is always a code. */

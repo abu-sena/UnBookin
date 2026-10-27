@@ -45,6 +45,7 @@ const gradeSchema = z.strictObject({
 });
 const finishAttemptSchema = z.strictObject({ attemptId: z.uuid() });
 const rateCardSchema = z.strictObject({ cardId: z.uuid(), result: reviewResultSchema });
+const excerptSchema = z.strictObject({ moduleId: moduleIdSchema, chunkId: z.uuid() });
 
 /** E4-02 AC7: module is being read. */
 export async function markModuleReading(
@@ -183,4 +184,15 @@ export async function completeReviewSession(): Promise<
   const user = await requireUser('/home');
   const { completeReviewSession: store } = await import('./store');
   return run(() => store({ userId: user.id }));
+}
+
+/** E4-02 AC4 / E5-01 AC2: short source excerpt (max 3 sentences) for a chunk of this module. */
+export async function getSourceExcerpt(input: unknown): Promise<
+  LearningMutation<{ chunkId: string; pageFrom: number | null; pageTo: number | null; text: string }>
+> {
+  const user = await requireUser('/home');
+  const parsed = excerptSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, code: 'invalidInput' };
+  const { getSourceExcerpt: query } = await import('./queries');
+  return run(() => query({ userId: user.id }, parsed.data));
 }
