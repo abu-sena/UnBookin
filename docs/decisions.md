@@ -2,6 +2,7 @@
 
 | Tanggal | Keputusan | Alasan |
 | --- | --- | --- |
+| 2026-10-28 | XP lulus kuis (+30, +10 bila 100%) dicatat sekali per MODUL (`ref_type module_quiz`, `ref_id` = id modul), bukan per versi kuis, agar "Coba lagi" dengan soal versi baru tidak bisa menambah XP. XP review harian hanya bila ≥ 1 kartu benar-benar dinilai sejak tengah malam waktu lokal. | Sesuai PRD E5-01 AC5 ("XP lulus hanya sekali") dan E6-01 AC4; ditemukan saat review gelombang 1 M5. |
 | 2026-10-27 | Rencana M5 (`docs/M5-PLAN.md`): XP di M5 hanya dicatat sebagai `xp_events` + `user_stats.total_xp` lewat `lib/game/xp.ts` dengan nilai persis PRD; level, streak, dan lencana di M6. | Pilihan founder; mesin game utuh dijadwalkan M6. |
 | 2026-10-27 | Skema M5: tambah kolom aditif `module_progress.checklist jsonb` (nullable) untuk centang checklist alat. Ukuran huruf dan posisi baca disimpan di perangkat (`localStorage`). | Izin founder; aman untuk production. |
 | 2026-10-27 | Penilaian isian singkat: bila task `grade_short_answer` gagal atau belum dikonfigurasi, pengguna menilai sendiri terhadap jawaban model + rubrik (ditandai `selfGraded`). Peta konsep memakai `@dagrejs/dagre` (MIT, gratis) yang dimuat malas. | Pilihan founder; kuis tidak boleh macet, JS awal rute ≤ 200 KB. |
