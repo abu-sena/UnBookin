@@ -6,6 +6,7 @@ import { inngest } from './client';
 /** Event names emitted by the source flows. Consumed by the ingest functions. */
 export const SOURCE_UPLOADED_EVENT = 'source/uploaded';
 export const SOURCE_DELETED_EVENT = 'source/deleted';
+export const UNBOOK_REQUESTED_EVENT = 'unbook/requested';
 
 /**
  * Event payloads carry IDs only. Source text, file keys, URLs and vendor error
@@ -17,9 +18,11 @@ export const sourceUploadedDataSchema = z.strictObject({
   unbookId: z.uuid(),
 });
 export const sourceDeletedDataSchema = sourceUploadedDataSchema;
+export const unbookRequestedDataSchema = sourceUploadedDataSchema;
 
 export type SourceUploadedData = z.infer<typeof sourceUploadedDataSchema>;
 export type SourceDeletedData = z.infer<typeof sourceDeletedDataSchema>;
+export type UnbookRequestedData = z.infer<typeof unbookRequestedDataSchema>;
 
 /**
  * Guard so a missing Inngest configuration fails loudly instead of silently
@@ -95,12 +98,16 @@ export async function sendSourceUploaded(
   await sendSourceEvent(SOURCE_UPLOADED_EVENT, data, eventId, sourceUploadedDataSchema);
 }
 
-/**
- * Emit `source/deleted` as a best-effort cancellation signal for jobs that may
- * already be running. The ingest side must verify row existence before any
- * pipeline write; a failed send here is never reported to the user after the
- * data is already gone.
- */
+/** Emit an IDs-only generation handoff; explicit retries must use a fresh ID. */
+export async function sendUnbookRequested(
+  data: UnbookRequestedData,
+  options: { eventId?: string } = {},
+): Promise<void> {
+  const eventId = options.eventId?.trim() || `unbook-requested:${data.sourceId}:${data.unbookId}`;
+  await sendSourceEvent(UNBOOK_REQUESTED_EVENT, data, eventId, unbookRequestedDataSchema);
+}
+
+/** Best-effort cancellation after deletion; workers must still check ownership. */
 export async function sendSourceDeleted(
   data: SourceDeletedData,
   options: { eventId?: string } = {},
