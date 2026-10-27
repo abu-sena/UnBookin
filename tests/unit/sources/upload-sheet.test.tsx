@@ -155,7 +155,7 @@ afterEach(() => {
 });
 
 describe('upload sheet', () => {
-  it('loads plan context lazily and reuses it when reopened', async () => {
+  it('loads plan context lazily and refreshes it when reopened', async () => {
     const adapter = createAdapter();
     mount(adapter);
 
@@ -169,7 +169,57 @@ describe('upload sheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Tutup' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Buka unggah' }));
-    expect(adapter.getContext).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(adapter.getContext).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Sisa 6 dari 8 Unbook bulan ini')).toBeInTheDocument();
+  });
+
+  it('refreshes a stale quota on reopen so a freed slot becomes usable', async () => {
+    const contextResults = [
+      {
+        ok: true as const,
+        data: {
+          interests: [{ slug: 'habits', name: 'Kebiasaan' }],
+          allowance: { ...allowance, remaining: 0 },
+        },
+      },
+      {
+        ok: true as const,
+        data: {
+          interests: [{ slug: 'habits', name: 'Kebiasaan' }],
+          allowance: { ...allowance, remaining: 2 },
+        },
+      },
+    ];
+    let contextCalls = 0;
+    const adapter = createAdapter({
+      getContext: vi.fn(async () => {
+        const result = contextResults[Math.min(contextCalls, contextResults.length - 1)]!;
+        contextCalls += 1;
+        return result;
+      }),
+    });
+    const { onNavigate } = mount(adapter);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buka unggah' }));
+    await waitFor(() => expect(adapter.getContext).toHaveBeenCalledTimes(1));
+    expect(screen.getByText('Sisa 0 dari 8 Unbook bulan ini')).toBeInTheDocument();
+    expect(screen.getByText(copy.context.exhausted)).toBeInTheDocument();
+
+    fillShared({ rights: true });
+    expect(submitButton()).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Tutup' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Buka unggah' }));
+    await waitFor(() => expect(adapter.getContext).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('Sisa 2 dari 8 Unbook bulan ini')).toBeInTheDocument();
+
+    fillShared({ rights: true });
+    chooseFile();
+    expect(submitButton()).toBeEnabled();
+    fireEvent.click(submitButton());
+    await waitFor(() => expect(onNavigate).toHaveBeenCalledWith('unbook-1'));
   });
 
   it('requires rights before submitting and completes a file upload', async () => {
@@ -328,6 +378,24 @@ describe('upload sheet', () => {
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
+  it('caps the text hint at the shared byte limit for generous plans', async () => {
+    const adapter = createAdapter({
+      getContext: vi.fn(async () => ({
+        ok: true as const,
+        data: {
+          interests: [
+            { slug: 'habits', name: 'Kebiasaan' },
+            { slug: 'focus', name: 'Fokus' },
+          ],
+          allowance: { ...allowance, limits: { ...allowance.limits, maxFileMb: 500 } },
+        },
+      })),
+    });
+    await openSheet(adapter);
+    fireEvent.click(screen.getByRole('button', { name: copy.modes.text }));
+    expect(screen.getByText('Maksimal 300000 karakter atau 900 KB.')).toBeInTheDocument();
+  });
+
   it('asks before closing an active upload and cancels on confirm', async () => {
     let resolvePrepare!: (
       value: Awaited<ReturnType<SourceUploadAdapter['prepareFileUpload']>>,
@@ -398,6 +466,7 @@ describe('upload sheet', () => {
     const adapter = createAdapter();
     const { onNavigate } = await openSheet(adapter);
     fireEvent.click(screen.getByRole('button', { name: copy.modes.text }));
+    expect(screen.getByText('Maksimal 300000 karakter atau 900 KB.')).toBeInTheDocument();
     fillShared({ rights: true });
 
     expect(submitButton()).toBeDisabled();
