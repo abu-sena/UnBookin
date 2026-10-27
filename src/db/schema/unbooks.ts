@@ -13,6 +13,7 @@ import {
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 import type { ModuleContent } from '../../lib/engine/module-content';
+import type { ChecklistState } from '../../lib/learning/schemas';
 import { users } from './auth';
 import { identity } from './common';
 import { contentLayer, moduleStatus, unbookStatus } from './enums';
@@ -94,6 +95,7 @@ export const moduleProgress = pgTable(
       .references(() => modules.id, { onDelete: 'cascade' }),
     status: moduleStatus().notNull().default('not_started'),
     deepestLayer: contentLayer().notNull().default('eli5'),
+    checklist: jsonb().$type<ChecklistState>(),
     readAt: timestamp({ withTimezone: true }),
   },
   (t) => [

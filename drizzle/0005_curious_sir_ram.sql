@@ -1,0 +1,1 @@
+ALTER TABLE "module_progress" ADD COLUMN "checklist" jsonb;
