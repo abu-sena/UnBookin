@@ -19,6 +19,11 @@ const contentSecurityPolicyReportOnly = [
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
+  // Server Function arguments are logged by default in development; source
+  // text and API keys must never appear in terminal logs (PRD §11).
+  logging: {
+    serverFunctions: false,
+  },
   partialPrefetching: true,
   turbopack: {
     rules: {
