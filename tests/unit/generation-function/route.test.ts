@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   send: vi.fn(async () => ({ ids: ['event-id'] })),
   ingestSource: { id: 'ingest-source' },
   generateUnbook: { id: 'generate-unbook' },
+  regenerateQuiz: { id: 'regenerate-quiz' },
 }));
 
 vi.mock('inngest/next', () => ({ serve: mocks.serve }));
@@ -18,6 +19,7 @@ vi.mock('inngest', async (importOriginal) => {
 vi.mock('@/inngest/client', () => ({ inngest: { id: 'unbookin' } }));
 vi.mock('@/inngest/ingest-source', () => ({ ingestSource: mocks.ingestSource }));
 vi.mock('@/inngest/generate-unbook', () => ({ generateUnbook: mocks.generateUnbook }));
+vi.mock('@/inngest/regenerate-quiz', () => ({ regenerateQuiz: mocks.regenerateQuiz }));
 
 type RouteModule = typeof import('@/app/api/inngest/route');
 
@@ -28,7 +30,7 @@ beforeEach(() => {
 });
 
 describe('inngest route', () => {
-  it('serves both functions with a 300 second max duration', async () => {
+  it('serves all functions with a 300 second max duration', async () => {
     const route: RouteModule = await import('@/app/api/inngest/route');
     expect(route.maxDuration).toBe(300);
     expect(route.GET).toBeDefined();
@@ -36,7 +38,7 @@ describe('inngest route', () => {
     expect(route.PUT).toBeDefined();
     expect(mocks.serve).toHaveBeenCalledWith({
       client: { id: 'unbookin' },
-      functions: [mocks.ingestSource, mocks.generateUnbook],
+      functions: [mocks.ingestSource, mocks.generateUnbook, mocks.regenerateQuiz],
     });
   });
 });

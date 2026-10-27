@@ -906,5 +906,56 @@
       "amount": "+{amount} XP",
       "announce": "Kamu mendapat {amount} XP"
     }
+  },
+  "quizFlow": {
+    "page": {
+      "title": "Kuis",
+      "description": "{title} · jawab satu soal per layar."
+    },
+    "loading": {
+      "title": "Menyiapkan kuis…",
+      "description": "Sebentar, kami memuat soalnya.",
+      "aria": "Kuis sedang dimuat"
+    },
+    "header": {
+      "exit": "Keluar dari kuis"
+    },
+    "question": {
+      "check": "Periksa",
+      "next": "Lanjut",
+      "seeResult": "Lihat hasil",
+      "selectHint": "Pilih satu jawaban yang paling tepat.",
+      "multiHint": "Pilih semua jawaban yang tepat.",
+      "shortAnswerHint": "Tulis jawabanmu dengan kalimatmu sendiri.",
+      "grading": "Menilai jawabanmu…",
+      "gradingHint": "AI sedang membaca jawabanmu. Kami tidak menyimpan teks ini di log."
+    },
+    "feedback": {
+      "selfGraded": "Terima kasih sudah menilai jawabanmu. Yang penting kamu tahu bagian mana yang perlu diperkuat.",
+      "selfGradedCorrect": "Bagus, jawabanmu sudah sesuai. Lanjut ke soal berikutnya.",
+      "selfGradedIncorrect": "Tidak apa-apa. Bandingkan lagi dengan jawaban model, lalu lanjut."
+    },
+    "result": {
+      "backToModule": "Kembali ke modul",
+      "nextModule": "Modul berikutnya",
+      "retryPreparing": "Menyiapkan soal baru…",
+      "retryError": "Soal baru belum siap. Coba lagi sebentar lagi, ya.",
+      "retryQueued": "Soal versi baru sedang disiapkan di latar belakang."
+    },
+    "weak": {
+      "generic": "Konsep inti modul ini",
+      "bloom": {
+        "remember": "Mengingat istilah dan fakta kunci",
+        "understand": "Memahami ide utama",
+        "apply": "Menerapkan langkah pada kasus nyata",
+        "analyze": "Menganalisis hubungan antar konsep",
+        "evaluate": "Menilai pilihan dan alasannya",
+        "create": "Menyusun pendekatan baru"
+      }
+    },
+    "error": {
+      "message": "Kuis belum bisa dimuat. Coba lagi sebentar lagi.",
+      "retry": "Coba lagi"
+    }
   }
 }

@@ -7,6 +7,7 @@ import { inngest } from './client';
 export const SOURCE_UPLOADED_EVENT = 'source/uploaded';
 export const SOURCE_DELETED_EVENT = 'source/deleted';
 export const UNBOOK_REQUESTED_EVENT = 'unbook/requested';
+export const QUIZ_REGENERATE_EVENT = 'quiz/regenerate-requested';
 
 /**
  * Event payloads carry IDs only. Source text, file keys, URLs and vendor error
@@ -19,10 +20,17 @@ export const sourceUploadedDataSchema = z.strictObject({
 });
 export const sourceDeletedDataSchema = sourceUploadedDataSchema;
 export const unbookRequestedDataSchema = sourceUploadedDataSchema;
+export const quizRegenerateDataSchema = z.strictObject({
+  userId: z.uuid(),
+  unbookId: z.uuid(),
+  sourceId: z.uuid(),
+  moduleId: z.uuid(),
+});
 
 export type SourceUploadedData = z.infer<typeof sourceUploadedDataSchema>;
 export type SourceDeletedData = z.infer<typeof sourceDeletedDataSchema>;
 export type UnbookRequestedData = z.infer<typeof unbookRequestedDataSchema>;
+export type QuizRegenerateData = z.infer<typeof quizRegenerateDataSchema>;
 
 /**
  * Guard so a missing Inngest configuration fails loudly instead of silently
@@ -51,7 +59,7 @@ async function sendSourceEvent(
   eventName: string,
   data: unknown,
   eventId: string,
-  schema: z.ZodType<SourceUploadedData | SourceDeletedData>,
+  schema: z.ZodType<SourceUploadedData | SourceDeletedData | QuizRegenerateData>,
 ): Promise<void> {
   const parsed = schema.safeParse(data);
   if (!parsed.success) throw new SourceError('invalidInput');
@@ -115,4 +123,14 @@ export async function sendSourceDeleted(
   const eventId = options.eventId?.trim() || `source-deleted:${data.sourceId}`;
   if (!z.uuid().safeParse(data.sourceId).success) throw new SourceError('invalidInput');
   await sendSourceEvent(SOURCE_DELETED_EVENT, data, eventId, sourceDeletedDataSchema);
+}
+
+/** E5-01 AC6: ask the worker to prepare quiz version n+1 (never charged to Unbook quota). */
+export async function sendQuizRegenerate(
+  data: QuizRegenerateData,
+  options: { eventId?: string } = {},
+): Promise<void> {
+  const eventId =
+    options.eventId?.trim() || `quiz-regenerate:${data.moduleId}:${data.unbookId}`;
+  await sendSourceEvent(QUIZ_REGENERATE_EVENT, data, eventId, quizRegenerateDataSchema);
 }
