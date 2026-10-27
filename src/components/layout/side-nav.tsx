@@ -7,6 +7,7 @@ import { PlusIcon } from 'lucide-react';
 import { navItems } from '@/components/layout/nav-items';
 import { SourceUploadTrigger } from '@/components/sources/upload-trigger';
 import { cn } from '@/lib/utils';
+import { BrandLogo } from '@/components/brand-logo';
 
 function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
@@ -19,12 +20,13 @@ function isActive(pathname: string, href: string) {
 export function SideNav({ reviewCount = 0 }: { reviewCount?: number }) {
   const pathname = usePathname();
   const t = useTranslations('nav');
-  const tCommon = useTranslations('common');
 
   return (
     <aside className="border-border sticky top-0 hidden h-dvh w-60 shrink-0 flex-col border-r lg:flex">
       <div className="px-4 py-5">
-        <span className="text-h3 px-2 font-bold">{tCommon('appName')}</span>
+        <Link href="/home" className="inline-flex min-h-11 items-center px-2">
+          <BrandLogo className="w-40" sizes="160px" />
+        </Link>
       </div>
 
       <nav aria-label={t('ariaLabel')} className="flex flex-1 flex-col gap-1 px-3">

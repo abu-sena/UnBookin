@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { BoldIcon, BookOpenIcon, HeartIcon, ItalicIcon, UnderlineIcon } from 'lucide-react';
 import { useState } from 'react';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { BrandLogo } from '@/components/brand-logo';
 import { LibraryCard } from '@/components/library/library-card';
 import { LibraryFilterForm } from '@/components/library/library-filter-form';
 import { Sheet } from '@/components/layout/sheet';
@@ -183,6 +184,10 @@ export function DevUiShowcase({
           </div>
           <ThemeToggle />
         </header>
+
+        <Section title={t('sectionBrand')}>
+          <BrandLogo className="w-44" sizes="176px" />
+        </Section>
 
         <Section title={t('sectionColors')}>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
