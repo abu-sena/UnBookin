@@ -2,6 +2,7 @@
 
 | Tanggal | Keputusan | Alasan |
 | --- | --- | --- |
+| 2026-10-27 | Satu panggilan AI per langkah Inngest (outline; per modul: isi, kuis, kartu; tagging). Router memakai batas waktu total 240 dtk untuk semua percobaan (utama, perbaikan, cadangan) dan `json_schema` non-strict. Rentang chunk modul disimpan sebagai kunci internal `_sourceRange` di `modules.content` (penanda pending lalu konten nyata). | Satu langkah = satu invokasi Vercel (Hobby maks 300 dtk); mode strict OpenAI menolak field opsional seperti `keyQuote`. |
 | 2026-10-27 | Desain M4: langkah outline langsung membuat baris `modules` (judul, ringkasan, urutan, rentang halaman) dengan `content` berisi penanda sementara `{ pending: true, chunkIdxFrom, chunkIdxTo }`; tiap langkah modul membuat modul + kuis + kartu lalu mengganti penanda dalam satu transaksi. Output langkah Inngest hanya id/jumlah. Unbook baru tampil setelah `ready`. | Tanpa perubahan skema, tanpa isi bacaan di jejak Inngest, dan langkah yang diulang tidak menggandakan modul. |
 | 2026-10-27 | Skema M4: tambah kolom aditif `ai_calls.prompt_version` (text, nullable) untuk mencatat versi prompt (PRD §7.3.7). Perubahan skema lain tetap dilarang tanpa izin. | Disetujui founder. |
 | 2026-10-27 | Model AI per task generasi (outline, module, quiz, cards, tagging) diisi founder belakangan di `ai_task_configs`; pipeline dibangun dan diuji dengan layanan tiruan dulu. | Pilihan founder. |
