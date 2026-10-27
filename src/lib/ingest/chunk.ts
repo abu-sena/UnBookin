@@ -26,12 +26,19 @@ export type SourceChunkInput = {
   text: string;
   /** Estimated tokens: ceil(text.length / CHARS_PER_TOKEN). */
   tokenCount: number;
+  /**
+   * 1-based synthetic structural section for chapterless sources. This is an
+   * internal identifier only; it never claims a real chapter title.
+   */
+  sectionIndex?: number;
 };
 
 export const CHARS_PER_TOKEN = 4;
 export const TARGET_TOKENS_MIN = 600;
 export const TARGET_TOKENS_MAX = 900;
 export const OVERLAP_TOKENS_TARGET = 80;
+/** Chapterless sources get synthetic structural sections near this size. */
+export const SYNTHETIC_SECTION_TOKENS = 2500;
 /** One paragraph never exceeds this; overlong unbroken tokens are hard-cut. */
 export const MAX_BLOCK_CHARS = 1200;
 const HEADER_FOOTER_MAX_CHARS = 80;
@@ -129,6 +136,14 @@ function cleanPageTexts(pages: ExtractedPage[]): CleanedPage[] {
   }));
 }
 
+function isHighSurrogate(code: number): boolean {
+  return code >= 0xd800 && code <= 0xdbff;
+}
+
+function isLowSurrogate(code: number): boolean {
+  return code >= 0xdc00 && code <= 0xdfff;
+}
+
 /** Split one oversized paragraph at word boundaries; forward progress always. */
 function hardSplitBlock(block: string, maxChars: number): string[] {
   if (block.length <= maxChars) return [block];
@@ -136,6 +151,14 @@ function hardSplitBlock(block: string, maxChars: number): string[] {
   let start = 0;
   while (start < block.length) {
     let end = Math.min(start + maxChars, block.length);
+    // Never cut a surrogate pair in half.
+    if (
+      end < block.length &&
+      isHighSurrogate(block.charCodeAt(end - 1)) &&
+      isLowSurrogate(block.charCodeAt(end))
+    ) {
+      end = end - 1 > start ? end - 1 : end + 1;
+    }
     if (end < block.length) {
       const window = block.slice(start, end);
       const cut = Math.max(window.lastIndexOf(' '), window.lastIndexOf('\n'));
@@ -187,39 +210,55 @@ function overlapSuffix(text: string): string {
  * except inside overlong unbroken tokens, never drop the tail (the final
  * chunk may be short), and carry the real page span and first chapter heading.
  */
+type ChunkCarry = {
+  text: string;
+  tokens: number;
+  page: number;
+  chapterTitle: string | null;
+};
+
 export function chunkSource(pages: ExtractedPage[]): SourceChunkInput[] {
   const blocks = prepareBlocks(pages);
+  const hasRealChapters = blocks.some((block) => block.chapterTitle !== null);
   const chunks: SourceChunkInput[] = [];
   let start = 0;
-  let carry: { text: string; tokens: number; page: number } | null = null;
+  let carry: ChunkCarry | null = null;
   while (start < blocks.length) {
-    const parts: string[] = carry ? [carry.text] : [];
-    let tokens = carry?.tokens ?? 0;
-    let pageFrom = carry?.page ?? Number.POSITIVE_INFINITY;
+    const carried = carry as ChunkCarry | null;
+    const parts: string[] = carried ? [carried.text] : [];
+    let tokens = carried ? carried.tokens : 0;
+    let pageFrom = carried ? carried.page : Number.POSITIVE_INFINITY;
     let pageTo = 0;
-    let chapterTitle: string | null = null;
+    let chapterTitle: string | null = carried ? carried.chapterTitle : null;
+    let hasChunkBlocks = carried !== null;
     let end = start;
-    // Accumulate until at least TARGET_TOKENS_MIN estimated tokens; every
-    // block adds at least one token, so end always advances past start.
+    const continuesChapter = (block: TextBlock): boolean =>
+      !hasChunkBlocks || block.chapterTitle === chapterTitle;
+    // Accumulate toward the target, but never mix a clear chapter boundary
+    // merely to reach the minimum (short chapter chunks are allowed).
     while (end < blocks.length && tokens < TARGET_TOKENS_MIN) {
       const block = blocks[end]!;
+      if (!continuesChapter(block)) break;
       parts.push(block.text);
       tokens += estimateTokens(block.text) + SEPARATOR_TOKENS;
       pageFrom = Math.min(pageFrom, block.page);
       pageTo = Math.max(pageTo, block.page);
-      if (chapterTitle === null && block.chapterTitle !== null) chapterTitle = block.chapterTitle;
+      if (!hasChunkBlocks) chapterTitle = block.chapterTitle;
+      hasChunkBlocks = true;
       end += 1;
     }
     // Extend with following blocks while the chunk stays within the ceiling.
     while (end < blocks.length) {
       const block = blocks[end]!;
+      if (!continuesChapter(block)) break;
       const addition = estimateTokens(block.text) + SEPARATOR_TOKENS;
       if (tokens + addition > TARGET_TOKENS_MAX) break;
       parts.push(block.text);
       tokens += addition;
       pageFrom = Math.min(pageFrom, block.page);
       pageTo = Math.max(pageTo, block.page);
-      if (chapterTitle === null && block.chapterTitle !== null) chapterTitle = block.chapterTitle;
+      if (!hasChunkBlocks) chapterTitle = block.chapterTitle;
+      hasChunkBlocks = true;
       end += 1;
     }
     const text = parts.join('\n\n');
@@ -234,10 +273,27 @@ export function chunkSource(pages: ExtractedPage[]): SourceChunkInput[] {
       });
     }
     if (end >= blocks.length) break;
-    const overlap = overlapSuffix(text);
+    // Do not carry overlap across a semantic chapter boundary.
+    let overlap = '';
+    if (blocks[end]!.chapterTitle === chapterTitle) overlap = overlapSuffix(text);
     carry =
-      overlap.length > 0 ? { text: overlap, tokens: estimateTokens(overlap), page: pageTo } : null;
+      overlap.length > 0
+        ? { text: overlap, tokens: estimateTokens(overlap), page: pageTo, chapterTitle }
+        : null;
     start = end;
+  }
+  if (!hasRealChapters) {
+    let sectionIndex = 1;
+    let sectionTokens = 0;
+    for (let index = 0; index < chunks.length; index += 1) {
+      const chunk = chunks[index]!;
+      chunk.sectionIndex = sectionIndex;
+      sectionTokens += chunk.tokenCount;
+      if (sectionTokens >= SYNTHETIC_SECTION_TOKENS && index < chunks.length - 1) {
+        sectionIndex += 1;
+        sectionTokens = 0;
+      }
+    }
   }
   return chunks;
 }

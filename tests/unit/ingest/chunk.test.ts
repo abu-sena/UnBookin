@@ -48,7 +48,7 @@ describe('chunkSource', () => {
   it('keeps chunks inside the token bounds with overlap between neighbours', () => {
     const pages = [
       bookPage(1, 'Chapter One', ['alpha', 'beta']),
-      bookPage(2, 'Chapter Two', ['gamma', 'delta']),
+      bookPage(2, 'Chapter One', ['gamma', 'delta']),
     ];
     const chunks = chunkSource(pages);
     expect(chunks.length).toBeGreaterThanOrEqual(2);
@@ -113,6 +113,39 @@ describe('chunkSource', () => {
     for (const chunk of withoutHeadings) {
       expect(chunk.chapterTitle).toBeNull();
     }
+  });
+
+  it('keeps a clear chapter boundary instead of filling to the minimum', () => {
+    const pages = [
+      page(1, paragraph('intro', 220), 'Short Chapter One'),
+      page(2, paragraph('next', 220), 'Short Chapter Two'),
+    ];
+    const chunks = chunkSource(pages);
+    expect(chunks).toHaveLength(2);
+    expect(chunks[0]?.chapterTitle).toBe('Short Chapter One');
+    expect(chunks[1]?.chapterTitle).toBe('Short Chapter Two');
+    expect(chunks[0]?.text).not.toContain('next0');
+    expect(chunks[1]?.text).not.toContain('intro0');
+    // Short chapter chunks are allowed; overlap never crosses the boundary.
+    expect(chunks[0]?.tokenCount).toBeLessThan(600);
+    expect(chunks[1]?.text.startsWith('next0')).toBe(true);
+  });
+
+  it('assigns synthetic sections near 2500 tokens for a chapterless source', () => {
+    const pages = Array.from({ length: 30 }, (_, index) =>
+      page(index + 1, paragraph(`section${index}`, 300)),
+    );
+    const chunks = chunkSource(pages);
+    expect(chunks.length).toBeGreaterThan(5);
+    for (const chunk of chunks) {
+      expect(chunk.chapterTitle).toBeNull();
+      expect(chunk.sectionIndex).toBeGreaterThanOrEqual(1);
+    }
+    const firstSection = chunks.filter((chunk) => chunk.sectionIndex === 1);
+    const firstSectionTokens = firstSection.reduce((sum, chunk) => sum + chunk.tokenCount, 0);
+    expect(firstSectionTokens).toBeGreaterThanOrEqual(2500);
+    expect(firstSectionTokens).toBeLessThan(2500 + 900);
+    expect(chunks[chunks.length - 1]?.sectionIndex).toBeGreaterThan(1);
   });
 
   it('handles overlong unbroken tokens with forward progress', () => {

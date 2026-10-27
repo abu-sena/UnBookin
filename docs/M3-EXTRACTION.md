@@ -10,7 +10,12 @@ and nothing is written to disk.
 ## Contracts
 
 ```ts
-type ExtractedPage = { page: number; text: string; chapterTitle?: string };
+type ExtractedPage = {
+  page: number;
+  text: string;
+  chapterTitle?: string;    // first heading governing the page
+  chapterTitles?: string[]; // every heading that starts on a shared page, in order
+};
 type ExtractedSource = { pages: ExtractedPage[]; pageCount: number; wordCount: number; title?: string; author?: string };
 
 extractSource(input: {
@@ -27,6 +32,7 @@ type SourceChunkInput = {
   pageFrom: number; pageTo: number; // inclusive 1-based span inside `pages`
   text: string;              // contiguous source text apart from documented cleanup
   tokenCount: number;        // ceil(chars / 4), documented estimator
+  sectionIndex?: number;     // 1-based synthetic section (chapterless sources only)
 };
 
 chunkSource(pages: ExtractedPage[]): SourceChunkInput[];
@@ -43,12 +49,18 @@ pipeline. No DB/AI/billing writes happen here.
 - Meaningful words: CJK ideographs/kana/hangul count per character; everything else counts Unicode
   letter/digit runs. Zero meaningful words → `noText` (E2-01 AC5 for scanned PDFs).
 - EPUB/URL/text page count is exactly `max(1, ceil(wordCount / 300))` (PRD 7.5). Content is packed
-  into exactly that many pseudo pages in reading order; page strings stay bounded (paragraphs are
-  pre-split at 1200 chars, page packing caps at 4000 chars + one block). PDF page count is actual.
+  into exactly that many pseudo pages in reading order. The packer uses the same meaningful-word
+  units as the counter (CJK code point or Unicode letter/digit run) and balances both word and
+  code-unit character counts, so there is no giant final tail, no dangling surrogate, and no
+  page-count inflation for long paragraphs. A single indivisible long token still counts as one word
+  (so it cannot create extra quota pages) and may exceed the average character budget; that is the
+  documented character-bound exception. PDF page count is actual.
 - `maxPages` is enforced **before** any AI work: PDF rejects on `numPages` before text extraction;
   EPUB/URL/text reject after the page count formula, before the source is returned.
-- Chapter headings: first non-empty `h1..h6` per EPUB chapter (max 200 chars); PDF/URL/text pages
-  have none and downstream code must tolerate that.
+- Chapter headings: first non-empty `h1..h6` per EPUB chapter (max 200 chars). When several chapters
+  share one pseudo page, `chapterTitle` is the first governing heading and `chapterTitles` preserves
+  every heading that starts there. PDF pages get outline/heading titles (below); URL/text pages have
+  none and downstream code must tolerate that.
 
 ## PDF
 
@@ -57,7 +69,16 @@ pipeline. No DB/AI/billing writes happen here.
   page via `extractText(proxy, { mergePages: false })`; proxy loading task destroyed in `finally`
   (unpdf's build exposes `loadingTask.destroy()` / `cleanup()` — verified at runtime).
 - Whole extraction bounded by a 30 s wall-clock deadline (`processingFailed` on timeout); metadata
-  (`getMeta` → `info.Title`/`info.Author`) gets a 2 s budget and is optional.
+  (`getMeta` → `info.Title`/`info.Author`) gets a 2 s budget and is optional. The loading task is
+  destroyed in `finally` on every path.
+- Chapter detection (PRD 7.1 step 2): the optional outline (`getOutline` → named/direct destinations
+  via `getDestination`/`getPageIndex`) is resolved to validated 1-based actual pages, capped at 500
+  entries, 4 nesting levels and a 3 s budget inside the main deadline. Titles are normalized and
+  bounded to 200 chars; malformed, empty and out-of-range destinations are ignored. Each title is
+  inherited through following pages.
+- If no usable outline exists, conservative standalone `BAB` / `CHAPTER` / `Bagian` heading lines
+  (number present, short, no sentence punctuation) seed the same inheritance. Pages before the first
+  heading stay untitled; the first real heading is never dropped.
 - No OCR, no rendering. No text at all → `noText`.
 
 ## EPUB
@@ -94,8 +115,14 @@ pipeline. No DB/AI/billing writes happen here.
 - Target 600–900 estimated tokens, ~80-token overlap (suffix cut at a word boundary, never empty),
   final short tail allowed; forward progress guaranteed (blocks ≤ 1200 chars → every chunk advances
   at least one block). No empty chunks, no dropped tail, sequential `idx`.
+- A clear chapter boundary is never crossed just to reach the minimum: a short chapter may produce a
+  short chunk, and overlap is not carried across a heading change. Within one chapter the normal
+  600–900 target and overlap still apply.
 - `pageFrom`/`pageTo` are the real span of the blocks in the chunk; `chapterTitle` is the first
   chapter heading among the chunk's own (non-overlap) blocks, `null` when the source has none.
+- Chapterless sources receive a 1-based `sectionIndex` grouped near
+  `SYNTHETIC_SECTION_TOKENS` (2500 estimated tokens). This is internal structural metadata only: no
+  source words are added and `chapterTitle` stays `null` (no invented chapter name).
 - Cleanup only (documented): standalone page-number lines (short, digits+punctuation only) removed
   everywhere; short (≤ 80 chars) lines repeated as the first/last non-empty line on a strict
   majority of ≥ 3 pages removed at those edges only — normal repeated body paragraphs survive.
@@ -120,15 +147,18 @@ pipeline. No DB/AI/billing writes happen here.
 
 `tests/unit/ingest/extract.test.ts` (`@vitest-environment node`) and `tests/unit/ingest/chunk.test.ts`
 — no network, no services. PDFs and EPUBs are generated in-test by tiny builders (synthetic,
-CC0-style content; no canvas): small/200-page PDFs, metadata PDF, empty scanned PDF, free-60 rejects
-200 pre-extraction, pro-500 accepts 200; EPUB spine order ≠ filename order, entities, contained
-`../` href regression, benign chapter doctypes, wrong mimetype/ZIP signature, traversal + absolute +
+CC0-style content; no canvas): small/200-page PDFs, metadata PDF, synthetic nested outline,
+malformed-outline heading fallback, empty scanned PDF, free-60 rejects 200 pre-extraction, pro-500
+accepts 200; EPUB spine order ≠ filename order, entities, contained `../` href regression, benign
+chapter doctypes, shared-page heading list, wrong mimetype/ZIP signature, traversal + absolute +
 escape + duplicate entry names, metadata DOCTYPE, chapter ENTITY/custom DTD, 8 MB entry cap,
 aggregate cap with image entries skipped, hand-built ZIP64 sentinel, missing spine entries, noText;
 URL article/fallback/plain-text via mocked safe fetch; text normalization, Unicode/CJK counting,
-pseudo-page bounds, page limits, invalid UTF-8. Chunk tests cover bounds, overlap contiguity, page
-spans, headings/missing headings, overlong tokens, Unicode, tail preservation, header/footer/page
-number cleanup, non-majority retention, digit-bearing sentences.
+10k-CJK, many one-letter words, a single 5k-char token, uneven paragraphs, exact page counts,
+reading-order text preservation, page limits, invalid UTF-8. Chunk tests cover bounds, overlap
+contiguity, page spans, headings/missing headings, short-chapter boundaries, synthetic sections,
+overlong tokens/surrogate safety, Unicode, tail preservation, header/footer/page-number cleanup,
+non-majority retention, digit-bearing sentences.
 
 ## Measurements
 
@@ -138,9 +168,12 @@ number cleanup, non-majority retention, digit-bearing sentences.
 
 ## Limitations / follow-ups
 
-- Chapter detection inside PDFs (TOC/outline parsing) is not implemented; PDF chunks have
-  `chapterTitle: null`. Optional ~2500-token synthetic sections (PRD 7.1 step 2 fallback) are a
-  follow-up; heading-based chapters for EPUB are implemented.
+- PDF outline parsing uses the installed pdf.js proxy; a broken/absent outline falls back to
+  conservative standalone headings, and a chapterless PDF has `chapterTitle: null` plus synthetic
+  chunk `sectionIndex` values. It never OCRs or renders pages.
+- Pseudo pages are character-balanced against the word-derived page count. If the average character
+  share itself exceeds the old 4000-char soft guide (many long words) or one token is indivisible,
+  the page may be longer; word-based quota/page count never changes and no text is dropped.
 - Token counts are estimates (`chars/4`), not a tokenizer count; embedding time uses the same
   estimate consistently.
 - EPUB chapters with non-XHTML/HTML media types in the spine are skipped; exotic compressed-image

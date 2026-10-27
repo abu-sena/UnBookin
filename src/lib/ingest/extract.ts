@@ -24,6 +24,8 @@ export type ExtractedPage = {
   text: string;
   /** Chapter heading governing this page, when one was detected. */
   chapterTitle?: string;
+  /** Every chapter heading that starts on this page, in reading order. */
+  chapterTitles?: string[];
 };
 
 export type ExtractedSource = {
@@ -50,9 +52,6 @@ export type ExtractSourceInput = {
 
 /** PRD 7.5: EPUB/URL pages are counted as word_count / 300. */
 const WORDS_PER_PAGE = 300;
-/** Safety cap so one pathological paragraph cannot create a huge pseudo page. */
-const MAX_PSEUDO_BLOCK_CHARS = 1200;
-const MAX_PSEUDO_PAGE_CHARS = 4000;
 const META_MAX_CHARS = 300;
 const CHAPTER_TITLE_MAX_CHARS = 200;
 /** Hard wall-clock bound for one PDF extraction (bounded pipeline). */
@@ -72,6 +71,12 @@ const EPUB_INFLATED_AGGREGATE_MAX_BYTES = 64 * 1024 * 1024;
 const EPUB_TEXT_EXTENSIONS = new Set(['xml', 'xhtml', 'html', 'htm', 'opf', 'ncx', 'txt']);
 
 const PDF_MAGIC = '%PDF-';
+/** Outline parsing is optional; it must never dominate a PDF extraction. */
+const PDF_OUTLINE_BUDGET_MS = 3_000;
+const PDF_OUTLINE_MAX_ENTRIES = 500;
+const PDF_OUTLINE_MAX_DEPTH = 4;
+const PDF_HEADING_LINE_MAX_CHARS = 80;
+const PDF_HEADING_MAX_WORDS = 8;
 
 type ChapterDraft = { title: string | null; blocks: string[] };
 
@@ -132,78 +137,162 @@ function splitIntoBlocks(text: string): string[] {
     .filter((block) => block.length > 0);
 }
 
-/**
- * Split one oversized paragraph at word boundaries. Only paragraphs above the
- * cap (and, inside them, overlong unbroken tokens) are ever cut; ordinary
- * words are never broken, and every cut makes forward progress.
- */
-function hardSplitBlock(block: string, maxChars: number): string[] {
-  if (block.length <= maxChars) return [block];
-  const pieces: string[] = [];
-  let start = 0;
-  while (start < block.length) {
-    let end = Math.min(start + maxChars, block.length);
-    if (end < block.length) {
-      const window = block.slice(start, end);
-      const cut = Math.max(window.lastIndexOf(' '), window.lastIndexOf('\n'));
-      if (cut > maxChars / 2) end = start + cut + 1;
-    }
-    const piece = block.slice(start, end).trim();
-    if (piece.length > 0) pieces.push(piece);
-    start = end;
+/** Truncate by code points, never by UTF-16 units (no dangling surrogates). */
+function truncateCodePoints(value: string, max: number): string {
+  if (value.length <= max) return value;
+  let count = 0;
+  let end = 0;
+  for (const char of value) {
+    if (count === max) break;
+    count += 1;
+    end += char.length;
   }
-  return pieces;
+  return value.slice(0, end);
+}
+
+/** Normalize and bound an outline/heading title; empty titles are unusable. */
+function sanitizeHeading(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = normalizeSourceText(value).replace(/\s+/g, ' ').trim();
+  if (normalized.length === 0) return null;
+  return truncateCodePoints(normalized, CHAPTER_TITLE_MAX_CHARS);
 }
 
 //#endregion
 
 //#region pseudo pages (EPUB / URL / text)
 
+type WordUnit = { text: string; gap: string; firstInBlock: boolean; title: string | null };
+
+const CJK_CODEPOINT = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/u;
+const WORD_CODEPOINT = /[\p{L}\p{N}]/u;
+
 /**
- * Pack chapter blocks into exactly `max(1, ceil(wordCount / 300))` pseudo
- * pages in reading order (PRD 7.5). The last page absorbs the remainder; page
- * strings stay bounded because blocks are pre-split at MAX_PSEUDO_BLOCK_CHARS.
+ * Tokenize chapters into the SAME units counted by `countMeaningfulWords`:
+ * one CJK code point or one Unicode letter/digit run is one word. Punctuation
+ * stays attached to its word and whitespace becomes the unit's gap, so page
+ * reconstruction preserves all non-whitespace text and reading order.
  */
-function pseudoPagesFromChapters(chapters: ChapterDraft[], wordCount: number): ExtractedPage[] {
-  const pageCount = Math.max(1, Math.ceil(wordCount / WORDS_PER_PAGE));
-  type Entry = { text: string; words: number; title: string | null };
-  const entries: Entry[] = [];
+function tokenizeChapters(chapters: ChapterDraft[]): WordUnit[] {
+  const units: WordUnit[] = [];
+  let gap = '';
   for (const chapter of chapters) {
     for (const block of chapter.blocks) {
-      entries.push({ text: block, words: countMeaningfulWords(block), title: chapter.title });
+      const chars = Array.from(block);
+      const blockStart = units.length;
+      let blockHasUnit = false;
+      let index = 0;
+      while (index < chars.length) {
+        const char = chars[index]!;
+        let word: string | null = null;
+        if (isCjkChar(char)) {
+          word = char;
+          index += 1;
+        } else if (WORD_CODEPOINT.test(char)) {
+          word = char;
+          index += 1;
+          while (index < chars.length) {
+            const next = chars[index]!;
+            if (isCjkChar(next) || !WORD_CODEPOINT.test(next)) break;
+            word += next;
+            index += 1;
+          }
+        }
+        if (word === null) {
+          gap += char;
+          index += 1;
+          continue;
+        }
+        units.push({
+          text: word,
+          gap,
+          firstInBlock: !blockHasUnit,
+          title: chapter.title,
+        });
+        gap = '';
+        blockHasUnit = true;
+      }
+      if (gap.length > 0 && units.length > blockStart) {
+        units[units.length - 1]!.text += gap;
+        gap = '';
+      }
     }
   }
+  if (gap.length > 0 && units.length > 0) units[units.length - 1]!.text += gap;
+  return units;
+}
+
+function isCjkChar(char: string): boolean {
+  return CJK_CODEPOINT.test(char);
+}
+
+function pageTextFromUnits(units: WordUnit[], start: number, end: number): string {
+  const first = units[start]!;
+  let text = (start === 0 ? '' : first.gap.replace(/^\s+/u, '')) + first.text;
+  for (let index = start + 1; index < end; index += 1) {
+    const unit = units[index]!;
+    text += (unit.firstInBlock ? '\n\n' : '') + unit.gap + unit.text;
+  }
+  return text;
+}
+
+/**
+ * Pack units into EXACTLY `pageCount` pages (PRD 7.5 word formula), balancing
+ * word count and code-unit character count so no page absorbs the tail. A
+ * single indivisible long token may exceed the average character budget; page
+ * count never inflates because paragraphs or tokens are long.
+ */
+function pagesFromUnits(units: WordUnit[], pageCount: number): ExtractedPage[] {
+  const total = units.length;
+  const prefixChars = new Array<number>(total + 1).fill(0);
+  const separatorLength = (index: number): number => {
+    if (index === 0) return 0;
+    const unit = units[index]!;
+    return unit.gap.length + (unit.firstInBlock ? 2 : 0);
+  };
+  for (let index = 0; index < total; index += 1) {
+    prefixChars[index + 1] =
+      prefixChars[index]! + units[index]!.text.length + separatorLength(index);
+  }
+  const charsBetween = (start: number, end: number): number => {
+    if (end <= start) return 0;
+    return prefixChars[end]! - prefixChars[start]! - separatorLength(start);
+  };
   const pages: ExtractedPage[] = [];
-  let cursor = 0;
-  for (let pageIdx = 0; pageIdx < pageCount && cursor < entries.length; pageIdx += 1) {
-    const target = ((pageIdx + 1) * wordCount) / pageCount;
-    const isLastPage = pageIdx === pageCount - 1;
-    const parts: string[] = [];
-    let words = 0;
-    let chars = 0;
-    let pageTitle: string | null | undefined;
-    while (cursor < entries.length) {
-      const entry = entries[cursor]!;
-      const entriesLeft = entries.length - cursor;
-      const pagesRemainingAfter = pageCount - pageIdx - 1;
-      if (
-        !isLastPage &&
-        parts.length > 0 &&
-        (words >= target ||
-          chars + entry.text.length > MAX_PSEUDO_PAGE_CHARS ||
-          entriesLeft <= pagesRemainingAfter)
-      ) {
-        break;
+  let start = 0;
+  for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+    const pagesLeft = pageCount - pageIndex;
+    const unitsLeft = total - start;
+    const maxTake = unitsLeft - (pagesLeft - 1);
+    const wordTarget = unitsLeft / pagesLeft;
+    const charTarget = Math.max(1, charsBetween(start, total) / pagesLeft);
+    const softWordLimit = Math.max(1, Math.ceil(wordTarget * 1.5));
+    let bestTake = 1;
+    let bestScore = Number.POSITIVE_INFINITY;
+    for (let take = 1; take <= maxTake; take += 1) {
+      const chars = charsBetween(start, start + take);
+      const score =
+        Math.abs(take - wordTarget) / Math.max(1, wordTarget) +
+        Math.abs(chars - charTarget) / charTarget;
+      if (score < bestScore) {
+        bestScore = score;
+        bestTake = take;
       }
-      if (pageTitle === undefined) pageTitle = entry.title;
-      parts.push(entry.text);
-      words += entry.words;
-      chars += entry.text.length;
-      cursor += 1;
+      if (take >= softWordLimit && chars >= charTarget * 1.5) break;
     }
-    const page: ExtractedPage = { page: pageIdx + 1, text: parts.join('\n\n') };
-    if (pageTitle) page.chapterTitle = pageTitle;
+    const end = start + bestTake;
+    const page: ExtractedPage = { page: pageIndex + 1, text: pageTextFromUnits(units, start, end) };
+    const titles: string[] = [];
+    for (let index = start; index < end; index += 1) {
+      const title = units[index]!.title;
+      if (title !== null && !titles.includes(title)) titles.push(title);
+    }
+    if (titles.length > 0) {
+      page.chapterTitle = titles[0];
+      if (titles.length > 1) page.chapterTitles = titles;
+    }
     pages.push(page);
+    start = end;
   }
   return pages;
 }
@@ -213,13 +302,13 @@ function finishPseudoSource(
   maxPages: number,
   meta?: { title?: string; author?: string },
 ): ExtractedSource {
-  const fullText = chapters.map((chapter) => chapter.blocks.join('\n\n')).join('\n\n');
-  const wordCount = countMeaningfulWords(fullText);
+  const units = tokenizeChapters(chapters);
+  const wordCount = units.length;
   if (wordCount === 0) throw new SourceError('noText');
   const pageCount = Math.max(1, Math.ceil(wordCount / WORDS_PER_PAGE));
   // Inclusive maxPages is validated before any AI step may run on the source.
   if (pageCount > maxPages) throw new SourceError('pagesExceeded');
-  const pages = pseudoPagesFromChapters(chapters, wordCount);
+  const pages = pagesFromUnits(units, pageCount);
   const source: ExtractedSource = { pages, pageCount: pages.length, wordCount };
   if (meta?.title) source.title = meta.title;
   if (meta?.author) source.author = meta.author;
@@ -227,10 +316,7 @@ function finishPseudoSource(
 }
 
 function finishSingleChapter(text: string, maxPages: number): ExtractedSource {
-  const blocks = splitIntoBlocks(text).flatMap((block) =>
-    hardSplitBlock(block, MAX_PSEUDO_BLOCK_CHARS),
-  );
-  return finishPseudoSource([{ title: null, blocks }], maxPages);
+  return finishPseudoSource([{ title: null, blocks: splitIntoBlocks(text) }], maxPages);
 }
 
 //#endregion
@@ -289,6 +375,137 @@ async function destroyPdfProxy(proxy: unknown): Promise<void> {
   }
 }
 
+type PdfChapterRange = { page: number; title: string };
+type PdfOutlineNode = { title?: unknown; dest?: unknown; items?: unknown };
+type PdfProxy = Awaited<ReturnType<typeof getDocumentProxy>>;
+
+/** Resolve one outline destination to a validated 1-based actual page. */
+async function resolveOutlinePage(
+  proxy: PdfProxy,
+  rawDest: unknown,
+  deadline: number,
+): Promise<number | null> {
+  let destination = rawDest;
+  if (typeof destination === 'string') {
+    destination = await withDeadline(proxy.getDestination(destination), deadline);
+  }
+  if (!Array.isArray(destination) || destination.length === 0) return null;
+  const target = destination[0];
+  if (typeof target === 'number') {
+    return Number.isSafeInteger(target) && target >= 0 ? target + 1 : null;
+  }
+  if (target !== null && typeof target === 'object') {
+    const ref = target as { num?: unknown; gen?: unknown };
+    if (typeof ref.num !== 'number' || !Number.isSafeInteger(ref.num) || ref.num < 0) return null;
+    const pageIndex = await withDeadline(
+      proxy.getPageIndex({
+        num: ref.num,
+        gen: typeof ref.gen === 'number' && Number.isSafeInteger(ref.gen) ? ref.gen : 0,
+      }),
+      deadline,
+    );
+    return Number.isSafeInteger(pageIndex) && pageIndex >= 0 ? pageIndex + 1 : null;
+  }
+  return null;
+}
+
+/**
+ * Read the optional PDF outline into first-title-per-page ranges. Depth, entry
+ * count and wall-clock time are capped; malformed/out-of-range destinations are
+ * ignored rather than failing extraction.
+ */
+async function collectPdfOutlineRanges(
+  proxy: PdfProxy,
+  numPages: number,
+  deadline: number,
+): Promise<PdfChapterRange[]> {
+  const ranges: PdfChapterRange[] = [];
+  if (Date.now() >= deadline) return ranges;
+  let outline: unknown;
+  try {
+    outline = await withDeadline(
+      proxy.getOutline(),
+      Math.min(deadline, Date.now() + PDF_OUTLINE_BUDGET_MS),
+    );
+  } catch {
+    return ranges;
+  }
+  if (!Array.isArray(outline)) return ranges;
+  const queue: Array<{ nodes: unknown[]; depth: number }> = [{ nodes: outline, depth: 0 }];
+  while (queue.length > 0 && ranges.length < PDF_OUTLINE_MAX_ENTRIES) {
+    if (Date.now() >= deadline) break;
+    const level = queue.shift()!;
+    for (const raw of level.nodes) {
+      if (ranges.length >= PDF_OUTLINE_MAX_ENTRIES) break;
+      if (raw === null || typeof raw !== 'object') continue;
+      const node = raw as PdfOutlineNode;
+      const title = sanitizeHeading(node.title);
+      if (title !== null) {
+        try {
+          const page = await resolveOutlinePage(proxy, node.dest, deadline);
+          if (page !== null && page >= 1 && page <= numPages) ranges.push({ page, title });
+        } catch {
+          // malformed destination: ignore this entry
+        }
+      }
+      if (
+        level.depth < PDF_OUTLINE_MAX_DEPTH &&
+        Array.isArray(node.items) &&
+        node.items.length > 0
+      ) {
+        queue.push({ nodes: node.items, depth: level.depth + 1 });
+      }
+    }
+  }
+  ranges.sort((a, b) => a.page - b.page);
+  const deduped: PdfChapterRange[] = [];
+  for (const range of ranges) {
+    if (deduped.length === 0 || range.page > deduped[deduped.length - 1]!.page) {
+      deduped.push(range);
+    }
+  }
+  return deduped;
+}
+
+const PDF_STANDALONE_HEADING = /^(?:BAB|CHAPTER|BAGIAN)\s+(?:[IVXLCDM]+|\d{1,4})\b/i;
+
+/** Conservative standalone BAB/CHAPTER/Bagian heading, never a sentence. */
+function detectStandalonePdfHeading(line: string): string | null {
+  const trimmed = line.trim();
+  if (trimmed.length === 0 || trimmed.length > PDF_HEADING_LINE_MAX_CHARS) return null;
+  if (!PDF_STANDALONE_HEADING.test(trimmed)) return null;
+  if (/[.!?,;]$/.test(trimmed)) return null;
+  if (countMeaningfulWords(trimmed) > PDF_HEADING_MAX_WORDS) return null;
+  return sanitizeHeading(trimmed);
+}
+
+function detectPdfHeadingRanges(pages: ExtractedPage[]): PdfChapterRange[] {
+  const ranges: PdfChapterRange[] = [];
+  for (const page of pages) {
+    for (const line of page.text.split('\n')) {
+      const title = detectStandalonePdfHeading(line);
+      if (title !== null) {
+        ranges.push({ page: page.page, title });
+        break;
+      }
+    }
+  }
+  return ranges;
+}
+
+/** Apply ranges to pages, inheriting each title through following pages. */
+function applyPdfChapterRanges(pages: ExtractedPage[], ranges: PdfChapterRange[]): void {
+  let index = 0;
+  let current: string | null = null;
+  for (const page of pages) {
+    while (index < ranges.length && ranges[index]!.page <= page.page) {
+      current = ranges[index]!.title;
+      index += 1;
+    }
+    if (current !== null) page.chapterTitle = current;
+  }
+}
+
 async function extractPdfSource(
   bytes: Uint8Array,
   maxBytes: number,
@@ -322,6 +539,13 @@ async function extractPdfSource(
       page: index + 1,
       text: normalizeSourceText(text),
     }));
+    let ranges: PdfChapterRange[] = [];
+    try {
+      ranges = await collectPdfOutlineRanges(proxy, numPages, deadline);
+    } catch {
+      ranges = [];
+    }
+    applyPdfChapterRanges(pages, ranges.length > 0 ? ranges : detectPdfHeadingRanges(pages));
     const wordCount = countMeaningfulWords(pages.map((page) => page.text).join('\n'));
     if (wordCount === 0) throw new SourceError('noText');
     const source: ExtractedSource = { pages, pageCount: pages.length, wordCount };
@@ -628,10 +852,7 @@ function chapterFromMarkup(markup: string): ChapterDraft {
   const title = firstChapterHeading(document);
   const root: Node = document.body ?? document.documentElement;
   const text = normalizeSourceText(htmlToText(root));
-  const blocks = splitIntoBlocks(text).flatMap((block) =>
-    hardSplitBlock(block, MAX_PSEUDO_BLOCK_CHARS),
-  );
-  return { title, blocks };
+  return { title, blocks: splitIntoBlocks(text) };
 }
 
 async function extractEpubSource(

@@ -29,10 +29,15 @@ function escapePdfText(text: string): string {
   return text.replace(/[\\()]/g, (character) => `\\${character}`);
 }
 
-function buildPdf(pages: string[], meta?: { title?: string; author?: string }): Uint8Array {
+type PdfOutlineNode = { title: string; page: number; items?: PdfOutlineNode[] };
+
+function buildPdf(
+  pages: string[],
+  meta?: { title?: string; author?: string },
+  outline?: PdfOutlineNode[],
+): Uint8Array {
   const pageIds = pages.map((_, index) => 4 + index * 2);
   const objects: string[] = [];
-  objects[1] = '<< /Type /Catalog /Pages 2 0 R >>';
   objects[2] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pages.length} >>`;
   objects[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';
   pages.forEach((text, index) => {
@@ -41,15 +46,70 @@ function buildPdf(pages: string[], meta?: { title?: string; author?: string }): 
     objects[pageId] =
       `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] ` +
       `/Resources << /Font << /F1 3 0 R >> >> /Contents ${contentId} 0 R >>`;
-    const stream =
-      text.length === 0 ? 'BT ET' : `BT /F1 12 Tf 72 720 Td (${escapePdfText(text)}) Tj ET`;
+    const lines = text.split('\n');
+    const ops = lines
+      .map((line, lineIndex) => `${lineIndex === 0 ? '' : '0 -14 Td '}(${escapePdfText(line)}) Tj`)
+      .join(' ');
+    const stream = text.length === 0 ? 'BT ET' : `BT /F1 12 Tf 72 720 Td ${ops} ET`;
     objects[contentId] = `<< /Length ${stream.length} >>\nstream\n${stream}\nendstream`;
   });
-  const infoId = 4 + pages.length * 2;
-  if (meta) {
+  let nextId = 4 + pages.length * 2;
+  const infoId = meta ? nextId++ : undefined;
+  if (meta && infoId !== undefined) {
     const title = meta.title ? ` /Title (${escapePdfText(meta.title)})` : '';
     const author = meta.author ? ` /Author (${escapePdfText(meta.author)})` : '';
     objects[infoId] = `<<${title}${author} >>`;
+  }
+  type AssignedOutline = { id: number; node: PdfOutlineNode; parent: number; children: number[] };
+  const assigned: AssignedOutline[] = [];
+  const assignNodes = (nodes: PdfOutlineNode[], parent: number): number[] => {
+    const ids: number[] = [];
+    for (const node of nodes) {
+      const id = nextId++;
+      ids.push(id);
+      const children = node.items && node.items.length > 0 ? assignNodes(node.items, id) : [];
+      assigned.push({ id, node, parent, children });
+    }
+    return ids;
+  };
+  let outlinesId: number | undefined;
+  let topIds: number[] = [];
+  if (outline && outline.length > 0) {
+    outlinesId = nextId++;
+    topIds = assignNodes(outline, outlinesId);
+  }
+  objects[1] =
+    `<< /Type /Catalog /Pages 2 0 R` +
+    `${outlinesId !== undefined ? ` /Outlines ${outlinesId} 0 R` : ''} >>`;
+  if (outlinesId !== undefined) {
+    const byParent = new Map<number, AssignedOutline[]>();
+    for (const item of assigned) {
+      const list = byParent.get(item.parent) ?? [];
+      list.push(item);
+      byParent.set(item.parent, list);
+    }
+    objects[outlinesId] =
+      `<< /Type /Outlines /First ${topIds[0]} 0 R /Last ${topIds[topIds.length - 1]} 0 R /Count ${topIds.length} >>`;
+    for (const item of assigned) {
+      const siblings = byParent.get(item.parent) ?? [];
+      const position = siblings.findIndex((candidate) => candidate.id === item.id);
+      const previous = position > 0 ? siblings[position - 1] : undefined;
+      const next = position < siblings.length - 1 ? siblings[position + 1] : undefined;
+      const targetPage =
+        item.node.page >= 1 && item.node.page <= pages.length
+          ? pageIds[item.node.page - 1]
+          : undefined;
+      const dest = targetPage !== undefined ? `[${targetPage} 0 R /Fit]` : 'null';
+      const children =
+        item.children.length > 0
+          ? ` /First ${item.children[0]} 0 R /Last ${item.children[item.children.length - 1]} 0 R /Count ${item.children.length}`
+          : '';
+      const links =
+        `${previous ? ` /Prev ${previous.id} 0 R` : ''}` + `${next ? ` /Next ${next.id} 0 R` : ''}`;
+      objects[item.id] =
+        `<< /Title (${escapePdfText(item.node.title)}) /Parent ${item.parent} 0 R` +
+        `${links}${children} /Dest ${dest} >>`;
+    }
   }
   let pdf = '%PDF-1.4\n';
   const offsets: number[] = [];
@@ -274,6 +334,46 @@ describe('extractSource: pdf', () => {
       'invalidInput',
     );
   });
+
+  it('maps a PDF outline to inherited 1-based actual page titles', async () => {
+    const bytes = buildPdf(
+      ['Chapter one intro.', 'Chapter one continued.', 'Chapter two body.'],
+      undefined,
+      [
+        { title: 'Part One', page: 1, items: [{ title: 'Chapter One', page: 1 }] },
+        { title: 'Chapter Two', page: 3 },
+      ],
+    );
+    const source = await extractSource({
+      type: 'pdf',
+      bytes,
+      maxPages: 60,
+      maxBytes: 10_000_000,
+    });
+    expect(source.pages.map((page) => page.chapterTitle)).toEqual([
+      'Part One',
+      'Part One',
+      'Chapter Two',
+    ]);
+  });
+
+  it('ignores malformed outline destinations and falls back to standalone headings', async () => {
+    const bytes = buildPdf(
+      ['BAB I\nPendahuluan body text.', 'Continuing body.', 'CHAPTER 2\nNext section body.'],
+      undefined,
+      [
+        { title: 'Broken Destination', page: 0 },
+        { title: '', page: 2 },
+      ],
+    );
+    const source = await extractSource({
+      type: 'pdf',
+      bytes,
+      maxPages: 60,
+      maxBytes: 10_000_000,
+    });
+    expect(source.pages.map((page) => page.chapterTitle)).toEqual(['BAB I', 'BAB I', 'CHAPTER 2']);
+  });
 });
 
 describe('extractSource: epub', () => {
@@ -306,6 +406,11 @@ describe('extractSource: epub', () => {
     expect(charlie).toBeLessThan(alpha);
     expect(alpha).toBeLessThan(bravo);
     expect(source.pages[0]?.chapterTitle).toBe('Charlie Heading');
+    expect(source.pages[0]?.chapterTitles).toEqual([
+      'Charlie Heading',
+      'Alpha Heading',
+      'Bravo Heading',
+    ]);
     expect(allText).toContain('café & crème <tags>');
   });
 
@@ -674,10 +779,93 @@ describe('extractSource: text', () => {
     expect(source.pages[0]?.text).toContain('lexeme0');
   });
 
+  it('packs 10k CJK characters into the exact word-based page count', async () => {
+    const body = '学'.repeat(10_000);
+    const source = await extractSource({
+      type: 'text',
+      bytes: textBytes(body),
+      maxPages: 60,
+      maxBytes: 100_000,
+    });
+    const expectedPages = Math.ceil(10_000 / 300);
+    expect(source.wordCount).toBe(10_000);
+    expect(source.pageCount).toBe(expectedPages);
+    expect(source.pages).toHaveLength(expectedPages);
+    expect(source.pages.map((page) => page.text).join('')).toBe(body);
+    for (const page of source.pages) {
+      expect(page.text.length).toBeLessThanOrEqual(400);
+    }
+  });
+
+  it('packs many one-letter words evenly without a giant tail', async () => {
+    const body = Array.from({ length: 3000 }, () => 'a').join(' ');
+    const source = await extractSource({
+      type: 'text',
+      bytes: textBytes(body),
+      maxPages: 60,
+      maxBytes: 100_000,
+    });
+    expect(source.wordCount).toBe(3000);
+    expect(source.pageCount).toBe(10);
+    expect(
+      source.pages
+        .map((page) => page.text)
+        .join(' ')
+        .replace(/\s+/g, ' '),
+    ).toBe(body);
+    for (const page of source.pages) {
+      expect(page.text.split(' ').length).toBeLessThanOrEqual(320);
+    }
+  });
+
+  it('counts one indivisible long token as one word and keeps its text', async () => {
+    const body = 'x'.repeat(5000);
+    const source = await extractSource({
+      type: 'text',
+      bytes: textBytes(body),
+      maxPages: 60,
+      maxBytes: 100_000,
+    });
+    expect(source.wordCount).toBe(1);
+    expect(source.pageCount).toBe(1);
+    expect(source.pages[0]?.text).toBe(body);
+  });
+
+  it('preserves uneven paragraphs in order with a bounded final page', async () => {
+    const first = Array.from({ length: 10 }, () => 'intro').join(' ');
+    const middle = Array.from({ length: 5000 }, (_, index) => `m${index % 97}`).join(' ');
+    const last = Array.from({ length: 10 }, () => 'outro').join(' ');
+    const body = `${first}\n\n${middle}\n\n${last}`;
+    const source = await extractSource({
+      type: 'text',
+      bytes: textBytes(body),
+      maxPages: 60,
+      maxBytes: 200_000,
+    });
+    expect(source.pageCount).toBe(Math.ceil(source.wordCount / 300));
+    expect(
+      source.pages
+        .map((page) => page.text)
+        .join('')
+        .replace(/\s+/g, ''),
+    ).toBe(body.replace(/\s+/g, ''));
+    expect(source.pages[source.pages.length - 1]?.text.split(/\s+/).length).toBeLessThanOrEqual(
+      400,
+    );
+  });
+
   it('rejects sources above the inclusive page limit', async () => {
     const body = Array.from({ length: 700 }, (_, index) => `word${index % 50}`).join(' ');
     await expectSourceError(
       extractSource({ type: 'text', bytes: textBytes(body), maxPages: 2, maxBytes: 100_000 }),
+      'pagesExceeded',
+    );
+  });
+
+  it('rejects a long CJK source above the page limit before AI', async () => {
+    const body = '学'.repeat(10_000);
+    await expectSourceError(
+      extractSource({ type: 'text', bytes: textBytes(body), maxPages: 10, maxBytes: 100_000 }),
       'pagesExceeded',
     );
   });
