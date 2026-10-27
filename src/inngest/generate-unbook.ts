@@ -13,7 +13,6 @@ import {
 import { failGeneration, startOutline } from '@/lib/generation/store';
 import { isSourceErrorCode, SourceError, type SourceErrorCode } from '@/lib/sources/errors';
 import { inngest } from './client';
-
 import {
   SOURCE_DELETED_EVENT,
   UNBOOK_REQUESTED_EVENT,
