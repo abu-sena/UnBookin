@@ -250,6 +250,65 @@
         "processingFailed": "Bacaan belum bisa diproses. Coba lagi sebentar lagi, ya.",
         "configurationMissing": "Layanan unggah belum siap. Coba lagi nanti atau hubungi bantuan."
       }
+    },
+    "progress": {
+      "barAria": "Progres pemrosesan: {percent}%",
+      "pct": "{percent}%",
+      "chunks": "{embedded}/{total} bagian",
+      "fallbackStage": "Memproses bacaan…",
+      "ready": "Siap dipelajari.",
+      "failedFallback": "Pemrosesan belum berhasil. Coba lagi sebentar lagi, ya.",
+      "ingested": "Bacaanmu sudah tersimpan. Modul belajar belum tersedia.",
+      "ingestedAction": "Buka Pustaka",
+      "stage": {
+        "uploading": "Mengunggah bacaan…",
+        "reading": "Menyiapkan bacaan…",
+        "chunking": "Menata bagian teks…",
+        "embedding": "Mengolah teks…",
+        "outlining": "Menyusun kerangka modul…",
+        "generating": "Menulis modul…"
+      },
+      "errors": {
+        "invalidInput": "Ada isian yang belum pas. Periksa lagi, ya.",
+        "rightsRequired": "Centang persetujuan hak akses untuk melanjutkan.",
+        "fileType": "Pilih file PDF atau EPUB yang valid.",
+        "fileTooLarge": "Ukuran bacaan melebihi batas paket ini.",
+        "pagesExceeded": "Bacaan melebihi batas halaman paket ini.",
+        "quotaExceeded": "Kuota Unbook bulan ini sudah habis.",
+        "storageUnavailable": "Penyimpanan file sedang tidak tersedia. Coba lagi sebentar lagi, ya.",
+        "jobsUnavailable": "Antrean pemrosesan sedang tidak tersedia. Coba lagi nanti, ya.",
+        "embeddingUnavailable": "Pemrosesan teks sedang tidak tersedia. Coba lagi sebentar lagi, ya.",
+        "invalidUrl": "Tautan belum valid.",
+        "fetchFailed": "Tautan belum bisa dibaca. Periksa alamatnya atau coba lagi nanti.",
+        "noText": "File ini berupa gambar; versi ini belum mendukung OCR.",
+        "notFound": "Bacaan itu sudah tidak ada. Coba muat ulang Pustaka.",
+        "processingFailed": "Bacaan belum bisa diproses. Coba lagi sebentar lagi, ya.",
+        "configurationMissing": "Layanan unggah belum siap. Coba lagi nanti."
+      },
+      "connection": {
+        "error": "Koneksi ke server terputus. Progres terakhir tetap ditampilkan, kami coba sambungkan ulang otomatis.",
+        "retry": "Sambungkan ulang"
+      },
+      "removed": {
+        "message": "Unbook ini sudah tidak ada di akunmu. Buka Pustaka untuk melihat bacaan yang masih tersedia.",
+        "libraryAction": "Buka Pustaka"
+      },
+      "retry": {
+        "action": "Proses ulang bacaan",
+        "pending": "Memproses ulang…"
+      },
+      "page": {
+        "title": "Pemrosesan bacaan",
+        "description": "Bacaanmu sedang diubah jadi modul belajar. Kamu boleh meninggalkan halaman ini dan kembali kapan saja."
+      },
+      "loading": {
+        "title": "Pemrosesan bacaan",
+        "description": "Memuat progres pemrosesan…"
+      },
+      "error": {
+        "message": "Progres pemrosesan belum bisa dimuat. Coba lagi sebentar lagi, ya.",
+        "retry": "Coba lagi"
+      }
     }
   },
   "devUi": {
