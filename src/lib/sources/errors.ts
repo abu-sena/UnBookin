@@ -13,6 +13,8 @@ export const SOURCE_ERROR_CODES = [
   'storageUnavailable',
   'jobsUnavailable',
   'embeddingUnavailable',
+  'generationUnavailable',
+  'generationInvalid',
   'invalidUrl',
   'fetchFailed',
   'noText',
