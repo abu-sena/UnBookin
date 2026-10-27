@@ -3,9 +3,11 @@
 Panduan ini untuk founder. Semua akun dan kunci dibuat dan diisi sendiri. **Jangan pernah menempel kunci atau
 password ke chat**; kalau sampai bocor, buat kunci baru dan hapus yang lama.
 
-Yang bisa dipakai setelah deploy (sampai M2): landing page + daftar tunggu (uji harga, rujukan, email
-konfirmasi), masuk dengan Google atau tautan email, onboarding, profil, dan pengaturan. Unggah bacaan dan modul
-belajar belum ada (mulai M3).
+Yang bisa dipakai setelah deploy: landing page, daftar tunggu, masuk, onboarding,
+profil, pengaturan, dan pustaka. Kode M3 menambahkan unggah, ingest, progres,
+percobaan ulang, serta penghapusan bacaan. Aktifkan R2, Inngest, dan OpenRouter
+mengikuti [panduan M3](M3-SETUP.md); tanpa kunci tersebut, ingest produksi belum
+berjalan. Pembuatan modul belajar mengikuti milestone M4.
 
 ## Yang perlu disiapkan
 

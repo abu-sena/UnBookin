@@ -1,10 +1,10 @@
 # Konfigurasi unggah dan ingest M3
 
 Panduan ini menyiapkan layanan untuk unggah PDF/EPUB, tautan, dan teks.
-**Integrasi M3 masih dalam pengembangan; jangan mengaktifkannya di production
-sebelum pemeriksaan akhir lulus.** Parser dan lembar unggah sudah di-commit;
-layanan ingest sedang diselesaikan, termasuk registrasi `/api/inngest`, layar
-progres, penghapusan dari pustaka, dan tes gabungan.
+Kode M3 mencakup lembar unggah, `/api/inngest`, layar progres, percobaan ulang,
+serta konfirmasi penghapusan dari pustaka. Pengujian lokal lengkap sudah lulus;
+layanan produksi perlu diaktifkan dengan konfigurasi di bawah. Kunci R2,
+Inngest, dan OpenRouter belum tersedia pada deployment saat panduan ini ditulis.
 
 Kunci tetap di `.env.local` atau pengaturan environment deployment. Jangan
 memasukkannya ke chat, Git, atau variabel `NEXT_PUBLIC_*`.
@@ -97,8 +97,7 @@ memakai kunci platform; kunci BYOK pengguna tidak dipakai untuk tahap ini.
 
 ## 4. Inngest lokal
 
-Isi `INNGEST_DEV=1` hanya untuk pengembangan. Setelah route dan fungsi ingest
-selesai serta tes akhir lulus, jalankan dua terminal:
+Isi `INNGEST_DEV=1` hanya untuk pengembangan, lalu jalankan dua terminal:
 
 ```powershell
 # Terminal pertama
@@ -114,6 +113,8 @@ Buka `http://127.0.0.1:8288` dan pastikan aplikasi `unbookin` beserta fungsi
 `ingest-source` terdaftar. Jika port aplikasi berbeda, ubah `--sdk-url`.
 Respons `404` dari `/api/inngest` berarti route belum tersedia atau URL salah;
 jangan menganggap ingest sudah berjalan hanya karena event diterima.
+Gunakan jumlah queue worker bawaan CLI; pada pengujian Windows versi ini,
+menurunkannya menjadi empat membuat pekerjaan terus mengantre.
 
 ## 5. Inngest production
 
@@ -121,8 +122,9 @@ Di pengaturan environment deployment, isi `INNGEST_EVENT_KEY` dan
 `INNGEST_SIGNING_KEY` dari environment Inngest yang sesuai. Kosongkan/hapus
 `INNGEST_DEV` dan setiap pengaturan alamat Dev Server lokal.
 
-Setelah kode M3 dinyatakan siap dan deployment disetujui, daftarkan/sinkronkan
-URL `https://unbookin.com/api/inngest` di Inngest. Callback harus dapat dijangkau
+Sesudah konfigurasi dan deployment siap, daftarkan/sinkronkan URL
+`https://unbookin.vercel.app/api/inngest` di Inngest (atau domain aplikasi yang
+digunakan). Callback harus dapat dijangkau
 Inngest dan tetap memverifikasi tanda tangan SDK. Jangan menambahkan bypass
 signature atau mengandalkan sesi login pengguna untuk callback background.
 
@@ -161,7 +163,7 @@ modul, kuis, atau kartu belajar sudah dibuat.
 | --- | --- |
 | Penyimpanan tidak tersedia | Endpoint akun, nama bucket, token, dan izin objek |
 | PUT gagal hanya dari browser | CORS origin, tipe file, dan masa berlaku URL |
-| Antrean tidak tersedia | Dev Server dan flag lokal, atau Event Key production |
+| Antrean tidak tersedia | Dev Server dan flag lokal, atau kedua Event Key dan Signing Key production |
 | Event ada tetapi callback gagal | URL route, Signing Key, dan log Inngest yang sudah disanitasi |
 | Model belum dikonfigurasi | Baris aktif `ai_task_configs.task='embedding'` |
 | Embedding ditolak | Kunci platform, ID model, dukungan 1.536 dimensi, dan batas layanan |

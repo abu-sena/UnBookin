@@ -36,6 +36,9 @@ npx inngest-cli dev # Inngest lokal
 
 ## Dokumen
 
+- [`docs/M3-SETUP.md`](./docs/M3-SETUP.md) — konfigurasi unggah dan ingest sumber
+- [`docs/M3-INGEST.md`](./docs/M3-INGEST.md) — kontrak privat dan bukti pengujian pipeline
+
 - [`PRD.md`](./PRD.md) — spesifikasi produk lengkap
 - [`CLAUDE.md`](./CLAUDE.md) — aturan cara bekerja di repo ini
 - [`docs/`](./docs) — keputusan teknis dan rencana orkestrasi

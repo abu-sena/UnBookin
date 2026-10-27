@@ -87,3 +87,18 @@ membiarkannya mengantre. Pengujian berhasil setelah memakai jumlah worker
 bawaan CLI. Ini pengaturan infrastruktur pengujian; konkurensi aplikasi tetap
 satu pekerjaan per sumber. Hasil ini belum menguji kredensial cloud, kualitas
 model nyata, atau penagihan produksi.
+
+### Gerbang akhir kode M3
+
+Pada 27 Oktober 2026: 58 berkas/454 tes lulus, lint tanpa peringatan,
+typegen/typecheck lulus, dan build produksi Turbopack berhasil. Alur browser
+nyata pada lebar 375px, tema terang dan gelap, menjalankan unggah PDF 200
+halaman, polling progres hingga ingest selesai, pembatalan konfirmasi hapus,
+serta penghapusan beserta data turunannya tanpa galat browser. Pratinjau
+memiliki FAB yang aktif, persetujuan hak akses direset, tombol 48px, tidak
+melebar horizontal, dan tidak memanggil Server Action atau layanan nyata.
+
+Perubahan branding dan halaman masuk dari `main` dipertahankan. Tidak ada
+perubahan migrasi, harga, atau batas paket; file lokal founder yang tidak
+terlacak tidak dimasukkan ke commit. Deployment kode disetujui founder;
+aktivasi layanan cloud tetap mengikuti panduan konfigurasi.
