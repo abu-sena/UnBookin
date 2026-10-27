@@ -15,4 +15,6 @@ export type ReaderModuleProps = {
   reviewCardCount: number;
   plannedActionId: string | null;
   nextModuleId: string | null;
+  /** Deep link from the quiz "Pelajari ulang": open Pahami at this layer, skip position restore. */
+  focusLayer?: LayerValue | null;
 };

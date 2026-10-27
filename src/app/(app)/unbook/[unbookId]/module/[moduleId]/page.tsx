@@ -7,10 +7,19 @@ import { getUnbookPath } from '@/lib/learning/queries';
 type ModulePageProps = {
   // Next.js 16: `params` is async.
   params: Promise<{ unbookId: string; moduleId: string }>;
+  searchParams: Promise<{ layer?: string | string[] }>;
 };
 
-export default async function ModulePage({ params }: ModulePageProps) {
+const FOCUS_LAYERS = ['eli5', 'practitioner', 'expert'] as const;
+type FocusLayer = (typeof FOCUS_LAYERS)[number];
+
+function toFocusLayer(value: string | string[] | undefined): FocusLayer | null {
+  return FOCUS_LAYERS.find((layer) => layer === value) ?? null;
+}
+
+export default async function ModulePage({ params, searchParams }: ModulePageProps) {
   const { unbookId, moduleId } = await params;
+  const focusLayer = toFocusLayer((await searchParams).layer);
   const user = await requireUser(`/unbook/${unbookId}/module/${moduleId}`);
   const identity = { userId: user.id };
 
@@ -26,5 +35,5 @@ export default async function ModulePage({ params }: ModulePageProps) {
     if (!(error instanceof LearningError)) throw error;
   }
 
-  return <ModuleReader {...moduleData} nextModuleId={nextModuleId} />;
+  return <ModuleReader {...moduleData} nextModuleId={nextModuleId} focusLayer={focusLayer} />;
 }

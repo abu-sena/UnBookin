@@ -27,7 +27,7 @@ import { useModuleReading } from './use-module-reading';
 export function ModuleReader(props: ReaderModuleProps) {
   const t = useTranslations('reader.module');
   const [activeTab, setActiveTab] = useState<ReaderTab>('understand');
-  const [layer, setLayer] = useState<LayerValue>(props.deepestLayer);
+  const [layer, setLayer] = useState<LayerValue>(props.focusLayer ?? props.deepestLayer);
   const [reachedEnd, setReachedEnd] = useState(false);
   const [applyOpened, setApplyOpened] = useState(false);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -43,7 +43,7 @@ export function ModuleReader(props: ReaderModuleProps) {
   });
 
   useEffect(() => {
-    const saved = readReaderPosition(props.moduleId);
+    const saved = props.focusLayer ? null : readReaderPosition(props.moduleId);
     if (!saved) {
       restoredRef.current = true;
       return;
@@ -70,7 +70,7 @@ export function ModuleReader(props: ReaderModuleProps) {
     return () => {
       cancelled = true;
     };
-  }, [props.moduleId]);
+  }, [props.moduleId, props.focusLayer]);
 
   useEffect(() => {
     const onScroll = () => {
