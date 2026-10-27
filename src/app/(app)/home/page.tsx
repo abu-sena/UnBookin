@@ -2,6 +2,8 @@ import { getTranslations } from 'next-intl/server';
 import { SparklesIcon } from 'lucide-react';
 import { EmptyState } from '@/components/ui-kit/empty-state';
 import { PageHeader } from '@/components/ui-kit/page-header';
+import { Button } from '@/components/ui/button';
+import { SourceUploadTrigger } from '@/components/sources/upload-trigger';
 
 export default async function HomePage() {
   const tPages = await getTranslations('pages');
@@ -13,7 +15,11 @@ export default async function HomePage() {
       <EmptyState
         icon={SparklesIcon}
         message={tEmpty('homeMessage')}
-        actionLabel={tEmpty('homeAction')}
+        action={
+          <Button asChild>
+            <SourceUploadTrigger>{tEmpty('homeAction')}</SourceUploadTrigger>
+          </Button>
+        }
       />
     </div>
   );

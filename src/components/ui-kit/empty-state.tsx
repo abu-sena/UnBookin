@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -13,6 +14,8 @@ type EmptyStateProps = {
   actionHref?: string;
   /** Optional click handler; the button renders disabled without one. */
   onAction?: () => void;
+  /** Fully composed call-to-action; overrides actionLabel/actionHref/onAction. */
+  action?: ReactNode;
   className?: string;
 };
 
@@ -25,9 +28,10 @@ export function EmptyState({
   actionLabel,
   actionHref,
   onAction,
+  action,
   className,
 }: EmptyStateProps) {
-  const action = actionLabel ? (
+  const fallbackAction = actionLabel ? (
     actionHref ? (
       <Button asChild>
         <a href={actionHref}>{actionLabel}</a>
@@ -53,7 +57,7 @@ export function EmptyState({
         <Icon className="size-7" />
       </span>
       <p className="text-body text-text-muted max-w-xs text-balance">{message}</p>
-      {action}
+      {action ?? fallbackAction}
     </div>
   );
 }
