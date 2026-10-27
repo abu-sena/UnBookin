@@ -102,3 +102,14 @@ Perubahan branding dan halaman masuk dari `main` dipertahankan. Tidak ada
 perubahan migrasi, harga, atau batas paket; file lokal founder yang tidak
 terlacak tidak dimasukkan ke commit. Deployment kode disetujui founder;
 aktivasi layanan cloud tetap mengikuti panduan konfigurasi.
+
+### Deployment kode
+
+Commit `81939e7` berhasil dideploy ke `https://unbookin.vercel.app` melalui
+Vercel pada 27 Oktober 2026. Pemeriksaan HTTP: halaman utama dan masuk 200,
+pustaka/halaman Unbook tanpa sesi diarahkan ke masuk, API progres tanpa sesi
+401 dengan `private, no-store`, pratinjau pengembangan 404, serta aset branding
+200. Endpoint Inngest menolak mode cloud dengan 500 `internal_server_error`
+karena Signing Key belum tersedia, sesuai pemeriksaan konfigurasi SDK.
+Ingest produksi masih menunggu kunci R2, Inngest, dan OpenRouter; tidak ada
+bypass tanda tangan atau konfigurasi uji yang dipasang di production.

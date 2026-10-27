@@ -164,6 +164,7 @@ modul, kuis, atau kartu belajar sudah dibuat.
 | Penyimpanan tidak tersedia | Endpoint akun, nama bucket, token, dan izin objek |
 | PUT gagal hanya dari browser | CORS origin, tipe file, dan masa berlaku URL |
 | Antrean tidak tersedia | Dev Server dan flag lokal, atau kedua Event Key dan Signing Key production |
+| `GET /api/inngest` memberi 500 `internal_server_error` | SDK mode cloud menolak berjalan tanpa `INNGEST_SIGNING_KEY`; isi kunci produksi dan deploy ulang, jangan mengaktifkan `INNGEST_DEV` di production |
 | Event ada tetapi callback gagal | URL route, Signing Key, dan log Inngest yang sudah disanitasi |
 | Model belum dikonfigurasi | Baris aktif `ai_task_configs.task='embedding'` |
 | Embedding ditolak | Kunci platform, ID model, dukungan 1.536 dimensi, dan batas layanan |
