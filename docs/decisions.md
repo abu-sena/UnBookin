@@ -2,6 +2,7 @@
 
 | Tanggal | Keputusan | Alasan |
 | --- | --- | --- |
+| 2026-10-27 | Desain M4: langkah outline langsung membuat baris `modules` (judul, ringkasan, urutan, rentang halaman) dengan `content` berisi penanda sementara `{ pending: true, chunkIdxFrom, chunkIdxTo }`; tiap langkah modul membuat modul + kuis + kartu lalu mengganti penanda dalam satu transaksi. Output langkah Inngest hanya id/jumlah. Unbook baru tampil setelah `ready`. | Tanpa perubahan skema, tanpa isi bacaan di jejak Inngest, dan langkah yang diulang tidak menggandakan modul. |
 | 2026-10-27 | Skema M4: tambah kolom aditif `ai_calls.prompt_version` (text, nullable) untuk mencatat versi prompt (PRD §7.3.7). Perubahan skema lain tetap dilarang tanpa izin. | Disetujui founder. |
 | 2026-10-27 | Model AI per task generasi (outline, module, quiz, cards, tagging) diisi founder belakangan di `ai_task_configs`; pipeline dibangun dan diuji dengan layanan tiruan dulu. | Pilihan founder. |
 | 2026-10-27 | Founder menyetujui rencana M4 (`docs/M4-PLAN.md`): pipeline `generate-unbook` (outline, modul, kuis, kartu, tagging), router structured output dengan satu perbaikan + fallback, kuota dipotong sekali saat sukses, `eval:engine`. Batas rencana tetap: tanpa perubahan skema/harga/kuota/XP, tanpa layanan berbayar baru. Model per task tetap diisi founder di `ai_task_configs`. | Jawaban eksplisit founder "Kerjakan sekarang" atas rencana M4. |
