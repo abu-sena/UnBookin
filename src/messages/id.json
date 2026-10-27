@@ -737,5 +737,174 @@
       "previewTitle": "Pratinjau",
       "previewText": "Pemimpin terbaik membangun sistem, bukan panggung. Ukuran huruf ini berlaku untuk semua teks bacaan di modul, jadi kamu bisa membaca lebih lama dengan nyaman."
     }
+  },
+  "module": {
+    "path": {
+      "listAria": "Jalur modul",
+      "nodeAria": "Modul {number}: {title}, {state}",
+      "minutes": "{minutes} menit",
+      "states": {
+        "locked": "terkunci",
+        "available": "tersedia",
+        "current": "sedang dipelajari",
+        "done": "selesai"
+      }
+    },
+    "layerToggle": {
+      "label": "Pilih tingkat penjelasan",
+      "layers": {
+        "eli5": "Sederhana",
+        "practitioner": "Praktisi",
+        "expert": "Ahli"
+      }
+    },
+    "conceptMap": {
+      "title": "Peta konsep",
+      "ariaLabel": "Peta konsep modul",
+      "loadingAria": "Memuat peta konsep",
+      "empty": "Peta konsep belum tersedia untuk modul ini.",
+      "zoomIn": "Perbesar peta",
+      "zoomOut": "Perkecil peta",
+      "resetZoom": "Atur ulang tampilan peta",
+      "hint": "Geser untuk menjelajah, cubit atau gulir untuk zoom.",
+      "selectedLabel": "Konsep dipilih",
+      "noSelection": "Ketuk salah satu node untuk membaca penjelasannya.",
+      "nodeAria": "{label}, {kind}",
+      "kinds": {
+        "core": "Inti",
+        "concept": "Konsep",
+        "example": "Contoh"
+      }
+    },
+    "source": {
+      "chipWithPage": "hlm. {page}",
+      "chipFallback": "Sumber",
+      "sheetTitle": "Kutipan sumber",
+      "sheetDescription": "Potongan singkat dari sumber aslinya.",
+      "loading": "Memuat kutipan…",
+      "error": "Kutipan belum bisa dimuat. Coba lagi sebentar lagi, ya.",
+      "retry": "Coba lagi",
+      "pageSingle": "hlm. {page}",
+      "pageRange": "hlm. {from}–{to}",
+      "noPage": "Nomor halaman tidak tersedia"
+    },
+    "action": {
+      "label": "Aksi Minggu Ini",
+      "doneWhen": "Selesai jika…",
+      "cta": "Jadikan aksi saya",
+      "pending": "Menyimpan aksi…",
+      "created": "Aksi sudah masuk Jurnalmu.",
+      "dueDate": "Tenggat {date}.",
+      "stepsAria": "Langkah aksi"
+    },
+    "checklist": {
+      "progress": "{checked}/{total}",
+      "progressAria": "Checklist: {checked} dari {total} selesai"
+    },
+    "skeletons": {
+      "moduleAria": "Memuat modul",
+      "pathAria": "Memuat jalur modul",
+      "reviewAria": "Memuat kartu review"
+    },
+    "showcase": {
+      "title": "Belajar (M5)",
+      "description": "Semua komponen belajar, kuis, review, dan gamifikasi dengan data contoh. Coba tema terang dan gelap.",
+      "path": "Jalur modul",
+      "layers": "Tingkat penjelasan",
+      "conceptMap": "Peta konsep",
+      "source": "Rujukan sumber",
+      "action": "Aksi minggu ini",
+      "checklist": "Checklist alat",
+      "review": "Kartu review",
+      "xp": "XP toast",
+      "quizProgress": "Progres kuis",
+      "answerOptions": "Pilihan jawaban",
+      "answerFeedback": "Umpan balik jawaban",
+      "shortAnswer": "Jawaban isian singkat",
+      "selfGrade": "Penilaian mandiri",
+      "resultPassed": "Kuis lulus",
+      "resultFailed": "Kuis hampir lulus",
+      "skeletons": "Skeleton",
+      "emptyReview": "Antrean review kosong",
+      "singleChoice": "Pilihan tunggal",
+      "multiChoice": "Pilihan ganda",
+      "sourceLoading": "Memuat",
+      "sourceReady": "Siap",
+      "sourceError": "Gagal",
+      "passedResult": "Lulus",
+      "failedResult": "Hampir"
+    }
+  },
+  "quiz": {
+    "progress": {
+      "label": "Soal {current} dari {total}",
+      "ariaLabel": "Progres kuis: soal {current} dari {total}"
+    },
+    "option": {
+      "optionAria": "Pilihan {letter}",
+      "selected": "Terpilih",
+      "correct": "Jawaban benar",
+      "incorrect": "Jawaban salah"
+    },
+    "feedback": {
+      "correctTitle": "Benar!",
+      "incorrectTitle": "Belum tepat. Ini alasannya…",
+      "sourceCta": "Lihat di sumber"
+    },
+    "shortAnswer": {
+      "label": "Jawabanmu",
+      "placeholder": "Tulis jawabanmu dengan kalimatmu sendiri…",
+      "counter": "{count}/{max} karakter",
+      "counterAria": "{count} dari {max} karakter terpakai"
+    },
+    "selfGrade": {
+      "title": "Nilai jawabanmu sendiri",
+      "note": "AI belum bisa menilai jawaban ini. Bandingkan dengan jawaban model dan rubrik di bawah, ya.",
+      "modelAnswer": "Jawaban model",
+      "rubricTitle": "Rubrik penilaian",
+      "rubric1": "1 — Belum menjawab inti",
+      "rubric2": "2 — Sebagian benar, ada bagian penting yang hilang",
+      "rubric3": "3 — Sesuai dengan jawaban model",
+      "rubric4": "4 — Sesuai dan memberi contoh tambahan",
+      "match": "Sudah sesuai",
+      "noMatch": "Belum"
+    },
+    "result": {
+      "passedTitle": "Selamat, kamu lulus!",
+      "passedBody": "Kamu sudah menguasai modul ini. Lanjut ke modul berikutnya saat siap.",
+      "failedTitle": "Hampir!",
+      "failedBody": "Sedikit lagi. Pelajari ulang konsep di bawah, lalu coba lagi.",
+      "score": "Nilai kamu {score}%",
+      "xpLabel": "XP kamu",
+      "weakTitle": "Konsep yang perlu diperkuat",
+      "relearn": "Pelajari ulang",
+      "retry": "Coba lagi"
+    }
+  },
+  "review": {
+    "card": {
+      "flipHint": "Ketuk kartu atau tekan Enter untuk melihat jawaban.",
+      "frontLabel": "Pertanyaan",
+      "backLabel": "Jawaban",
+      "revealed": "Jawaban: {answer}",
+      "hidden": "Jawaban masih tersembunyi."
+    },
+    "rating": {
+      "label": "Seberapa ingat kamu?",
+      "again": "Lupa",
+      "hard": "Ragu",
+      "good": "Ingat",
+      "lockedHint": "Balik kartu dulu untuk menilai."
+    },
+    "empty": {
+      "message": "Belum ada kartu hari ini. Nikmati harimu, kami siapkan kartu baru untuk besok.",
+      "action": "Pelajari sesuatu yang baru"
+    }
+  },
+  "game": {
+    "xpToast": {
+      "amount": "+{amount} XP",
+      "announce": "Kamu mendapat {amount} XP"
+    }
   }
 }
