@@ -47,9 +47,12 @@ export function SourceUploadProvider({
     });
   }
 
+  // Always refresh on open: a previously loaded quota goes stale as soon as a
+  // delete or plan change happens while the sheet is closed. The loadingRef
+  // guard keeps this to one request even if open fires twice in a row.
   function openUpload() {
     setOpen(true);
-    if (contextState.status === 'idle') loadContext();
+    loadContext();
   }
 
   function handleUploaded(unbookId: string) {

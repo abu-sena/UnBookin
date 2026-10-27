@@ -200,7 +200,7 @@
         "text": "Teks",
         "textPlaceholder": "Tempel teks bacaan di sini",
         "textCount": "{count}/{max} karakter",
-        "textHint": "Maksimal {max} karakter atau {size} MB.",
+        "textHint": "Maksimal {max} karakter atau {size} KB.",
         "textError": "Isi teks bacaan yang akan di-Unbook.",
         "rights": "Saya memiliki atau berhak mengakses file ini dan hanya memakainya untuk belajar pribadi.",
         "rightsError": "Centang persetujuan ini untuk melanjutkan.",
@@ -419,7 +419,10 @@
     "errorStateMessage": "Koneksi terputus saat memuat data.",
     "showToast": "Tampilkan toast",
     "toastTitle": "Ini contoh notifikasi",
-    "toastDescription": "Notifikasi ringan muncul di sini."
+    "toastDescription": "Notifikasi ringan muncul di sini.",
+    "sectionProgress": "Kartu progres bacaan",
+    "deletePreviewTitle": "Contoh hapus Unbook",
+    "deletePreviewHint": "Tombol hapus memakai aksi contoh; tidak ada Unbook sungguhan yang dihapus."
   },
   "landing": {
     "hero": {

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import type { PlanLimits } from '@/lib/billing/plan-limits';
 import {
+  SOURCE_TEXT_MAX_BYTES,
   SOURCE_TEXT_MAX_CHARACTERS,
   sourceTextInputSchema,
   sourceUrlInputSchema,
@@ -18,6 +19,17 @@ import { UploadErrorNotice } from './upload-error-notice';
 import { validateSourceText, type ClientSourceError } from './upload-limits';
 
 type InlineMode = 'url' | 'text';
+
+const idNumberFormatter = new Intl.NumberFormat('id-ID');
+
+/**
+ * The effective text byte cap is the smaller of the plan's file limit and the
+ * shared request-byte ceiling, shown as whole KB rounded down (decimal KB).
+ */
+function effectiveTextSizeKb(limits: PlanLimits): string {
+  const bytes = Math.min(limits.maxFileMb * 1024 * 1024, SOURCE_TEXT_MAX_BYTES);
+  return idNumberFormatter.format(Math.floor(bytes / 1000));
+}
 
 type UploadInlineFormProps = {
   mode: InlineMode;
@@ -167,7 +179,7 @@ export function UploadInlineForm({
             <p className="text-text-muted text-small">
               {t('fields.textHint', {
                 max: SOURCE_TEXT_MAX_CHARACTERS,
-                size: limits.maxFileMb,
+                size: effectiveTextSizeKb(limits),
               })}
             </p>
             <p className="text-caption text-text-muted tabular-nums" aria-live="polite">
