@@ -671,6 +671,10 @@ describe('deleteOwnedUnbook', () => {
     expect(fake.recorded.deletes).toHaveLength(1);
     expect(fake.recorded.deletes[0]?.table).toBe(unbooks);
     expect(fake.recorded.updates.map((entry) => entry.set)).toEqual([{ currentStage: 'deleting' }]);
+    // A shared source survives for the other referencing Unbooks, so the
+    // deletion must never emit `source/deleted` (their inngest cancelOn
+    // matches on sourceId + userId and would cancel their live runs).
+    expect(mocks.sendDeleted).not.toHaveBeenCalled();
   });
 
   it('deletes only the unbook when it has no source', async () => {

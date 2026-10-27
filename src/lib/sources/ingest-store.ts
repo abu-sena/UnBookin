@@ -353,6 +353,44 @@ async function prepareExtraction(
           inArray(sources.status, ['uploaded', 'extracting']),
         ),
       );
+    // Truthful phase reporting: reading/downloading/parsing has not happened
+    // yet, so the fresh work path only claims `reading`; `chunking` is set
+    // after the extraction actually returned (claimChunkingAfterExtraction).
+    await tx
+      .update(unbooks)
+      .set({ currentStage: 'reading', progressPct: 5 })
+      .where(
+        and(
+          eq(unbooks.id, ids.unbookId),
+          eq(unbooks.userId, ids.userId),
+          eq(unbooks.sourceId, ids.sourceId),
+          eq(unbooks.status, 'queued'),
+        ),
+      );
+    return { kind: 'work', source };
+  });
+}
+
+/**
+ * Advance the still-owned pair to `chunking`/15 only after the bounded
+ * extraction returned. Same lock order as every other flow (owned source
+ * FOR UPDATE, then the owned Unbook) and the same guards as the claim: usable
+ * file + rights, `queued` and not blocked, an `uploaded`/`extracting` source,
+ * and a stage that only `reading` (fresh claim) or `chunking` (legitimate
+ * retry) may legitimately continue from. Terminal, failed, ingested or
+ * blocked pairs never advance.
+ */
+async function claimChunkingAfterExtraction(ids: IngestIdentity): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const pair = await lockOwnedPair(tx, ids);
+    if (!pair) return false;
+    const { source, unbook } = pair;
+    if (!sourceIsUsable(source)) return false;
+    if (unbook.status !== 'queued' || isBlocked(unbook)) return false;
+    const stage = stageOf(unbook);
+    if (stage !== 'reading' && stage !== 'chunking') return false;
+    if (!EXTRACT_SOURCE_STATUSES.has(source.status)) return false;
+
     await tx
       .update(unbooks)
       .set({ currentStage: 'chunking', progressPct: 15 })
@@ -364,7 +402,7 @@ async function prepareExtraction(
           eq(unbooks.status, 'queued'),
         ),
       );
-    return { kind: 'work', source };
+    return true;
   });
 }
 
@@ -458,9 +496,12 @@ async function persistExtraction(
 
 /**
  * Read or reuse the bounded source, chunk it, and atomically persist page
- * metadata plus chunks. A partial retry keeps vectors for unchanged chunks;
- * deletion claims never receive writes and an in-flight URL text object is
- * compensated when the source is no longer claimable.
+ * metadata plus chunks. The fresh work path claims `reading` first, and the
+ * `chunking` stage is only committed by a guarded transaction after the
+ * extraction returned; if that claim fails the flow reports inactive BEFORE
+ * any chunking or URL text store writes. A partial retry keeps vectors for
+ * unchanged chunks; deletion claims never receive writes and an in-flight URL
+ * text object is compensated when the source is no longer claimable.
  */
 export async function extractAndPersistSource(
   ids: IngestIdentity,
@@ -489,6 +530,13 @@ export async function extractAndPersistSource(
     }
 
     const extracted = await extractBoundedSource(parsed, preparation.source, allowance.limits);
+
+    // All network/storage work above happens strictly outside every DB
+    // transaction; chunking starts only once the chunking claim has committed.
+    if (!(await claimChunkingAfterExtraction(parsed))) {
+      return { active: false, totalChunks: 0, alreadyIngested: false };
+    }
+
     const chunks = chunkSource(extracted.pages);
     if (chunks.length === 0) throw new SourceError('noText');
 

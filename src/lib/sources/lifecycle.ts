@@ -329,8 +329,10 @@ export async function retrySourceProcessing(userId: string, unbookId: string): P
  * snapshot and a repeated delete can recover a DB failure that happened after
  * the object was already gone. The object is deleted only when this Unbook is
  * the last reference; shared sources and source-less personal originals are
- * preserved. Missing rows are a safe notFound; an already-missing object is
- * idempotent success.
+ * preserved. The `source/deleted` event is emitted only when the cleanup
+ * transaction actually deleted the last-reference owned source, so a shared
+ * source never cancels another Unbook's still-running ingest. Missing rows are
+ * a safe notFound; an already-missing object is idempotent success.
  */
 export async function deleteOwnedUnbook(userId: string, unbookId: string): Promise<void> {
   const [unbook] = await db
@@ -395,7 +397,7 @@ export async function deleteOwnedUnbook(userId: string, unbookId: string): Promi
     }
   }
 
-  await db.transaction(async (tx) => {
+  const sourceDeleted = await db.transaction(async (tx) => {
     const lockedSource =
       claim.sourceId !== null ? await lockOwnedSource(tx, userId, claim.sourceId) : null;
 
@@ -404,8 +406,8 @@ export async function deleteOwnedUnbook(userId: string, unbookId: string): Promi
       .from(unbooks)
       .where(and(eq(unbooks.id, unbookId), eq(unbooks.userId, userId)))
       .for('update');
-    if (!lockedUnbook) return;
-    if (lockedUnbook.currentStage !== 'deleting') return;
+    if (!lockedUnbook) return false;
+    if (lockedUnbook.currentStage !== 'deleting') return false;
 
     await tx.delete(unbooks).where(and(eq(unbooks.id, unbookId), eq(unbooks.userId, userId)));
 
@@ -416,11 +418,16 @@ export async function deleteOwnedUnbook(userId: string, unbookId: string): Promi
         await tx
           .delete(sources)
           .where(and(eq(sources.id, claim.sourceId), eq(sources.userId, userId)));
+        return true;
       }
     }
+    return false;
   });
 
-  if (claim.sourceId !== null) {
+  // `source/deleted` means the source itself is gone. A shared source (or a
+  // not-owned/missing one) survives for the other referencing Unbooks, whose
+  // own inngest runs must NOT be cancelled by this deletion.
+  if (sourceDeleted && claim.sourceId !== null) {
     try {
       await sendSourceDeleted({ sourceId: claim.sourceId, userId, unbookId });
     } catch {
