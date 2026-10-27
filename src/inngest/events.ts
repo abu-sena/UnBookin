@@ -24,18 +24,21 @@ export type SourceDeletedData = z.infer<typeof sourceDeletedDataSchema>;
 /**
  * Guard so a missing Inngest configuration fails loudly instead of silently
  * dropping events: the SDK's dev mode returns `ids: []` without an event key,
- * which would leave Unbooks queued forever.
+ * and cloud sends fail signature verification without a signing key — either
+ * way Unbooks would be queued forever.
  *
- * - Production requires `INNGEST_EVENT_KEY`; dev mode is never enabled there.
+ * - Production requires BOTH `INNGEST_EVENT_KEY` and `INNGEST_SIGNING_KEY`
+ *   (trim non-empty); `INNGEST_DEV` can never bypass this.
  * - Local development requires an explicit `INNGEST_DEV=1` (or `true`).
  */
 function assertJobsConfigured(): void {
   const isProduction = process.env.NODE_ENV === 'production';
   const eventKey = process.env.INNGEST_EVENT_KEY?.trim();
+  const signingKey = process.env.INNGEST_SIGNING_KEY?.trim();
   const devFlag = process.env.INNGEST_DEV?.trim().toLowerCase();
 
   if (isProduction) {
-    if (!eventKey) throw new SourceError('jobsUnavailable');
+    if (!eventKey || !signingKey) throw new SourceError('jobsUnavailable');
     return;
   }
   if (devFlag !== '1' && devFlag !== 'true') throw new SourceError('jobsUnavailable');

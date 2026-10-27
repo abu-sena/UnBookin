@@ -23,6 +23,7 @@ const payload = { sourceId: SOURCE_ID, userId: USER_ID, unbookId: UNBOOK_ID };
 function stubEnv(env: Record<string, string | undefined>) {
   vi.stubEnv('NODE_ENV', env.NODE_ENV ?? 'test');
   vi.stubEnv('INNGEST_EVENT_KEY', env.INNGEST_EVENT_KEY);
+  vi.stubEnv('INNGEST_SIGNING_KEY', env.INNGEST_SIGNING_KEY);
   vi.stubEnv('INNGEST_DEV', env.INNGEST_DEV);
 }
 
@@ -57,6 +58,58 @@ describe('sendSourceUploaded', () => {
     expect(mocks.send).not.toHaveBeenCalled();
   });
 
+  it('refuses to run in production without a signing key', async () => {
+    stubEnv({
+      NODE_ENV: 'production',
+      INNGEST_EVENT_KEY: 'event-key',
+      INNGEST_SIGNING_KEY: undefined,
+    });
+
+    await expect(sendSourceUploaded(payload)).rejects.toMatchObject({
+      code: 'jobsUnavailable',
+    });
+    await expect(sendSourceDeleted(payload)).rejects.toMatchObject({
+      code: 'jobsUnavailable',
+    });
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it('refuses a whitespace-only signing key in production', async () => {
+    stubEnv({ NODE_ENV: 'production', INNGEST_EVENT_KEY: 'event-key', INNGEST_SIGNING_KEY: '   ' });
+
+    await expect(sendSourceUploaded(payload)).rejects.toMatchObject({
+      code: 'jobsUnavailable',
+    });
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it('never lets INNGEST_DEV bypass the production guard', async () => {
+    stubEnv({
+      NODE_ENV: 'production',
+      INNGEST_EVENT_KEY: 'event-key',
+      INNGEST_SIGNING_KEY: undefined,
+      INNGEST_DEV: 'true',
+    });
+
+    await expect(sendSourceUploaded(payload)).rejects.toMatchObject({
+      code: 'jobsUnavailable',
+    });
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it('sends in production only when BOTH keys are configured, without leaking them', async () => {
+    stubEnv({
+      NODE_ENV: 'production',
+      INNGEST_EVENT_KEY: 'event-key-secret',
+      INNGEST_SIGNING_KEY: 'signkey-secret',
+    });
+
+    await expect(sendSourceUploaded(payload)).resolves.toBeUndefined();
+    expect(mocks.send).toHaveBeenCalledTimes(1);
+
+    await expect(sendSourceDeleted(payload)).resolves.toBeUndefined();
+  });
+
   it('refuses local runs without an explicit INNGEST_DEV flag (no silent drops)', async () => {
     stubEnv({ NODE_ENV: 'test', INNGEST_DEV: undefined });
 
@@ -67,7 +120,11 @@ describe('sendSourceUploaded', () => {
   });
 
   it('sends with a stable idempotent id in production', async () => {
-    stubEnv({ NODE_ENV: 'production', INNGEST_EVENT_KEY: 'event-key' });
+    stubEnv({
+      NODE_ENV: 'production',
+      INNGEST_EVENT_KEY: 'event-key',
+      INNGEST_SIGNING_KEY: 'signkey',
+    });
 
     await sendSourceUploaded(payload);
 
@@ -106,6 +163,22 @@ describe('sendSourceUploaded', () => {
     await expect(sendSourceUploaded(payload)).rejects.toMatchObject({
       code: 'jobsUnavailable',
     });
+  });
+
+  it('never leaks key values in guard errors', async () => {
+    stubEnv({
+      NODE_ENV: 'production',
+      INNGEST_EVENT_KEY: 'event-key-secret',
+      INNGEST_SIGNING_KEY: undefined,
+    });
+
+    const error = await sendSourceUploaded(payload).catch((e: unknown) => e);
+    expect(error).toMatchObject({ code: 'jobsUnavailable' });
+    const { message } = error as Error;
+    expect(message).not.toContain('event-key-secret');
+    expect(message).not.toContain('signkey-secret-value');
+    expect(message).not.toContain('INNGEST_EVENT_KEY');
+    expect(mocks.send).not.toHaveBeenCalled();
   });
 
   it('treats an empty receipt (ids: []) as jobsUnavailable, never as success', async () => {
