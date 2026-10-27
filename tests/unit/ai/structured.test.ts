@@ -95,10 +95,10 @@ it('returns first valid output and sends configured JSON schema, headers, usage 
     usage: { include: true },
     response_format: {
       type: 'json_schema',
-      json_schema: { name: 'outline', strict: true, schema: z.toJSONSchema(schema) },
+      json_schema: { name: 'outline', strict: false, schema: z.toJSONSchema(schema) },
     },
   });
-  expect(timeout).toHaveBeenCalledWith(120_000);
+  expect(timeout).toHaveBeenCalledWith(90_000);
 });
 
 it('repairs schema-invalid output once, with issue paths and no source in repair message', async () => {
@@ -343,4 +343,20 @@ it('never falls back for non-retryable HTTP failures', async () => {
   mocks.fetch.mockResolvedValueOnce(new Response(null, { status: 400 }));
   await expect(runStructuredTask(input)).rejects.toMatchObject({ code: 'generationUnavailable' });
   expect(mocks.fetch).toHaveBeenCalledTimes(1);
+});
+
+it('never starts a call beyond the total deadline and caps per-call timeouts by the remaining budget', async () => {
+  const timeout = vi.spyOn(AbortSignal, 'timeout');
+  await expect(runStructuredTask({ ...input, deadlineMs: 10_000 })).rejects.toMatchObject({
+    code: 'generationUnavailable',
+  });
+  expect(mocks.fetch).not.toHaveBeenCalled();
+  timeout.mockClear();
+  mocks.fetch.mockRejectedValueOnce(new DOMException('slow', 'TimeoutError'));
+  await runStructuredTask({ ...input, deadlineMs: 40_000, timeoutMs: 90_000 }).catch(
+    () => undefined,
+  );
+  const first = timeout.mock.calls[0]?.[0] ?? 0;
+  expect(first).toBeLessThanOrEqual(40_000);
+  expect(first).toBeGreaterThan(30_000);
 });

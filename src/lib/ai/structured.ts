@@ -13,7 +13,13 @@ export type StructuredTaskInput<T> = {
   prompt: { system: string; user: string; version: string };
   userId: string;
   validate?: (data: T) => string[];
+  /** Per-call timeout (default 90 s). */
   timeoutMs?: number;
+  /**
+   * Total budget for ALL calls of this task (primary, repair, fallback). One Inngest step runs inside one
+   * Vercel invocation (max 300 s on Hobby), so the default leaves headroom for persistence.
+   */
+  deadlineMs?: number;
 };
 export type StructuredTaskResult<T> = {
   data: T;
@@ -36,6 +42,10 @@ export function resolveTaskKey(userId: string): string {
 }
 
 const MAX_RESPONSE_BYTES = 1_048_576;
+const DEFAULT_CALL_TIMEOUT_MS = 90_000;
+const DEFAULT_DEADLINE_MS = 240_000;
+/** Do not start a call that cannot finish meaningfully before the deadline. */
+const MIN_CALL_BUDGET_MS = 15_000;
 const MAX_DB_INTEGER = 2_147_483_647;
 const envelopeSchema = z.object({
   choices: z.array(z.object({ message: z.object({ content: z.string() }) })).min(1),
@@ -114,6 +124,7 @@ export async function runStructuredTask<T>(
   const baseUrl = process.env.OPENROUTER_BASE_URL?.trim() || 'https://openrouter.ai/api/v1';
   const jsonSchema = z.toJSONSchema(input.schema);
   const totals = { costUsd: 0, costComplete: true, calls: 0 };
+  const deadline = Date.now() + (input.deadlineMs ?? DEFAULT_DEADLINE_MS);
   const models = [config.model, ...(config.fallbackModel ? [config.fallbackModel] : [])];
 
   for (const [modelIndex, model] of models.entries()) {
@@ -122,6 +133,10 @@ export async function runStructuredTask<T>(
       { role: 'user', content: input.prompt.user },
     ];
     for (let attempt = 0; attempt < 2; attempt++) {
+      const remaining = deadline - Date.now();
+      // Out of budget: a retriable failure, so Inngest re-runs the step with a fresh budget.
+      if (remaining < MIN_CALL_BUDGET_MS) throw new SourceError('generationUnavailable');
+      const callTimeoutMs = Math.min(input.timeoutMs ?? DEFAULT_CALL_TIMEOUT_MS, remaining);
       const startedAt = Date.now();
       let usage = usageMetadata(undefined);
       let status: 'succeeded' | 'failed' | 'invalid' = 'failed';
@@ -147,11 +162,13 @@ export async function runStructuredTask<T>(
             max_tokens: config.maxOutputTokens,
             response_format: {
               type: 'json_schema',
-              json_schema: { name: input.task, strict: true, schema: jsonSchema },
+              // strict:false — OpenAI strict mode rejects schemas with optional fields (e.g. keyQuote);
+              // the Zod parse + one repair below enforce the contract instead.
+              json_schema: { name: input.task, strict: false, schema: jsonSchema },
             },
             usage: { include: true },
           }),
-          signal: AbortSignal.timeout(input.timeoutMs ?? 120_000),
+          signal: AbortSignal.timeout(callTimeoutMs),
           cache: 'no-store',
         });
         if (!response.ok) {
