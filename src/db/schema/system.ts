@@ -55,6 +55,7 @@ export const aiCalls = pgTable(
     latencyMs: integer(),
     status: text().notNull(),
     error: text(),
+    promptVersion: text(),
   },
   (t) => [
     index('ai_calls_user_id_idx').on(t.userId),
