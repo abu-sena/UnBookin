@@ -52,6 +52,8 @@ function progressPayload(overrides: Partial<SourceProgress> = {}): SourceProgres
     progressPct: 40,
     embeddedChunks: 3,
     totalChunks: 5,
+    moduleCount: 5,
+    modulesCompleted: 2,
     errorCode: null,
     ...overrides,
   };
@@ -98,13 +100,21 @@ afterEach(() => {
 });
 
 describe('SourceProcessingView poller', () => {
-  it('does not poll for an already-ingested handoff', async () => {
+  it.each(['ready', 'failed'] as const)('does not poll an initially %s Unbook', async (status) => {
+    renderView(progressPayload({ stage: status, unbookStatus: status }));
+    await flush();
+    await advance(POLL_INTERVAL_MS * 3);
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+
+  it('keeps polling an already-ingested handoff', async () => {
+    mocks.fetch.mockImplementation(async () => jsonResponse(progressPayload({ stage: 'ingested' })));
     renderView(progressPayload({ stage: 'ingested', progressPct: 100 }));
 
     await flush();
     await advance(POLL_INTERVAL_MS * 3);
 
-    expect(mocks.fetch).not.toHaveBeenCalled();
+    expect(mocks.fetch).toHaveBeenCalledTimes(4);
     expect(screen.getByText(copy.ingested)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: copy.ingestedAction })).toHaveAttribute(
       'href',
@@ -112,7 +122,7 @@ describe('SourceProcessingView poller', () => {
     );
   });
 
-  it('polls a real GET to ingested, shows the counts and stops', async () => {
+  it('polls through ingested and generating with real module counts, then stops at ready', async () => {
     mocks.fetch
       .mockImplementationOnce(async () =>
         jsonResponse(progressPayload({ embeddedChunks: 3, totalChunks: 5, progressPct: 40 })),
@@ -126,7 +136,9 @@ describe('SourceProcessingView poller', () => {
             progressPct: 100,
           }),
         ),
-      );
+      )
+      .mockImplementationOnce(async () => jsonResponse(progressPayload({ stage: 'generating', unbookStatus: 'generating' })))
+      .mockImplementationOnce(async () => jsonResponse(progressPayload({ stage: 'ready', unbookStatus: 'ready' })));
     renderView(progressPayload());
 
     await flush();
@@ -141,9 +153,27 @@ describe('SourceProcessingView poller', () => {
       `/api/sources/${UNBOOK_ID}`,
     );
 
-    // A terminal confirmed status stops the loop entirely.
+    await advance(POLL_INTERVAL_MS);
+    expect(screen.getByText('Menulis modul 2 dari 5')).toBeInTheDocument();
+    await advance(POLL_INTERVAL_MS);
+    expect(screen.getByRole('link', { name: copy.readyAction })).toHaveAttribute('href', `/unbook/${UNBOOK_ID}`);
+    // Only ready/failed stop the loop, not the ingest handoff.
     await advance(POLL_INTERVAL_MS * 3);
+    expect(mocks.fetch).toHaveBeenCalledTimes(4);
+  });
+
+  it('renders tagging and keeps polling until a generation failure', async () => {
+    mocks.fetch
+      .mockImplementationOnce(async () => jsonResponse(progressPayload({ stage: 'tagging', unbookStatus: 'generating' })))
+      .mockImplementationOnce(async () => jsonResponse(progressPayload({ stage: 'failed', unbookStatus: 'failed', errorCode: 'generationUnavailable' })));
+    renderView(progressPayload({ stage: 'outlining', unbookStatus: 'outlining' }));
+    expect(screen.getByText(copy.stage.outlining)).toBeInTheDocument();
+    await flush();
+    expect(screen.getByText(copy.stage.tagging)).toBeInTheDocument();
+    await advance(POLL_INTERVAL_MS * 4);
     expect(mocks.fetch).toHaveBeenCalledTimes(2);
+    expect(screen.getByText(copy.errors.generationUnavailable)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Coba lagi' })).toBeEnabled();
   });
 
   it('times out a hanging request without overlap, then recovers with a fresh request', async () => {

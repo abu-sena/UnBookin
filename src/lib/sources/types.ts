@@ -17,6 +17,7 @@ export const SOURCE_PROGRESS_STAGES = [
   'failed',
   'outlining',
   'generating',
+  'tagging',
   'ready',
 ] as const;
 
@@ -54,5 +55,8 @@ export type SourceProgress = {
   progressPct: number;
   embeddedChunks: number;
   totalChunks: number;
+  /** Optional for legacy preview fixtures; progress queries always return both counts. */
+  moduleCount?: number;
+  modulesCompleted?: number;
   errorCode: SourceErrorCode | null;
 };

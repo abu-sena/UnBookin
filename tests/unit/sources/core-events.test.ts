@@ -12,6 +12,9 @@ import {
   sendSourceUploaded,
   SOURCE_DELETED_EVENT,
   SOURCE_UPLOADED_EVENT,
+  UNBOOK_REQUESTED_EVENT,
+  sendUnbookRequested,
+  unbookRequestedDataSchema,
 } from '@/inngest/events';
 
 const USER_ID = '8f9e3f1e-5d2a-4c6e-9b4d-1a2b3c4d5e6f';
@@ -33,6 +36,36 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+describe('sendUnbookRequested', () => {
+  it('accepts only the strict IDs-only contract', async () => {
+    expect(unbookRequestedDataSchema.safeParse(payload).success).toBe(true);
+    for (const invalid of [{ ...payload, text: 'private' }, { ...payload, userId: 'invalid' }, {}]) {
+      expect(unbookRequestedDataSchema.safeParse(invalid).success).toBe(false);
+      await expect(sendUnbookRequested(invalid as typeof payload)).rejects.toMatchObject({ code: 'invalidInput' });
+    }
+    expect(mocks.send).not.toHaveBeenCalled();
+  });
+
+  it('sends stable default and explicit retry IDs', async () => {
+    stubEnv({ INNGEST_DEV: '1' });
+    await sendUnbookRequested(payload);
+    expect(mocks.send).toHaveBeenLastCalledWith({ name: UNBOOK_REQUESTED_EVENT, data: payload, id: `unbook-requested:${SOURCE_ID}:${UNBOOK_ID}` });
+    await sendUnbookRequested(payload, { eventId: 'explicit-retry-id' });
+    expect(mocks.send).toHaveBeenLastCalledWith({ name: UNBOOK_REQUESTED_EVENT, data: payload, id: 'explicit-retry-id' });
+  });
+
+  it('rejects missing configuration, failed sends and empty receipts safely', async () => {
+    stubEnv({ NODE_ENV: 'production' });
+    await expect(sendUnbookRequested(payload)).rejects.toMatchObject({ code: 'jobsUnavailable' });
+    expect(mocks.send).not.toHaveBeenCalled();
+    stubEnv({ INNGEST_DEV: '1' });
+    mocks.send.mockRejectedValueOnce(new Error('private vendor error'));
+    await expect(sendUnbookRequested(payload)).rejects.toMatchObject({ code: 'jobsUnavailable', message: 'jobsUnavailable' });
+    mocks.send.mockResolvedValueOnce({ ids: [] });
+    await expect(sendUnbookRequested(payload)).rejects.toMatchObject({ code: 'jobsUnavailable' });
+  });
 });
 
 describe('sendSourceUploaded', () => {

@@ -1,6 +1,6 @@
 import 'server-only';
 import { randomUUID } from 'crypto';
-import { and, count, eq, ne } from 'drizzle-orm';
+import { and, count, eq, isNull, ne, or } from 'drizzle-orm';
 import { db } from '@/db';
 import { sourceChunks, sources, unbooks, users } from '@/db/schema';
 import type { Unbook } from '@/db/schema';
@@ -8,7 +8,7 @@ import { getSourceAllowance, validateSourceFileSize } from '@/lib/billing/source
 import { SourceError } from '@/lib/sources/errors';
 import { isOwnedSourceObjectKey } from '@/lib/storage/keys';
 import { deleteSourceObject, headSourceObject } from '@/lib/storage';
-import { sendSourceDeleted, sendSourceUploaded } from '@/inngest/events';
+import { sendSourceDeleted, sendSourceUploaded, sendUnbookRequested } from '@/inngest/events';
 import { markQueueFailed } from './store';
 
 type Transaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -280,7 +280,7 @@ export async function retrySourceProcessing(userId: string, unbookId: string): P
   const source = await loadOwnedSource(userId, sourceId);
   if (!source) throw new SourceError('notFound');
 
-  await db.transaction(async (tx) => {
+  const generationRetry = await db.transaction(async (tx) => {
     await tx.select({ id: users.id }).from(users).where(eq(users.id, userId)).for('update');
 
     const allowance = await getSourceAllowance(userId, new Date(), {
@@ -292,11 +292,25 @@ export async function retrySourceProcessing(userId: string, unbookId: string): P
     const locked = await lockOwnedSource(tx, userId, sourceId);
     if (!locked) throw new SourceError('notFound');
 
+    const generationFailed = locked.status === 'ready' && !locked.errorCode;
     const [stillFailed] = await tx
       .update(unbooks)
-      .set({ status: 'queued', currentStage: 'reading', progressPct: 0 })
+      .set({
+        status: 'queued',
+        currentStage: generationFailed ? 'ingested' : 'reading',
+        progressPct: generationFailed ? 100 : 0,
+      })
       .where(
-        and(eq(unbooks.id, unbookId), eq(unbooks.userId, userId), eq(unbooks.status, 'failed')),
+        and(
+          eq(unbooks.id, unbookId),
+          eq(unbooks.userId, userId),
+          eq(unbooks.sourceId, sourceId),
+          eq(unbooks.status, 'failed'),
+          or(
+            isNull(unbooks.currentStage),
+            and(ne(unbooks.currentStage, 'deleting'), ne(unbooks.currentStage, 'cancelling')),
+          ),
+        ),
       )
       .returning({ id: unbooks.id });
     if (!stillFailed) throw new SourceError('invalidInput');
@@ -307,15 +321,44 @@ export async function retrySourceProcessing(userId: string, unbookId: string): P
         .set({ status: 'uploaded', errorCode: null })
         .where(eq(sources.id, sourceId));
     }
+    return generationFailed;
   });
 
   try {
-    await sendSourceUploaded(
-      { sourceId, userId, unbookId },
-      { eventId: `source-uploaded-retry:${unbookId}:${randomUUID()}` },
-    );
+    if (generationRetry) {
+      await sendUnbookRequested(
+        { sourceId, userId, unbookId },
+        { eventId: `unbook-requested-retry:${unbookId}:${randomUUID()}` },
+      );
+    } else {
+      await sendSourceUploaded(
+        { sourceId, userId, unbookId },
+        { eventId: `source-uploaded-retry:${unbookId}:${randomUUID()}` },
+      );
+    }
   } catch {
-    await markQueueFailed(userId, sourceId, unbookId, 'jobsUnavailable');
+    if (generationRetry) {
+      // A late failed acknowledgement must not regress a job already running,
+      // ready, or claimed for deletion. Keep the ready source retryable.
+      await db.transaction(async (tx) => {
+        const locked = await lockOwnedSource(tx, userId, sourceId);
+        if (!locked || locked.status !== 'ready' || locked.errorCode) return;
+        await tx
+          .update(unbooks)
+          .set({ status: 'failed', currentStage: 'failed' })
+          .where(
+            and(
+              eq(unbooks.id, unbookId),
+              eq(unbooks.userId, userId),
+              eq(unbooks.sourceId, sourceId),
+              eq(unbooks.status, 'queued'),
+              eq(unbooks.currentStage, 'ingested'),
+            ),
+          );
+      });
+    } else {
+      await markQueueFailed(userId, sourceId, unbookId, 'jobsUnavailable');
+    }
     throw new SourceError('jobsUnavailable');
   }
 }

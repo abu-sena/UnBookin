@@ -10,7 +10,12 @@ import {
 } from '@/lib/sources/ingest-store';
 import { SourceError, isSourceErrorCode, type SourceErrorCode } from '@/lib/sources/errors';
 import { inngest } from './client';
-import { SOURCE_DELETED_EVENT, SOURCE_UPLOADED_EVENT, sourceUploadedDataSchema } from './events';
+import {
+  SOURCE_DELETED_EVENT,
+  SOURCE_UPLOADED_EVENT,
+  UNBOOK_REQUESTED_EVENT,
+  sourceUploadedDataSchema,
+} from './events';
 
 const EMBED_BATCH_SIZE = 16;
 
@@ -136,7 +141,7 @@ export const ingestSource = inngest.createFunction(
     if (canHandoff) {
       await step.sendEvent('request-unbook', {
         id: `unbook-requested:${ids.sourceId}:${ids.unbookId}`,
-        name: 'unbook/requested',
+        name: UNBOOK_REQUESTED_EVENT,
         data: ids,
       });
       handoffSent = true;

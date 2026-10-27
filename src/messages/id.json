@@ -134,6 +134,7 @@
       "queued": "Antre",
       "outlining": "Menyusun kerangka",
       "generating": "Menulis modul",
+      "tagging": "Memetakan keahlian",
       "ready": "Siap",
       "failed": "Gagal"
     },
@@ -260,8 +261,10 @@
       "chunks": "{embedded}/{total} bagian",
       "fallbackStage": "Memproses bacaan…",
       "ready": "Siap dipelajari.",
+      "readyAction": "Buka Unbook",
+      "modules": "Menulis modul {done} dari {total}",
       "failedFallback": "Pemrosesan belum berhasil. Coba lagi sebentar lagi, ya.",
-      "ingested": "Bacaanmu sudah tersimpan. Modul belajar belum tersedia.",
+      "ingested": "Bacaan tersimpan. Menyiapkan modul…",
       "ingestedAction": "Buka Pustaka",
       "stage": {
         "uploading": "Mengunggah bacaan…",
@@ -269,7 +272,8 @@
         "chunking": "Menata bagian teks…",
         "embedding": "Mengolah teks…",
         "outlining": "Menyusun kerangka modul…",
-        "generating": "Menulis modul…"
+        "generating": "Menulis modul…",
+        "tagging": "Memetakan modul ke keahlianmu…"
       },
       "errors": {
         "invalidInput": "Ada isian yang belum pas. Periksa lagi, ya.",
@@ -299,7 +303,7 @@
         "libraryAction": "Buka Pustaka"
       },
       "retry": {
-        "action": "Proses ulang bacaan",
+        "action": "Coba lagi",
         "pending": "Memproses ulang…"
       },
       "page": {
