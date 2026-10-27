@@ -5,8 +5,8 @@ Koordinator: Claude Code (Opus 5.5). Worker: OpenCode dengan rantai model cadang
 
 | Rantai | Urutan model |
 | --- | --- |
-| Ringan | DeepSeek V4.1 Flash Free (OpenCode) → GLM-5.3-Flash Free (OpenCode) → Claude Sonnet 5.5 Low (9Router) → DeepSeek V4.1 Flash Free (9Router) → GLM-5.3-Flash (9Router) → GPT 6 Luna (9Router) → GLM-5.3-Flash (Z.ai) |
-| Berat | DeepSeek V4.1 Flash Free (OpenCode) → GPT 6.1 Sol (9Router) → GLM-5.3-Flash (9Router) → GLM-5.3-Flash (Z.ai) |
+| Ringan | DeepSix → Gelem (9Router zamzami) → DeepSeek V4.1 Flash Free (OpenCode) → GLM-5.3-Flash Free (OpenCode) → Claude Sonnet 5.5 Low (9Router) → DeepSeek V4.1 Flash Free (9Router) → GLM-5.3-Flash (9Router) → GPT 6 Luna (9Router) → GLM-5.3-Flash (Z.ai) |
+| Berat | DeepSix → Gelem (9Router zamzami) → DeepSeek V4.1 Flash Free (OpenCode) → GPT 6.1 Sol (9Router) → GLM-5.3-Flash (9Router) → GLM-5.3-Flash (Z.ai) |
 
 Setiap worker bekerja di git worktree sendiri (`../UnBookin-wt/<tugas>`) dengan daftar file yang boleh diubah.
 Koordinator meninjau diff, menjalankan `pnpm lint && pnpm typecheck && pnpm test`, lalu merge ke `main`.
