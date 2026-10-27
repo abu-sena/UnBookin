@@ -79,3 +79,71 @@ PDF 200 halaman dengan embedding terbukti; pustaka saja belum memenuhi gerbang i
   pemeriksaan otomatis dengan alasan `blocked by policy`. Koordinator tidak
   menyalin berkas autentikasi ke direktori ini. Server sementara worktree sudah
   dihentikan; pratinjau memakai checkout asal pada `http://localhost:3000/dev/ui`.
+
+## Pipeline M3 — 27 Oktober 2026
+
+Founder telah menyetujui rencana unggah dan ingest. Pekerjaan dilanjutkan oleh
+worker OpenCode secara berurutan dengan fallback pekerjaan ringan yang tercatat
+di atas. Worktree aktif `codex/m3-library` dipakai kembali; setiap tugas memiliki
+direktori data sesi dan kepemilikan berkas tersendiri. RAM tersedia sekitar 10 GB
+dari 24 GB saat pemeriksaan, sehingga `MAX_PARALLEL=1` tetap berlaku.
+
+| Urutan | Tugas | Kepemilikan utama | Gerbang |
+| --- | --- | --- | --- |
+| 1 | Penyimpanan R2, validasi input dan hak akses, pembacaan paket/kuota | `lib/storage`, `lib/billing/source-quota`, kontrak `lib/sources`, dependensi dan `.env.example` | Tes kunci objek, signed URL, pembatasan stream, paket dan batas bulan |
+| 2 | Ekstraksi PDF/EPUB/URL/teks, chunk dan referensi halaman | `lib/ingest/extract`, `chunk`, `safe-url`, fixture ingest | PDF sintetis 200 halaman, urutan EPUB, SSRF/redirect/DNS, batas ukuran dan halaman |
+| 3 | Server Actions, embedding OpenRouter, Inngest, progres/coba ulang/penghapusan | `lib/sources` backend, `lib/ai`, `inngest`, route API terkait | Otorisasi pemilik, idempotensi, tidak memotong kuota saat ingest, output embedding valid |
+| 4 | Lembar unggah, bilah progres dan pembatalan, layar proses, integrasi pustaka | komponen unggah dan navigasi, rute sumber/proses, pesan dan showcase | Alur unggah, error/ulang/hapus, 375px terang/gelap, pemeriksaan lengkap |
+
+Semua file sumber tetap privat. Event/hasil langkah Inngest hanya membawa ID dan
+metadata, bukan isi bacaan. Model embedding dibaca dari `ai_task_configs`, bukan
+ID model yang ditulis di kode; kunci platform digunakan untuk embedding. Sumber
+yang selesai ingest meneruskan event `unbook/requested` ke M4, tanpa mengaku bahwa
+modul belajar sudah selesai dibuat.
+
+Kredensial R2/Inngest/OpenRouter dan model embedding belum terisi di lingkungan
+lokal saat pemeriksaan; Docker juga belum berjalan. Tes parser nyata dan tes
+integrasi tiruan tetap dijalankan. Gerbang ingest dengan layanan nyata harus
+dilaporkan terpisah dan tidak dianggap lulus hanya berdasarkan mock.
+
+Founder memilih untuk melanjutkan kode dan panduan konfigurasi dahulu. Docker
+lokal kemudian dijalankan; database uji terpisah `unbookin_m3_test_20261027`
+dibuat di container dev dan dimigrasikan tanpa mengubah database aplikasi.
+Fondasi `1b1f327` lolos pemeriksaan ulang lint/typecheck dan 42 tes terarah;
+pemeriksaan tambahan dengan SQL nyata membuktikan isolasi reservasi, batas
+bulan, paket aktif, pengecualian retry, dan pgvector 1.536 dimensi.
+
+Model gratis OpenCode/DeepSeek via 9Router kemudian mencapai limit, dan Sonnet
+Low melaporkan reset sekitar 28 jam. Alias GLM Z.ai yang tersedia dikoreksi ke
+`9router/glm/glm-5.3-flash`; model ini diuji dapat merespons. Worker berikutnya
+memakai konfigurasi proses sementara untuk reasoning rendah dan output 16k,
+tanpa mengubah konfigurasi global pengguna. Model GLM Free via 9Router tidak
+tersedia dalam katalog layanan yang diperiksa.
+
+Dengan sekitar 8 GB RAM masih tersedia, parser dan backend core yang tidak
+berbagi kepemilikan dijalankan dalam dua worktree terpisah. `MAX_PARALLEL=2`
+untuk gelombang ini (masing-masing tes dibatasi dua worker); integrasi Inngest
+dan UI tetap menunggu kontrak keduanya lolos. Worktree backend memakai junction
+dependensi yang sudah terpasang dengan versi lockfile identik, tanpa instalasi
+atau perubahan paket selama worker berjalan.
+
+### Gerbang fondasi gabungan
+
+Commit parser `dc5bcbf` serta backend `1e823dc` dan perbaikan `1a12a8b`
+digabung pada `5fc7341`. Pemeriksaan koordinator: 51 berkas/372 tes lulus,
+lint, typegen, dan typecheck lulus. PDF sintetis 200 halaman diekstrak menjadi
+chunk dengan referensi hingga halaman 200; EPUB dan PDF tanpa teks juga diuji
+dengan parser nyata. Uji SQL ulang membuktikan 4 reservasi bersamaan hanya
+menerima 2 pada paket Free, tanpa memotong kuota. Query progres diuji dengan
+dua pengguna PostgreSQL nyata: akun lain tidak menerima judul/status pemilik.
+
+Integrasi Inngest dan UI kini berjalan di dua worktree dengan kepemilikan
+terpisah. Review parser meminta pemetaan bab/fallback dan pembagian teks
+Unicode panjang dilengkapi sebelum gerbang ingest akhir. Semua layanan
+embedding dan penyimpanan uji memakai HTTP tiruan lokal; Inngest Dev Server
+dan PostgreSQL lokal berjalan nyata. Kredensial production tetap tidak dipakai.
+
+Pemanggilan pnpm otomatis oleh worker sempat menghapus node_modules.
+Koordinator menghentikan worker, memulihkan dependensi dari lockfile tanpa
+mengubah paket, lalu melanjutkannya. Seluruh worker berikutnya wajib memakai
+binary lokal langsung; pengelolaan dependensi hanya dilakukan koordinator.
