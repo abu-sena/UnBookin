@@ -2,6 +2,7 @@ import { BottomNav } from '@/components/layout/bottom-nav';
 import { ReadingSizeSync } from '@/components/layout/reading-size-sync';
 import { SideNav } from '@/components/layout/side-nav';
 import { TopBar } from '@/components/layout/top-bar';
+import { SourceUploadProvider } from '@/components/sources/source-upload-provider';
 import { OfflineBanner } from '@/components/ui-kit/offline-banner';
 import { cn } from '@/lib/utils';
 
@@ -30,22 +31,24 @@ type AppShellProps = {
  */
 export function AppShell({ children, width = 'reading', title, reviewCount, user }: AppShellProps) {
   return (
-    <div className="flex min-h-dvh">
-      <ReadingSizeSync />
-      <SideNav reviewCount={reviewCount} />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <OfflineBanner />
-        <TopBar title={title} user={user} />
-        <main
-          className={cn(
-            'mx-auto w-full max-w-[640px] flex-1 px-4 pt-4 pb-28 lg:px-6 lg:pb-10',
-            contentWidthByWidth[width],
-          )}
-        >
-          {children}
-        </main>
-        <BottomNav reviewCount={reviewCount} />
+    <SourceUploadProvider>
+      <div className="flex min-h-dvh">
+        <ReadingSizeSync />
+        <SideNav reviewCount={reviewCount} />
+        <div className="flex min-w-0 flex-1 flex-col">
+          <OfflineBanner />
+          <TopBar title={title} user={user} />
+          <main
+            className={cn(
+              'mx-auto w-full max-w-[640px] flex-1 px-4 pt-4 pb-28 lg:px-6 lg:pb-10',
+              contentWidthByWidth[width],
+            )}
+          >
+            {children}
+          </main>
+          <BottomNav reviewCount={reviewCount} />
+        </div>
       </div>
-    </div>
+    </SourceUploadProvider>
   );
 }

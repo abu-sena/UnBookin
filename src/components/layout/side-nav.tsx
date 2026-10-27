@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { PlusIcon } from 'lucide-react';
 import { navItems } from '@/components/layout/nav-items';
+import { SourceUploadTrigger } from '@/components/sources/upload-trigger';
 import { cn } from '@/lib/utils';
 
 function isActive(pathname: string, href: string) {
@@ -37,8 +38,7 @@ export function SideNav({ reviewCount = 0 }: { reviewCount?: number }) {
           />
         ))}
 
-        <button
-          type="button"
+        <SourceUploadTrigger
           className={cn(
             'text-primary-fg bg-primary text-small mt-2 flex min-h-11 items-center gap-3 rounded-[var(--radius-button)] px-4 py-2',
             'duration-fast ease-out-soft shadow-[var(--shadow-card)] transition-transform active:scale-[0.97]',
@@ -46,7 +46,7 @@ export function SideNav({ reviewCount = 0 }: { reviewCount?: number }) {
         >
           <PlusIcon className="size-5" aria-hidden="true" />
           {t('unbook')}
-        </button>
+        </SourceUploadTrigger>
 
         {navItems.slice(2).map((item) => (
           <SideNavItem
