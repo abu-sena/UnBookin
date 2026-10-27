@@ -74,6 +74,9 @@ const PDF_MAGIC = '%PDF-';
 /** Outline parsing is optional; it must never dominate a PDF extraction. */
 const PDF_OUTLINE_BUDGET_MS = 3_000;
 const PDF_OUTLINE_MAX_ENTRIES = 500;
+/** Invalid destinations still consume work; bound every visited/enqueued node. */
+const PDF_OUTLINE_MAX_VISITED = 1_000;
+const PDF_OUTLINE_MAX_ENQUEUED = 1_000;
 const PDF_OUTLINE_MAX_DEPTH = 4;
 const PDF_HEADING_LINE_MAX_CHARS = 80;
 const PDF_HEADING_MAX_WORDS = 8;
@@ -173,7 +176,7 @@ const WORD_CODEPOINT = /[\p{L}\p{N}]/u;
  * stays attached to its word and whitespace becomes the unit's gap, so page
  * reconstruction preserves all non-whitespace text and reading order.
  */
-function tokenizeChapters(chapters: ChapterDraft[]): WordUnit[] {
+function tokenizeChapters(chapters: ChapterDraft[], maxUnits: number): WordUnit[] {
   const units: WordUnit[] = [];
   let gap = '';
   for (const chapter of chapters) {
@@ -209,6 +212,9 @@ function tokenizeChapters(chapters: ChapterDraft[]): WordUnit[] {
           firstInBlock: !blockHasUnit,
           title: chapter.title,
         });
+        // Stop before materializing millions of WordUnit objects for a source
+        // that is already above the inclusive page limit.
+        if (units.length > maxUnits) throw new SourceError('pagesExceeded');
         gap = '';
         blockHasUnit = true;
       }
@@ -302,7 +308,9 @@ function finishPseudoSource(
   maxPages: number,
   meta?: { title?: string; author?: string },
 ): ExtractedSource {
-  const units = tokenizeChapters(chapters);
+  const maxUnits = maxPages * WORDS_PER_PAGE;
+  const unitLimit = Number.isSafeInteger(maxUnits) ? maxUnits : Number.MAX_SAFE_INTEGER;
+  const units = tokenizeChapters(chapters, unitLimit);
   const wordCount = units.length;
   if (wordCount === 0) throw new SourceError('noText');
   const pageCount = Math.max(1, Math.ceil(wordCount / WORDS_PER_PAGE));
@@ -420,29 +428,37 @@ async function collectPdfOutlineRanges(
   deadline: number,
 ): Promise<PdfChapterRange[]> {
   const ranges: PdfChapterRange[] = [];
-  if (Date.now() >= deadline) return ranges;
+  const outlineDeadline = Math.min(deadline, Date.now() + PDF_OUTLINE_BUDGET_MS);
+  if (Date.now() >= outlineDeadline) return ranges;
   let outline: unknown;
   try {
-    outline = await withDeadline(
-      proxy.getOutline(),
-      Math.min(deadline, Date.now() + PDF_OUTLINE_BUDGET_MS),
-    );
+    outline = await withDeadline(proxy.getOutline(), outlineDeadline);
   } catch {
     return ranges;
   }
   if (!Array.isArray(outline)) return ranges;
   const queue: Array<{ nodes: unknown[]; depth: number }> = [{ nodes: outline, depth: 0 }];
-  while (queue.length > 0 && ranges.length < PDF_OUTLINE_MAX_ENTRIES) {
-    if (Date.now() >= deadline) break;
+  let enqueued = outline.length;
+  let visited = 0;
+  while (
+    queue.length > 0 &&
+    ranges.length < PDF_OUTLINE_MAX_ENTRIES &&
+    visited < PDF_OUTLINE_MAX_VISITED &&
+    Date.now() < outlineDeadline
+  ) {
     const level = queue.shift()!;
     for (const raw of level.nodes) {
       if (ranges.length >= PDF_OUTLINE_MAX_ENTRIES) break;
+      if (visited >= PDF_OUTLINE_MAX_VISITED) break;
+      if (Date.now() >= outlineDeadline) break;
+      // Every node counts, even malformed and invalid-destination entries.
+      visited += 1;
       if (raw === null || typeof raw !== 'object') continue;
       const node = raw as PdfOutlineNode;
       const title = sanitizeHeading(node.title);
       if (title !== null) {
         try {
-          const page = await resolveOutlinePage(proxy, node.dest, deadline);
+          const page = await resolveOutlinePage(proxy, node.dest, outlineDeadline);
           if (page !== null && page >= 1 && page <= numPages) ranges.push({ page, title });
         } catch {
           // malformed destination: ignore this entry
@@ -451,9 +467,11 @@ async function collectPdfOutlineRanges(
       if (
         level.depth < PDF_OUTLINE_MAX_DEPTH &&
         Array.isArray(node.items) &&
-        node.items.length > 0
+        node.items.length > 0 &&
+        enqueued + node.items.length <= PDF_OUTLINE_MAX_ENQUEUED
       ) {
         queue.push({ nodes: node.items, depth: level.depth + 1 });
+        enqueued += node.items.length;
       }
     }
   }
