@@ -14,12 +14,13 @@ import { failGeneration, startOutline } from '@/lib/generation/store';
 import { isSourceErrorCode, SourceError, type SourceErrorCode } from '@/lib/sources/errors';
 import { inngest } from './client';
 
-type StepTools = NonNullable<GetStepTools<typeof inngest>>;
 import {
   SOURCE_DELETED_EVENT,
   UNBOOK_REQUESTED_EVENT,
   unbookRequestedDataSchema,
 } from './events';
+
+type StepTools = NonNullable<GetStepTools<typeof inngest>>;
 
 const MODULE_BATCH_SIZE = 3;
 
