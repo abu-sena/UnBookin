@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useId, useRef, type ReactNode, type RefObject } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { READER_TABS, type ReaderTab } from './reader-storage';
@@ -21,6 +21,20 @@ export function ReaderTabs({ active, onActiveChange, panels, scrollerRef }: Read
   const t = useTranslations('reader.module');
   const baseId = useId().replace(/:/g, '');
   const tablistRef = useRef<HTMLDivElement>(null);
+  const panelRefs = useRef<Partial<Record<ReaderTab, HTMLElement | null>>>({});
+  const [panelHeight, setPanelHeight] = useState<number | undefined>(undefined);
+
+  // Panels sit side by side; without this the row takes the TALLEST panel's height and a short
+  // Pahami panel ends in a long empty gap (pushing the end-of-reading sentinel out of reach).
+  useEffect(() => {
+    const panel = panelRefs.current[active];
+    if (!panel || typeof ResizeObserver === 'undefined') return;
+    const update = () => setPanelHeight(panel.offsetHeight);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(panel);
+    return () => observer.disconnect();
+  }, [active]);
 
   useEffect(() => {
     const scroller = scrollerRef.current;
@@ -107,11 +121,15 @@ export function ReaderTabs({ active, onActiveChange, panels, scrollerRef }: Read
         ref={scrollerRef}
         data-slot="reader-panels"
         onScroll={handleScroll}
-        className="flex w-full snap-x snap-mandatory [scrollbar-width:none] overflow-x-auto overscroll-x-contain [&::-webkit-scrollbar]:hidden"
+        style={panelHeight ? { height: panelHeight } : undefined}
+        className="flex w-full items-start overflow-y-hidden snap-x snap-mandatory [scrollbar-width:none] overflow-x-auto overscroll-x-contain [&::-webkit-scrollbar]:hidden"
       >
         {READER_TABS.map((tab) => (
           <section
             key={tab}
+            ref={(node) => {
+              panelRefs.current[tab] = node;
+            }}
             role="tabpanel"
             id={`${baseId}-panel-${tab}`}
             aria-labelledby={`${baseId}-tab-${tab}`}
