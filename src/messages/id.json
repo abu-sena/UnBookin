@@ -738,6 +738,45 @@
       "previewText": "Pemimpin terbaik membangun sistem, bukan panggung. Ukuran huruf ini berlaku untuk semua teks bacaan di modul, jadi kamu bisa membaca lebih lama dengan nyaman."
     }
   },
+  "reviewSession": {
+    "pageDescription": "Satu kartu sekali jalan. Balik kartu, lalu nilai ingatanmu.",
+    "progress": "{current} dari {total} kartu",
+    "progressAria": "Kartu {current} dari {total}",
+    "rateError": "Kartu ini belum tersimpan. Coba lagi, ya.",
+    "retry": "Coba lagi",
+    "finishing": "Menutup sesi review…",
+    "finishError": "Sesi belum bisa ditutup. Coba lagi, ya.",
+    "finishRetry": "Tutup sesi",
+    "summary": {
+      "title": "Sesi review selesai",
+      "description": "Kamu sudah mereview {count} kartu hari ini.",
+      "againLabel": "Lupa",
+      "hardLabel": "Ragu",
+      "goodLabel": "Ingat",
+      "dueTomorrow": "Besok: {count} kartu",
+      "noDueTomorrow": "Besok tidak ada kartu. Istirahat yang cukup, ya.",
+      "done": "Selesai"
+    }
+  },
+  "home": {
+    "today": {
+      "title": "Hari ini",
+      "reviewTitle": "Review jatuh tempo",
+      "reviewBody": "{count} kartu menunggu",
+      "reviewEmpty": "Tidak ada kartu jatuh tempo hari ini.",
+      "reviewTomorrow": "Review besok: {count} kartu",
+      "reviewTomorrowNone": "Review besok: belum ada kartu.",
+      "startReview": "Mulai review",
+      "nextTitle": "Modul berikutnya",
+      "continue": "Lanjutkan",
+      "actionsTitle": "Aksi aktif",
+      "actionsEmpty": "Belum ada aksi aktif. Aksi dari modul yang kamu baca akan muncul di sini.",
+      "actionDue": "Tenggat {date}",
+      "actionNoDue": "Tanpa tenggat",
+      "actionOverdue": "Sudah lewat tenggat: {date}",
+      "loadingAria": "Beranda sedang dimuat"
+    }
+  },
   "reader": {
     "unbook": {
       "pathTitle": "Jalur modul",
