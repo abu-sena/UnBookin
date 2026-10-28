@@ -509,6 +509,25 @@ async function restoreTaskConfigs(
   resetCache();
 }
 
+/**
+ * Install temporary fake `ai_task_configs` rows for every engine task, run the
+ * operation, then restore the previous rows. The eval CLI has its own copy of
+ * this flow so its output and cleanup order stay unchanged.
+ */
+export async function withFakeAiTaskConfigs<T>(
+  db: typeof import('@/db').db,
+  operation: () => Promise<T>,
+): Promise<T> {
+  const backup: TaskConfigBackup[] = [];
+  const { resetTaskConfigCache } = await import('@/lib/ai/task-config');
+  try {
+    await installFakeTaskConfigs(db, resetTaskConfigCache, backup);
+    return await operation();
+  } finally {
+    await restoreTaskConfigs(db, backup, resetTaskConfigCache);
+  }
+}
+
 async function missingTaskConfigs(db: typeof import('@/db').db): Promise<string[]> {
   const rows = await db
     .select({ task: dbSchema.aiTaskConfigs.task, isActive: dbSchema.aiTaskConfigs.isActive })
