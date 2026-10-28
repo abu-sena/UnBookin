@@ -777,6 +777,136 @@
       "loadingAria": "Beranda sedang dimuat"
     }
   },
+  "journal": {
+    "title": "Jurnal",
+    "description": "Aksi penerapan dari modul yang kamu baca. Tenggat yang lewat tidak dihukum; kamu bisa memperpanjang atau melewatinya dengan tenang.",
+    "tabs": {
+      "label": "Saringan jurnal",
+      "active": "Aktif",
+      "done": "Selesai",
+      "skipped": "Dilewati",
+      "withCount": "{label} ({count})",
+      "countAria": "{label}: {count} aksi"
+    },
+    "status": {
+      "planned": "Aktif",
+      "done": "Selesai",
+      "skipped": "Dilewati"
+    },
+    "moduleLabel": "Modul",
+    "due": "Tenggat {date}",
+    "noDue": "Tanpa tenggat",
+    "overdue": "Tenggat terlewat",
+    "overdueNote": "Tidak ada hukuman. Perpanjang 7 hari atau lewati dengan tenang.",
+    "actions": {
+      "report": "Laporkan",
+      "extend": "Perpanjang 7 hari",
+      "extending": "Memperpanjang…",
+      "skip": "Lewati",
+      "skipping": "Melewati…"
+    },
+    "viewAll": "Lihat semua jurnal",
+    "empty": {
+      "active": {
+        "message": "Belum ada aksi aktif. Aksi dari modul yang kamu baca akan muncul di sini.",
+        "action": "Buka Pustaka"
+      },
+      "done": {
+        "message": "Belum ada aksi selesai. Laporkan aksi pertamamu untuk melihatnya di sini.",
+        "action": "Buka Pustaka"
+      },
+      "skipped": {
+        "message": "Belum ada aksi yang dilewati.",
+        "action": "Buka Pustaka"
+      }
+    },
+    "skipDialog": {
+      "title": "Lewati aksi ini?",
+      "description": "Aksi akan pindah ke tab Dilewati. Tidak ada hukuman dan XP tidak berkurang.",
+      "cancel": "Batal",
+      "confirm": "Ya, lewati",
+      "pending": "Melewati…"
+    },
+    "errors": {
+      "extend": "Aksi belum bisa diperpanjang. Coba lagi sebentar lagi, ya.",
+      "skip": "Aksi belum bisa dilewati. Coba lagi sebentar lagi, ya.",
+      "generic": "Ada yang salah di sisi kami. Coba lagi sebentar lagi, ya."
+    },
+    "detail": {
+      "back": "Kembali ke Jurnal",
+      "reportsTitle": "Riwayat laporan",
+      "reportsEmpty": "Belum ada laporan untuk aksi ini.",
+      "reportNumber": "Laporan {number}",
+      "whatLabel": "Apa yang saya lakukan",
+      "resultLabel": "Hasilnya",
+      "reflectionLabel": "Refleksi",
+      "evidenceLabel": "Bukti tautan",
+      "feedbackLabel": "Umpan balik AI",
+      "score": "Skor {score} dari 4",
+      "verified": "Terverifikasi",
+      "notVerified": "Belum terverifikasi",
+      "createdAt": "Dikirim {date}",
+      "doneNote": "Aksi ini sudah selesai. Riwayat laporan tetap bisa kamu baca.",
+      "skippedNote": "Aksi ini dilewati. Riwayat laporan tetap bisa kamu baca."
+    },
+    "form": {
+      "title": "Laporkan aksi ini",
+      "revisionTitle": "Perbaiki laporanmu",
+      "revisionGuidance": "Umpan balik sebelumnya menunjukkan bagian yang perlu diperjelas. Satu kesempatan revisi tersisa.",
+      "revisionRemaining": "Satu kesempatan revisi tersisa.",
+      "whatLabel": "Apa yang saya lakukan",
+      "whatHint": "Minimal 80 karakter. Tulis langkah konkret yang kamu lakukan.",
+      "whatCount": "{count}/{max} karakter",
+      "resultLabel": "Hasilnya",
+      "resultHint": "Ceritakan hasil yang kamu lihat setelah aksi ini.",
+      "reflectionLabel": "Refleksi",
+      "reflectionHint": "Apa yang akan kamu ubah? Refleksi pada laporan terverifikasi memberi +40 XP.",
+      "evidenceLabel": "Bukti tautan (opsional)",
+      "evidenceHint": "Tautan http:// atau https://, maksimal 2048 karakter.",
+      "submit": "Kirim laporan",
+      "submitRevision": "Kirim revisi",
+      "pending": "Menilai laporan…",
+      "required": "Bagian ini wajib diisi.",
+      "whatMin": "Tulis minimal 80 karakter agar AI bisa menilainya.",
+      "whatMax": "Maksimal 6000 karakter.",
+      "resultMax": "Maksimal 4000 karakter.",
+      "reflectionMax": "Maksimal 4000 karakter.",
+      "evidenceInvalid": "Gunakan tautan http:// atau https:// yang valid tanpa nama pengguna dan kata sandi.",
+      "evidenceMax": "Tautan maksimal 2048 karakter.",
+      "successTitle": "Laporan terkirim",
+      "verifiedTitle": "Aksi terverifikasi",
+      "verified": "Terverifikasi",
+      "scoreLabel": "Skor {score} dari 4",
+      "reviseTitle": "Satu revisi lagi",
+      "exhaustedTitle": "Kesempatan laporan sudah habis",
+      "exhaustedBody": "Laporan ini sudah dinilai. Kamu tetap bisa membaca riwayatnya di atas.",
+      "gradingUnavailable": "Penilaian belum tersedia. Laporan belum dikirim; coba lagi nanti.",
+      "revisionLimit": "Kesempatan revisi untuk aksi ini sudah habis. Muat ulang untuk melihat hasil terbaru.",
+      "alreadyCompleted": "Aksi ini sudah selesai atau berubah. Muat ulang untuk melihat status terbaru.",
+      "conflict": "Aksi ini baru saja berubah. Muat ulang untuk melihat status terbaru.",
+      "invalidInput": "Ada isian yang belum pas. Periksa lagi, ya.",
+      "unexpected": "Ada yang salah di sisi kami. Laporanmu masih ada di sini; coba lagi sebentar lagi.",
+      "generic": "Laporan belum bisa dikirim. Isianmu tetap aman; coba lagi sebentar lagi."
+    },
+    "loading": {
+      "title": "Jurnal",
+      "description": "Memuat aksimu…",
+      "aria": "Jurnal sedang dimuat"
+    },
+    "detailLoading": {
+      "back": "Kembali ke Jurnal",
+      "title": "Memuat detail aksi",
+      "aria": "Detail aksi sedang dimuat"
+    },
+    "error": {
+      "message": "Jurnal belum bisa dimuat. Coba lagi sebentar lagi, ya.",
+      "retry": "Coba lagi"
+    },
+    "detailError": {
+      "message": "Detail aksi belum bisa dimuat. Coba lagi sebentar lagi, ya.",
+      "retry": "Coba lagi"
+    }
+  },
   "reader": {
     "unbook": {
       "pathTitle": "Jalur modul",

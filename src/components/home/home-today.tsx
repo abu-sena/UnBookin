@@ -42,6 +42,7 @@ export function HomeToday({
 }: HomeTodayProps) {
   const tEmpty = useTranslations('empty');
   const t = useTranslations('home.today');
+  const tJournal = useTranslations('journal');
   const now = new Date(nowIso).getTime();
   const visibleActions = actions.slice(0, 3);
 
@@ -97,7 +98,7 @@ export function HomeToday({
       ) : null}
 
       <article className="border-border bg-surface flex flex-col gap-3 rounded-[var(--radius-card)] border p-5">
-        <h3 className="flex items-center gap-2 text-h3">
+        <h3 className="text-h3 flex items-center gap-2">
           <CalendarClockIcon className="text-primary size-5" aria-hidden="true" />
           {t('actionsTitle')}
         </h3>
@@ -109,7 +110,12 @@ export function HomeToday({
               const overdue = action.dueAt ? new Date(action.dueAt).getTime() < now : false;
               return (
                 <li key={action.id} className="flex flex-col gap-1">
-                  <span className="text-body">{action.title}</span>
+                  <Link
+                    href={`/journal/${action.id}`}
+                    className="text-body inline-flex min-h-11 items-center break-words hover:underline"
+                  >
+                    {action.title}
+                  </Link>
                   <span className="text-small text-text-muted">
                     {action.dueAt
                       ? overdue
@@ -122,6 +128,12 @@ export function HomeToday({
             })}
           </ul>
         )}
+        <Link
+          href="/journal"
+          className="text-primary text-small inline-flex min-h-11 w-fit items-center font-semibold"
+        >
+          {tJournal('viewAll')}
+        </Link>
       </article>
     </section>
   );
