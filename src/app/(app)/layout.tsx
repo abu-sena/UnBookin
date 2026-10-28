@@ -1,5 +1,6 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { requireOnboardedUser } from '@/lib/auth/session';
+import { getGameSummary, type GameSummary } from '@/lib/game/queries';
 import { countDueCards } from '@/lib/learning/queries';
 import { Suspense } from 'react';
 
@@ -12,8 +13,15 @@ export async function AuthenticatedApp({ children }: { children: React.ReactNode
     // A badge count must never break the app shell or show an error page.
     reviewCount = undefined;
   }
+  let gameSummary: GameSummary | undefined;
+  try {
+    gameSummary = await getGameSummary({ userId: user.id });
+  } catch {
+    // Game statistics must never break the app shell.
+    gameSummary = undefined;
+  }
   return (
-    <AppShell user={user} reviewCount={reviewCount}>
+    <AppShell user={user} reviewCount={reviewCount} gameSummary={gameSummary} gameUserId={user.id}>
       {children}
     </AppShell>
   );

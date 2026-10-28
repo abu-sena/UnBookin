@@ -80,7 +80,10 @@
     "streakAria": "Streak belajarmu",
     "streakAriaCount": "Streak belajarmu: {count, plural, one {# hari} other {# hari}}",
     "notifications": "Notifikasi",
-    "profile": "Profil kamu"
+    "profile": "Profil kamu",
+    "streakAriaActive": "Streak belajarmu: {count, plural, other {# hari}}, sudah aktif hari ini",
+    "streakAriaIdle": "Streak belajarmu: {count, plural, other {# hari}}, belum aktif hari ini",
+    "streakAriaUnknown": "Streak belajarmu, buka halaman progres"
   },
   "empty": {
     "homeMessage": "Belum ada aktivitas hari ini. Unbook bacaan pertamamu dan mulai belajar.",
@@ -1138,6 +1141,78 @@
     "xpToast": {
       "amount": "+{amount} XP",
       "announce": "Kamu mendapat {amount} XP"
+    },
+    "levels": {
+      "novice": "Pemula",
+      "advanced_beginner": "Pemula lanjut",
+      "competent": "Kompeten",
+      "proficient": "Mahir",
+      "expert": "Ahli"
+    },
+    "level": {
+      "label": "Level {level}",
+      "short": "Level",
+      "ringAria": "Level {level}, {percent} persen menuju level {next}",
+      "ringAriaMax": "Level {level}, level tertinggi tercapai",
+      "totalXp": "{xp} XP total",
+      "toNext": "{remaining} XP lagi menuju level {next}",
+      "maxLevel": "Level tertinggi tercapai"
+    },
+    "mission": {
+      "progressAria": "{title}: {progress} dari {target}",
+      "progressText": "{progress}/{target}",
+      "reward": "Hadiah +{xp} XP",
+      "completed": "Selesai"
+    },
+    "missions": {
+      "title": "Misi mingguan",
+      "empty": "Misi minggu ini belum tersedia."
+    },
+    "streak": {
+      "title": "Streak belajar",
+      "days": "{count, plural, other {# hari}}",
+      "freezes": "Pembeku streak: {count}",
+      "activeToday": "Sudah aktif hari ini",
+      "idleToday": "Belum aktif hari ini",
+      "longest": "Terpanjang: {count, plural, other {# hari}}"
+    },
+    "celebration": {
+      "titleLevel": "Naik level!",
+      "titleDomain": "Keahlianmu naik level!",
+      "titleBoth": "Dua pencapaian baru!",
+      "description": "Ringkasan pencapaianmu.",
+      "levelLine": "Kamu mencapai level {level}.",
+      "xpLine": "Total XP kamu sekarang {xp}.",
+      "domainTitle": "Level keahlian",
+      "domainLine": "{domain} naik ke {level}.",
+      "badgesTitle": "Lencana baru",
+      "close": "Lanjut belajar"
+    },
+    "feedback": {
+      "badgeToast": "Lencana baru: {name}",
+      "liveLabel": "Notifikasi progres"
+    },
+    "homeOverview": {
+      "title": "Progres belajarmu",
+      "viewProgress": "Lihat progres",
+      "viewJournal": "Buka Jurnal",
+      "unavailable": "Progres belum bisa dimuat sekarang."
+    },
+    "devUi": {
+      "title": "Gamifikasi dan Jurnal",
+      "previewNote": "Pratinjau memakai data contoh statis. Tidak ada aksi server yang dikirim dari sini.",
+      "level": "Level dan XP",
+      "streak": "Streak (aktif dan tidak aktif)",
+      "missions": "Misi mingguan",
+      "ringSample": "Misi contoh",
+      "badges": "Lencana",
+      "locked": "Belum terbuka",
+      "skillTree": "Pohon keahlian",
+      "feedback": "Umpan balik",
+      "showToast": "Tampilkan +30 XP",
+      "showCelebration": "Tampilkan perayaan naik level",
+      "skeleton": "Skeleton halaman progres",
+      "journal": "Komponen Jurnal"
     }
   },
   "quizFlow": {
@@ -1188,6 +1263,53 @@
     },
     "error": {
       "message": "Kuis belum bisa dimuat. Coba lagi sebentar lagi.",
+      "retry": "Coba lagi"
+    }
+  },
+  "progress": {
+    "title": "Progres",
+    "intro": "Lihat level, streak, lencana, dan pohon keahlianmu tumbuh dari belajar dan menerapkan.",
+    "level": {
+      "title": "Level kamu"
+    },
+    "streak": {
+      "journalLink": "Buka Jurnal"
+    },
+    "badges": {
+      "title": "Lencana",
+      "empty": "Belum ada lencana yang tersedia.",
+      "locked": "Belum terbuka"
+    },
+    "skills": {
+      "title": "Pohon keahlian",
+      "interestEmpty": "Belum ada domain untuk minat ini.",
+      "domainAria": "{name}, level {level}",
+      "domainXp": "{xp} XP",
+      "domainLevel": "Level {level}",
+      "emptyMessage": "Pilih minat belajar agar pohon keahlianmu muncul di sini. Kamu bisa mengubahnya kapan saja.",
+      "emptyAction": "Pilih minat belajar"
+    },
+    "domain": {
+      "xp": "XP domain",
+      "passedQuizzes": "Kuis lulus",
+      "verifiedActions": "Aksi terverifikasi",
+      "nextTitle": "Menuju level {level}",
+      "nextMax": "Level keahlian tertinggi sudah tercapai.",
+      "requirementXp": "XP: {current} dari {required}",
+      "requirementQuizzes": "Kuis lulus: {current} dari {required}",
+      "requirementActions": "Aksi terverifikasi: {current} dari {required}",
+      "met": "Terpenuhi",
+      "unmet": "Belum terpenuhi",
+      "modulesTitle": "Modul terkait",
+      "modulesEmpty": "Belum ada modul yang terkait dengan domain ini.",
+      "actionsTitle": "Aksi terverifikasi",
+      "actionsEmpty": "Belum ada aksi terverifikasi di domain ini."
+    },
+    "loading": {
+      "aria": "Halaman progres sedang dimuat"
+    },
+    "error": {
+      "message": "Progres belum bisa dimuat. Coba lagi sebentar lagi, ya.",
       "retry": "Coba lagi"
     }
   }

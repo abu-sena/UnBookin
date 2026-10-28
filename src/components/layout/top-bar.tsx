@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { signOutAction } from '@/lib/auth/actions';
 import { BrandLogo } from '@/components/brand-logo';
+import { StreakFlame } from '@/components/game/streak-flame';
 
 type TopBarProps = {
   user?: { name?: string | null; image?: string | null };
@@ -19,9 +20,11 @@ type TopBarProps = {
   title?: string;
   /** Streak day count; omitted renders the flame placeholder only. */
   streakCount?: number;
+  /** Whether XP was earned today; false renders the flame muted. */
+  activeToday?: boolean;
 };
 
-export async function TopBar({ title, streakCount, user }: TopBarProps) {
+export async function TopBar({ title, streakCount, activeToday = false, user }: TopBarProps) {
   const [tTopBar, tAuth, tProfile, tSettings] = await Promise.all([
     getTranslations('topBar'),
     getTranslations('auth'),
@@ -41,17 +44,16 @@ export async function TopBar({ title, streakCount, user }: TopBarProps) {
         )}
 
         <div className="flex items-center gap-1">
-          <span
-            className="text-small text-xp inline-flex min-h-11 items-center gap-1 px-2 font-semibold tabular-nums"
-            aria-label={
-              streakCount === undefined
-                ? tTopBar('streakAria')
-                : tTopBar('streakAriaCount', { count: streakCount })
-            }
-          >
-            <FlameIcon className="size-5" aria-hidden="true" />
-            {streakCount}
-          </span>
+          {streakCount === undefined ? (
+            <span
+              className="text-small text-text-muted inline-flex min-h-11 items-center gap-1 px-2 font-semibold"
+              aria-label={tTopBar('streakAria')}
+            >
+              <FlameIcon className="size-5 opacity-60" aria-hidden="true" />
+            </span>
+          ) : (
+            <StreakFlame count={streakCount} activeToday={activeToday} />
+          )}
 
           <Button variant="ghost" size="icon" aria-label={tTopBar('notifications')}>
             <BellIcon aria-hidden="true" />

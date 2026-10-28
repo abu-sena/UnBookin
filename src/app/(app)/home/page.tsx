@@ -1,21 +1,36 @@
-import { getTranslations } from 'next-intl/server';
+﻿import { getTranslations } from 'next-intl/server';
+import { HomeGameOverview, HomeGameUnavailable } from '@/components/game/level-overview';
 import { HomeToday } from '@/components/home/home-today';
 import { PageHeader } from '@/components/ui-kit/page-header';
 import { requireOnboardedUser } from '@/lib/auth/session';
+import { getGameSummary, type GameSummary } from '@/lib/game/queries';
 import { LearningError } from '@/lib/learning/errors';
-import {
-  countDueCards,
-  getTodaySummary,
-  getUnbookPath,
-} from '@/lib/learning/queries';
+import { countDueCards, getTodaySummary, getUnbookPath } from '@/lib/learning/queries';
 import { getMyLibrary } from '@/lib/library/query';
+
+async function loadGameSummary(userId: string): Promise<GameSummary | null> {
+  try {
+    return await getGameSummary({ userId });
+  } catch {
+    // Statistics must never break Home.
+    return null;
+  }
+}
 
 /** Home: the "Hari ini" card at the end of Alur A and the start of Alur B. */
 export default async function HomePage() {
   const user = await requireOnboardedUser('/home');
   const t = await getTranslations('pages');
-  const library = await getMyLibrary({ q: '', interest: '', status: '' });
+  const [library, gameSummary] = await Promise.all([
+    getMyLibrary({ q: '', interest: '', status: '' }),
+    loadGameSummary(user.id),
+  ]);
   const nowIso = new Date().toISOString();
+  const gameBlock = gameSummary ? (
+    <HomeGameOverview summary={gameSummary} />
+  ) : (
+    <HomeGameUnavailable />
+  );
 
   if (!library.hasAnyUnbooks) {
     return (
@@ -29,6 +44,7 @@ export default async function HomePage() {
           actions={[]}
           nowIso={nowIso}
         />
+        {gameBlock}
       </div>
     );
   }
@@ -73,6 +89,7 @@ export default async function HomePage() {
         }))}
         nowIso={nowIso}
       />
+      {gameBlock}
     </div>
   );
 }

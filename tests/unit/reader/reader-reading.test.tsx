@@ -31,11 +31,14 @@ describe('ModuleReader reading rule', () => {
     expect(mocks.actions.markModuleRead).toHaveBeenCalledTimes(1);
     expect(mocks.actions.markModuleRead).toHaveBeenCalledWith({ moduleId: MODULE_ID });
     expect(screen.getByText('+20 XP')).toBeInTheDocument();
+    // M6: one server snapshot refresh after the read reward.
+    expect(mocks.router.refresh).toHaveBeenCalledTimes(1);
 
     await reachEnd();
     fireEvent.click(screen.getByRole('tab', { name: tabs.understand }));
     await flush();
     expect(mocks.actions.markModuleRead).toHaveBeenCalledTimes(1);
+    expect(mocks.router.refresh).toHaveBeenCalledTimes(1);
   });
 
   it('does not downgrade or re-award a module that is already read', async () => {
@@ -47,6 +50,7 @@ describe('ModuleReader reading rule', () => {
 
     expect(mocks.actions.markModuleReading).not.toHaveBeenCalled();
     expect(mocks.actions.markModuleRead).not.toHaveBeenCalled();
+    expect(mocks.router.refresh).not.toHaveBeenCalled();
     expect(screen.getByText(messages.reader.module.readDone)).toBeInTheDocument();
   });
 });

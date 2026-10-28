@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { markModuleRead, markModuleReading } from '@/lib/learning/actions';
 import type { LearningResult } from '@/lib/learning/errors';
 
@@ -25,6 +26,7 @@ export function useModuleReading({
   reachedEnd: boolean;
   applyOpened: boolean;
 }): ModuleReadingState {
+  const router = useRouter();
   const [read, setRead] = useState(initiallyRead);
   const [xpAwarded, setXpAwarded] = useState(false);
   const readingCalledRef = useRef(false);
@@ -51,12 +53,16 @@ export function useModuleReading({
           return;
         }
         setRead(true);
-        if (result.xpAwarded) setXpAwarded(true);
+        if (result.xpAwarded) {
+          setXpAwarded(true);
+          // Refresh the server snapshot once so streak and level show at once.
+          router.refresh();
+        }
       } catch {
         readCalledRef.current = false;
       }
     })();
-  }, [moduleId, initiallyRead]);
+  }, [moduleId, initiallyRead, router]);
 
   useEffect(() => {
     if (reachedEnd && applyOpened) markRead();

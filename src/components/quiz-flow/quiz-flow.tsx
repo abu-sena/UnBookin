@@ -186,7 +186,10 @@ export function QuizFlow(props: QuizFlowProps) {
       return;
     }
     setResult(finished);
-    setXpAmount(finished.passed && finished.xpAwarded ? (finished.scorePct === 100 ? 40 : 30) : 0);
+    const awarded = Boolean(finished.passed && finished.xpAwarded);
+    setXpAmount(awarded ? (finished.scorePct === 100 ? 40 : 30) : 0);
+    // Refresh the server snapshot once, only after a real XP award.
+    if (awarded) router.refresh();
     setPhase('result');
     setBusy(false);
   }
