@@ -1,6 +1,6 @@
 # Rencana M5 — Belajar
 
-Status: **keputusan #1–#5 disetujui founder 27 Okt 2026**; #6 memakai usulan bawaan. Belum ada kode M5 yang ditulis.
+Status: **kode selesai 28 Okt 2026** (keputusan #1–#5 disetujui founder 27 Okt 2026; #6 memakai usulan bawaan). E2E Alur A sampai lulus kuis + review keesokan hari lulus di DB uji lokal; di production menunggu model `ai_task_configs` (termasuk `grade_short_answer`) dan kunci OpenRouter/Inngest.
 
 M5 mencakup PRD §8 E4 (pembaca modul), E5 (kuis), dan E6 (review terjadwal). Milestone dianggap selesai bila
 **Alur A berjalan sampai lulus kuis** dan **review harian berfungsi** (PRD §15).
