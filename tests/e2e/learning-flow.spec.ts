@@ -2,14 +2,8 @@ import { expect, test } from '@playwright/test';
 
 import id from '../../src/messages/id.json';
 import { readLearningSeed } from './support/config';
-import {
-  openDb,
-  readModuleStatus,
-  readQuizAnswers,
-  readTotalXp,
-  readXpEvents,
-  type Db,
-} from './support/db';
+import { openDb, readModuleStatus, readQuizAnswers, readTotalXp, type Db } from './support/db';
+import { expectLedger } from './support/journal';
 import { answerQuiz } from './support/quiz';
 import { capture, expectNoHorizontalOverflow, signInWithSeed } from './support/ui';
 
@@ -49,9 +43,7 @@ test.describe('Alur A — module, action, quiz pass', () => {
     await firstNode.click();
 
     await page.getByRole('tab', { name: id.module.layerToggle.layers.practitioner }).click();
-    const sourceChip = page
-      .getByRole('button', { name: /^(hlm\.\s*\d+|Sumber)$/ })
-      .first();
+    const sourceChip = page.getByRole('button', { name: /^(hlm\.\s*\d+|Sumber)$/ }).first();
     await sourceChip.click();
     const sheet = page.locator('[data-slot="drawer-content"]');
     await expect(sheet).toBeVisible();
@@ -90,16 +82,19 @@ test.describe('Alur A — module, action, quiz pass', () => {
     });
 
     expect(await readModuleStatus(db, seed.userId, firstModuleId)).toBe('read');
-    expect(await readTotalXp(db, seed.userId)).toBe(60);
-    const events = await readXpEvents(db, seed.userId);
-    expect(events.map((event) => event.type).sort()).toEqual(
-      ['module_read', 'quiz_pass', 'quiz_perfect'].sort(),
-    );
+    // M6: the first completed Unbook adds a one-time +50 (`first_unbook`) to the M5 total of 60.
+    // Mission rewards are hashed per user/week, so they are read from the ledger and
+    // cross-checked against completed missions instead of assuming one template.
+    const { missionXp } = await expectLedger(db, seed.userId, {
+      module_read: { count: 1, amount: 20 },
+      quiz_pass: { count: 1, amount: 30 },
+      quiz_perfect: { count: 1, amount: 10 },
+      first_unbook: { count: 1, amount: 50 },
+    });
+    expect(await readTotalXp(db, seed.userId)).toBe(60 + 50 + missionXp);
 
     await page.getByRole('link', { name: id.quizFlow.result.backToModule }).click();
-    await page
-      .getByRole('link', { name: id.reader.module.back, exact: true })
-      .click();
+    await page.getByRole('link', { name: id.reader.module.back, exact: true }).click();
     await expect(page.getByRole('button', { name: /^Modul 1:.*selesai$/ })).toBeVisible();
     await expectNoHorizontalOverflow(page);
     test.info().annotations.push({
@@ -108,21 +103,18 @@ test.describe('Alur A — module, action, quiz pass', () => {
     });
   });
 
-  test(
-    'home shows the planned action and tomorrow review',
-    async ({ page, context }) => {
-      const seed = readLearningSeed();
-      await signInWithSeed(context, seed);
-      await page.goto('/home');
-      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-      await expect(page.getByText(id.home.today.actionsTitle)).toBeVisible();
-      await expect(page.getByText(id.home.today.actionsEmpty)).toHaveCount(0);
-      await expect(page.getByText(/^Review besok: \d+ kartu$/)).toBeVisible();
-      await expectNoHorizontalOverflow(page);
-      test.info().annotations.push({
-        type: 'screenshot',
-        description: await capture(page, 'light-05-home'),
-      });
-    },
-  );
+  test('home shows the planned action and tomorrow review', async ({ page, context }) => {
+    const seed = readLearningSeed();
+    await signInWithSeed(context, seed);
+    await page.goto('/home');
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(page.getByText(id.home.today.actionsTitle)).toBeVisible();
+    await expect(page.getByText(id.home.today.actionsEmpty)).toHaveCount(0);
+    await expect(page.getByText(/^Review besok: \d+ kartu$/)).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    test.info().annotations.push({
+      type: 'screenshot',
+      description: await capture(page, 'light-05-home'),
+    });
+  });
 });
