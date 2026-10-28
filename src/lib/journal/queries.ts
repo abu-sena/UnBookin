@@ -2,7 +2,8 @@ import 'server-only';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '@/db';
-import { actionReports, actions, modules, unbooks } from '@/db/schema';
+import { actionReports, actions, modules, profiles, unbooks } from '@/db/schema';
+import { resolveTimeZone } from '@/lib/billing/source-quota';
 import type { ModuleContent } from '@/lib/engine/module-content';
 import { JournalError } from './errors';
 import { assertJournalIdentity, journalActionIdSchema, type JournalIdentity } from './schemas';
@@ -186,6 +187,20 @@ export async function getJournalAction(
   return toAction(row, reports.get(row.id) ?? []);
 }
 
+/**
+ * The caller's profile timezone (falls back to Asia/Jakarta when the profile
+ * is missing or the stored zone is invalid). Pages pass it explicitly to the
+ * journal UI so server and browser render identical dates.
+ */
+export async function getJournalTimeZone(identity: JournalIdentity): Promise<string> {
+  assertJournalIdentity(identity);
+  const [row] = await db
+    .select({ timezone: profiles.timezone })
+    .from(profiles)
+    .where(eq(profiles.userId, identity.userId))
+    .limit(1);
+  return resolveTimeZone(row?.timezone);
+}
 export type ActionReportSnapshot = {
   action: {
     id: string;

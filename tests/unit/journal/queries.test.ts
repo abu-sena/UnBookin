@@ -6,7 +6,12 @@ vi.mock('@/db', async () => {
   return { db: fake.db };
 });
 
-import { getJournalAction, listJournal, loadReportSnapshot } from '@/lib/journal/queries';
+import {
+  getJournalAction,
+  getJournalTimeZone,
+  listJournal,
+  loadReportSnapshot,
+} from '@/lib/journal/queries';
 import { fake, renderSql } from './fake-db';
 
 const USER = { userId: '8f9e3f1e-5d2a-4c6e-9b4d-1a2b3c4d5e6f' };
@@ -184,5 +189,31 @@ describe('loadReportSnapshot', () => {
   it('is notFound for a foreign action', async () => {
     fake.results.push([]);
     await expect(loadReportSnapshot(USER, ACTION_A)).rejects.toMatchObject({ code: 'notFound' });
+  });
+});
+
+describe('getJournalTimeZone', () => {
+  it('reads only the caller own profile timezone', async () => {
+    fake.results.push([{ timezone: 'America/New_York' }]);
+    expect(await getJournalTimeZone(USER)).toBe('America/New_York');
+
+    const [query] = fake.recorded.selects;
+    const where = renderSql(query?.where);
+    expect(where.sql).toMatch(/"profiles"\."user_id" = \$\d+/);
+    expect(where.params).toContain(USER_ID);
+  });
+
+  it('falls back to Asia/Jakarta for a missing profile or invalid zone', async () => {
+    fake.results.push([], [{ timezone: 'Not/AZone' }], [{ timezone: '  ' }]);
+    expect(await getJournalTimeZone(USER)).toBe('Asia/Jakarta');
+    expect(await getJournalTimeZone(USER)).toBe('Asia/Jakarta');
+    expect(await getJournalTimeZone(USER)).toBe('Asia/Jakarta');
+  });
+
+  it('rejects malformed identities before querying', async () => {
+    await expect(getJournalTimeZone({ userId: 'forged' } as never)).rejects.toMatchObject({
+      code: 'invalidInput',
+    });
+    expect(fake.recorded.selects).toHaveLength(0);
   });
 });

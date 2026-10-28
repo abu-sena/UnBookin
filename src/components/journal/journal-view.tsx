@@ -11,6 +11,7 @@ import type { JournalActionView } from './view-types';
 type JournalViewProps = {
   actions: JournalActionView[];
   nowIso: string;
+  timeZone?: string;
 };
 
 type JournalTab = 'active' | 'done' | 'skipped';
@@ -26,7 +27,7 @@ const EMPTY_ICONS = {
  * applied optimistically so an action moves to the right tab immediately,
  * then `router.refresh()` reconciles the server data.
  */
-export function JournalView({ actions, nowIso }: JournalViewProps) {
+export function JournalView({ actions, nowIso, timeZone }: JournalViewProps) {
   const t = useTranslations('journal');
   const [overrides, setOverrides] = useState<Record<string, JournalActionPatch>>({});
 
@@ -73,7 +74,12 @@ export function JournalView({ actions, nowIso }: JournalViewProps) {
               <ul className="flex flex-col gap-3">
                 {groups[tab].map((action) => (
                   <li key={action.id}>
-                    <JournalActionCard action={action} nowIso={nowIso} onUpdated={update} />
+                    <JournalActionCard
+                      action={action}
+                      nowIso={nowIso}
+                      timeZone={timeZone}
+                      onUpdated={update}
+                    />
                   </li>
                 ))}
               </ul>

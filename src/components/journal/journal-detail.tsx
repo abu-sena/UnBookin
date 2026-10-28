@@ -4,23 +4,23 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { ArrowLeftIcon, CalendarClockIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { DEFAULT_JOURNAL_TIME_ZONE, formatJournalDate } from './date-format';
 import { JournalReportHistory } from './journal-report-history';
 import { JournalReportForm } from './journal-report-form';
 import type { JournalActionView } from './view-types';
 
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
-
 type JournalDetailProps = {
   action: JournalActionView;
   nowIso: string;
+  timeZone?: string;
 };
 
 /** E7-02: one action, its persisted reports, and the report/revision form. */
-export function JournalDetail({ action, nowIso }: JournalDetailProps) {
+export function JournalDetail({
+  action,
+  nowIso,
+  timeZone = DEFAULT_JOURNAL_TIME_ZONE,
+}: JournalDetailProps) {
   const t = useTranslations('journal');
   const tDetail = useTranslations('journal.detail');
   const tForm = useTranslations('journal.form');
@@ -58,7 +58,7 @@ export function JournalDetail({ action, nowIso }: JournalDetailProps) {
           <CalendarClockIcon className="size-4 shrink-0" aria-hidden="true" />
           <span>
             {action.dueAt
-              ? t('due', { date: dateFormatter.format(new Date(action.dueAt)) })
+              ? t('due', { date: formatJournalDate(action.dueAt, timeZone) })
               : t('noDue')}
           </span>
           {overdue ? <span className="text-warning font-semibold">{t('overdue')}</span> : null}
@@ -72,7 +72,7 @@ export function JournalDetail({ action, nowIso }: JournalDetailProps) {
         ) : null}
       </header>
 
-      <JournalReportHistory reports={action.reports} />
+      <JournalReportHistory reports={action.reports} timeZone={timeZone} />
 
       {action.status === 'planned' && !action.canReport ? (
         <section className="border-border bg-surface flex flex-col gap-2 rounded-[var(--radius-card)] border p-5">

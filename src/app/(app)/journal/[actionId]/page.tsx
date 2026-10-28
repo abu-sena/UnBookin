@@ -5,7 +5,7 @@ import { JournalDetailSkeleton } from '@/components/journal/journal-skeleton';
 import { toJournalActionView } from '@/components/journal/view-types';
 import { requireUser } from '@/lib/auth/session';
 import { JournalError } from '@/lib/journal/errors';
-import { getJournalAction } from '@/lib/journal/queries';
+import { getJournalAction, getJournalTimeZone } from '@/lib/journal/queries';
 import type { JournalAction } from '@/lib/journal/types';
 
 type JournalDetailPageProps = {
@@ -27,9 +27,14 @@ export default async function JournalDetailPage({ params }: JournalDetailPagePro
 async function JournalDetailContent({ actionId }: { actionId: string }) {
   const user = await requireUser(`/journal/${actionId}`);
 
+  const identity = { userId: user.id };
   let action: JournalAction;
+  let timeZone: string;
   try {
-    action = await getJournalAction({ userId: user.id }, { actionId });
+    [action, timeZone] = await Promise.all([
+      getJournalAction(identity, { actionId }),
+      getJournalTimeZone(identity),
+    ]);
   } catch (error) {
     if (
       error instanceof JournalError &&
@@ -40,5 +45,11 @@ async function JournalDetailContent({ actionId }: { actionId: string }) {
     throw error;
   }
 
-  return <JournalDetail action={toJournalActionView(action)} nowIso={new Date().toISOString()} />;
+  return (
+    <JournalDetail
+      action={toJournalActionView(action)}
+      nowIso={new Date().toISOString()}
+      timeZone={timeZone}
+    />
+  );
 }

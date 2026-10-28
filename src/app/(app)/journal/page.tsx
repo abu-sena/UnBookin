@@ -5,7 +5,7 @@ import { JournalView } from '@/components/journal/journal-view';
 import { toJournalActionView } from '@/components/journal/view-types';
 import { PageHeader } from '@/components/ui-kit/page-header';
 import { requireUser } from '@/lib/auth/session';
-import { listJournal } from '@/lib/journal/queries';
+import { getJournalTimeZone, listJournal } from '@/lib/journal/queries';
 
 /** E7-01: the learner's journal, grouped into active, done and skipped tabs. */
 export default async function JournalPage() {
@@ -23,8 +23,14 @@ export default async function JournalPage() {
 
 async function JournalContent() {
   const user = await requireUser('/journal');
-  const actions = await listJournal({ userId: user.id });
+  const identity = { userId: user.id };
+  const [actions, timeZone] = await Promise.all([
+    listJournal(identity),
+    getJournalTimeZone(identity),
+  ]);
   const nowIso = new Date().toISOString();
 
-  return <JournalView actions={actions.map(toJournalActionView)} nowIso={nowIso} />;
+  return (
+    <JournalView actions={actions.map(toJournalActionView)} nowIso={nowIso} timeZone={timeZone} />
+  );
 }

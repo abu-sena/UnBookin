@@ -2,20 +2,19 @@
 
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
+import { DEFAULT_JOURNAL_TIME_ZONE, formatJournalDate } from './date-format';
 import type { JournalReportView } from './view-types';
-
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
 
 type JournalReportHistoryProps = {
   reports: JournalReportView[];
+  timeZone?: string;
 };
 
 /** E7-02: the persisted report history, always readable on the detail page. */
-export function JournalReportHistory({ reports }: JournalReportHistoryProps) {
+export function JournalReportHistory({
+  reports,
+  timeZone = DEFAULT_JOURNAL_TIME_ZONE,
+}: JournalReportHistoryProps) {
   const t = useTranslations('journal.detail');
   const visibleReports = reports.slice(-2);
 
@@ -49,7 +48,7 @@ export function JournalReportHistory({ reports }: JournalReportHistoryProps) {
                 </div>
 
                 <p className="text-caption text-text-muted">
-                  {t('createdAt', { date: dateFormatter.format(new Date(report.createdAt)) })}
+                  {t('createdAt', { date: formatJournalDate(report.createdAt, timeZone) })}
                 </p>
 
                 <div className="flex flex-col gap-1">

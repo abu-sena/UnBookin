@@ -8,24 +8,18 @@ import { CalendarClockIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/layout/sheet';
 import { updateActionStatus } from '@/lib/journal/actions';
+import { DEFAULT_JOURNAL_TIME_ZONE, formatJournalDate } from './date-format';
 import type { JournalActionView } from './view-types';
 
-const dateFormatter = new Intl.DateTimeFormat('id-ID', {
-  timeZone: 'Asia/Jakarta',
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
-
-export function formatJournalDate(iso: string): string {
-  return dateFormatter.format(new Date(iso));
-}
+export { formatJournalDate };
 
 export type JournalActionPatch = Partial<Pick<JournalActionView, 'status' | 'dueAt' | 'canReport'>>;
 
 type JournalActionCardProps = {
   action: JournalActionView;
   nowIso: string;
+  /** IANA zone from the profile; defaults to Asia/Jakarta. */
+  timeZone?: string;
   onUpdated: (actionId: string, patch: JournalActionPatch) => void;
 };
 
@@ -35,7 +29,12 @@ type JournalActionCardProps = {
  * phones and a dialog on wide screens; neither operation ever penalises the
  * learner.
  */
-export function JournalActionCard({ action, nowIso, onUpdated }: JournalActionCardProps) {
+export function JournalActionCard({
+  action,
+  nowIso,
+  timeZone = DEFAULT_JOURNAL_TIME_ZONE,
+  onUpdated,
+}: JournalActionCardProps) {
   const t = useTranslations('journal');
   const tErrors = useTranslations('journal.errors');
   const router = useRouter();
@@ -116,7 +115,9 @@ export function JournalActionCard({ action, nowIso, onUpdated }: JournalActionCa
         <p className="text-small text-text-muted flex flex-wrap items-center gap-2">
           <CalendarClockIcon className="size-4 shrink-0" aria-hidden="true" />
           <span>
-            {action.dueAt ? t('due', { date: formatJournalDate(action.dueAt) }) : t('noDue')}
+            {action.dueAt
+              ? t('due', { date: formatJournalDate(action.dueAt, timeZone) })
+              : t('noDue')}
           </span>
           {overdue ? <span className="text-warning font-semibold">{t('overdue')}</span> : null}
         </p>
