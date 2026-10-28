@@ -30,12 +30,18 @@ export type AwardXpResult = { awarded: boolean; amount: number };
  * All game writes for the user are serialized by an advisory lock taken before
  * the event insert. The derived engine then recomputes totals, streak, domains,
  * badges and missions in the SAME transaction. `result.amount` always mirrors the
- * input amount; derived bonuses are never folded into this return value.
+ * input amount. `now` is a server-only clock (never client input) used for the
+ * event time and the reconcile so both agree near midnight. Derived bonuses are never folded into this return value.
  */
-export async function awardXp(tx: XpTransaction, input: AwardXpInput): Promise<AwardXpResult> {
+export async function awardXp(
+  tx: XpTransaction,
+  input: AwardXpInput,
+  now: Date = new Date(),
+): Promise<AwardXpResult> {
   if (!Number.isInteger(input.amount) || input.amount <= 0) {
     throw new Error('invalidXpAmount');
   }
+  if (!(now instanceof Date) || Number.isNaN(now.getTime())) throw new Error('invalidDate');
 
   await acquireGameLock(tx, input.userId);
 
@@ -49,6 +55,7 @@ export async function awardXp(tx: XpTransaction, input: AwardXpInput): Promise<A
         domainId: input.domainId ?? null,
         refType: input.refType,
         refId: input.refId,
+        createdAt: now,
       })
       .onConflictDoNothing({
         target: [xpEvents.userId, xpEvents.type, xpEvents.refType, xpEvents.refId],
@@ -64,12 +71,12 @@ export async function awardXp(tx: XpTransaction, input: AwardXpInput): Promise<A
       target: userStats.userId,
       set: {
         totalXp: sql`${userStats.totalXp} + ${input.amount}`,
-        updatedAt: new Date(),
+        updatedAt: now,
       },
     })
     .then(() => undefined);
 
-  await reconcileGame(tx, input.userId);
+  await reconcileGame(tx, input.userId, now);
 
   return { awarded: true, amount: input.amount };
 }

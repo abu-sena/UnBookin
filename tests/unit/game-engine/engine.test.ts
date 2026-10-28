@@ -213,7 +213,7 @@ describe('weekly missions', () => {
     { id: 't-apply', slug: 'apply-9', type: 'apply', target: 9, xpReward: 30 },
   ];
 
-  it('completes a learn mission once, awards its reward at now and does not extend the streak', async () => {
+  it('completes a learn mission once, awards its reward at now and counts mission XP as an active day', async () => {
     const fake = createTx();
     seedBase(fake, [event('module_read', 'module', MODULE, 20, '2026-10-27T03:00:00Z')]);
     fake.queue(schema.missionTemplates, TEMPLATES);
@@ -233,11 +233,11 @@ describe('weekly missions', () => {
     expect(rewards).toHaveLength(1);
     expect(rewards[0]).toMatchObject({ amount: 30, refType: 'mission' });
     expect((rewards[0]!.createdAt as Date).toISOString()).toBe(NOW.toISOString());
-    // 20 (module) + 30 (mission); only the module day (Tue) is active, not the mission day (Wed).
+    // 20 (module, Tue) + 30 (mission, Wed): every positive XP event activates its day.
     expect(fake.insertsFor(schema.userStats)[0]).toMatchObject({
       totalXp: 50,
-      currentStreak: 1,
-      lastActiveDate: '2026-10-27',
+      currentStreak: 2,
+      lastActiveDate: '2026-10-28',
     });
   });
 

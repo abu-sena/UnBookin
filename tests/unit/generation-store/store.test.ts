@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fake } from '../sources/core-fake-db';
 vi.mock('server-only', () => ({}));
 vi.mock('@/db', () => ({ db: fake.db }));
+vi.mock('@/lib/game/engine', () => ({ reconcileGame: vi.fn(async () => ({})) }));
+import { reconcileGame } from '@/lib/game/engine';
 import { moduleDomains, modules, quizzes, quizQuestions, reviewCards, sources, unbooks, usageCounters } from '@/db/schema';
 import { failGeneration, finalizeGeneration, persistCards, persistModuleContent, persistOutline,
   persistQuiz, persistTagging, startOutline } from '@/lib/generation/store';
@@ -27,7 +29,7 @@ function state(content: typeof complete | typeof pending = complete, questions =
     Array.from({ length: cardCount }, () => ({})));
 }
 function advance() { fake.results.push([]); state(); fake.results.push([], [unbook], []); }
-beforeEach(() => { fake.reset(); vi.useRealTimers(); });
+beforeEach(() => { fake.reset(); vi.useRealTimers(); vi.mocked(reconcileGame).mockClear(); });
 
 describe('generation store writes', () => {
   it('persists outline once, locks source before unbook, and skips duplicate costs', async () => {
@@ -94,6 +96,9 @@ describe('completion and ownership', () => {
       { table: usageCounters, values: { userId: ids.userId, period: '2026-11', unbooksUsed: 1, pagesProcessed: 3 } },
     ]);
     expect(fake.recorded.transactionCount).toBe(2);
+    // Only the charging call reconciles game state, in the same transaction.
+    expect(reconcileGame).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(reconcileGame).mock.calls[0]![1]).toBe(ids.userId);
   });
   it.each([[0, 5], [5, 5], [9, 5], [6, 4], [6, 9]])(
     'rejects incomplete question/card counts %i/%i without quota', async (questions, cardCount) => {

@@ -98,7 +98,7 @@ describe('allocateDomainXp', () => {
     ]);
   });
 
-  it('breaks remainder ties by input order and always sums exactly', () => {
+  it('breaks remainder ties by domain id and always sums exactly', () => {
     const result = allocateDomainXp(10, [
       { domainId: 'a', confidence: 1 },
       { domainId: 'b', confidence: 1 },
@@ -154,6 +154,44 @@ describe('allocateDomainXp', () => {
     const first = allocateDomainXp(9, input);
     expect(allocateDomainXp(9, input)).toEqual(first);
     expect(new Set(first.map((item) => item.domainId)).size).toBe(first.length);
+  });
+
+  it('is independent of input order and duplicate placement', () => {
+    const ab = allocateDomainXp(1, [
+      { domainId: 'a', confidence: 0.5 },
+      { domainId: 'b', confidence: 0.5 },
+    ]);
+    const ba = allocateDomainXp(1, [
+      { domainId: 'b', confidence: 0.5 },
+      { domainId: 'a', confidence: 0.5 },
+    ]);
+    expect(ab).toEqual([{ domainId: 'a', amount: 1 }]);
+    expect(ba).toEqual(ab);
+    const forward = [
+      { domainId: 'c', confidence: 0.2 },
+      { domainId: 'a', confidence: 0.3 },
+      { domainId: 'b', confidence: 0.3 },
+      { domainId: 'a', confidence: 0.2 },
+    ];
+    for (const amount of [1, 7, 13, 50]) {
+      const first = allocateDomainXp(amount, forward);
+      expect(allocateDomainXp(amount, [...forward].reverse())).toEqual(first);
+      expect(first.reduce((sum, item) => sum + item.amount, 0)).toBe(amount);
+    }
+  });
+
+  it('never returns NaN or infinite allocations for huge finite confidences', () => {
+    const result = allocateDomainXp(10, [
+      { domainId: 'a', confidence: Number.MAX_VALUE },
+      { domainId: 'b', confidence: Number.MAX_VALUE },
+    ]);
+    expect(result).toEqual([
+      { domainId: 'a', amount: 5 },
+      { domainId: 'b', amount: 5 },
+    ]);
+    expect(
+      allocateDomainXp(10, [{ domainId: 'a', confidence: Number.POSITIVE_INFINITY }]),
+    ).toEqual([]);
   });
 
   it('rejects invalid amounts', () => {

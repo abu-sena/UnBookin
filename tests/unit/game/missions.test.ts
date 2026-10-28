@@ -94,8 +94,8 @@ describe('missionProgress', () => {
       event('quiz_pass', '2026-10-28T03:00:00.000Z', 'q1'),
       event('review_daily', '2026-10-29T03:00:00.000Z', 'r1'),
       event('review_daily', '2026-11-02T03:00:00.000Z', 'r2'),
-      event('action_verified', '2026-11-01T03:00:00.000Z', 'a1'),
-      event('action_verified', '2026-10-25T03:00:00.000Z', 'a2'),
+      event('action_reported', '2026-11-01T03:00:00.000Z', 'a1'),
+      event('action_reported', '2026-10-25T03:00:00.000Z', 'a2'),
     ];
 
     expect(missionProgress('learn', events, weekStart, 'UTC')).toBe(2);
@@ -103,8 +103,10 @@ describe('missionProgress', () => {
     expect(missionProgress('apply', events, weekStart, 'UTC')).toBe(1);
   });
 
-  it('never counts mission XP events', () => {
+  it('never counts mission XP events or ledger action events for apply', () => {
     const events = [
+      event('action_verified', '2026-10-27T03:00:00.000Z', 'v1'),
+      event('action_reflection', '2026-10-27T03:00:00.000Z', 'v2'),
       event('mission_xp', '2026-10-27T03:00:00.000Z', 'bonus-1'),
       event('mission_complete', '2026-10-27T03:00:00.000Z', 'bonus-2'),
     ];
@@ -115,8 +117,8 @@ describe('missionProgress', () => {
 
   it('uses the local week, including the Sunday boundary', () => {
     const events = [
-      event('action_verified', '2026-11-01T16:59:59.000Z', 'sunday-end'),
-      event('action_verified', '2026-11-01T17:00:00.000Z', 'next-monday'),
+      event('action_reported', '2026-11-01T16:59:59.000Z', 'sunday-end'),
+      event('action_reported', '2026-11-01T17:00:00.000Z', 'next-monday'),
     ];
     expect(missionProgress('apply', events, weekStart, 'Asia/Jakarta')).toBe(1);
   });

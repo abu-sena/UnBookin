@@ -90,13 +90,19 @@ export function domainRequirements(level: DomainLevel): DomainRequirement | null
 export type DomainConfidence = { domainId: string; confidence: number };
 export type DomainAllocation = { domainId: string; amount: number };
 
-type WeightEntry = { domainId: string; weight: number; index: number };
+type WeightEntry = { domainId: string; weight: number };
+
+function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
 
 /**
  * Split an integer XP award across domains by confidence using largest
- * remainder. Duplicate ids are merged, non-positive/non-finite confidences are
- * ignored, and the result always sums to exactly `amount` when at least one
- * eligible domain exists.
+ * remainder. The result is independent of input order: duplicate ids are
+ * merged, remainder ties break by domain id and the output is in domain id
+ * order. Non-positive and non-finite confidences are ignored; weights are
+ * scaled by the largest confidence so huge finite values cannot overflow. The
+ * result sums to exactly `amount` when at least one eligible domain exists.
  */
 export function allocateDomainXp(
   amount: number,
@@ -107,39 +113,40 @@ export function allocateDomainXp(
   }
   if (!Array.isArray(domains)) throw new Error('invalidDomains');
 
-  const merged = new Map<string, WeightEntry>();
+  const valid: DomainConfidence[] = [];
   for (const domain of domains) {
     if (!domain || typeof domain.domainId !== 'string' || domain.domainId.length === 0) continue;
     const { confidence } = domain;
     if (typeof confidence !== 'number' || !Number.isFinite(confidence) || confidence <= 0) {
       continue;
     }
-    const existing = merged.get(domain.domainId);
-    if (existing) {
-      existing.weight += confidence;
-    } else {
-      merged.set(domain.domainId, {
-        domainId: domain.domainId,
-        weight: confidence,
-        index: merged.size,
-      });
-    }
+    valid.push({ domainId: domain.domainId, confidence });
+  }
+  if (valid.length === 0) return [];
+  valid.sort((a, b) => compareText(a.domainId, b.domainId) || a.confidence - b.confidence);
+  const maxConfidence = valid.reduce((max, item) => Math.max(max, item.confidence), 0);
+
+  const merged = new Map<string, WeightEntry>();
+  for (const item of valid) {
+    const weight = item.confidence / maxConfidence;
+    const existing = merged.get(item.domainId);
+    if (existing) existing.weight += weight;
+    else merged.set(item.domainId, { domainId: item.domainId, weight });
   }
 
-  const entries = [...merged.values()];
+  const entries = [...merged.values()].filter((entry) => entry.weight > 0);
   const totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
-  if (entries.length === 0 || totalWeight <= 0) return [];
+  if (entries.length === 0 || !Number.isFinite(totalWeight) || totalWeight <= 0) return [];
 
-  const base: { entry: WeightEntry; amount: number; remainder: number }[] = entries.map((entry) => {
+  const base = entries.map((entry) => {
     const exact = (amount * entry.weight) / totalWeight;
-    const floored = Math.floor(exact);
+    const floored = Math.min(amount, Math.max(0, Math.floor(exact)));
     return { entry, amount: floored, remainder: exact - floored };
   });
 
-  const allocated = base.reduce((sum, item) => sum + item.amount, 0);
-  let leftover = amount - allocated;
+  let leftover = amount - base.reduce((sum, item) => sum + item.amount, 0);
   const order = [...base].sort(
-    (a, b) => b.remainder - a.remainder || a.entry.index - b.entry.index,
+    (a, b) => b.remainder - a.remainder || compareText(a.entry.domainId, b.entry.domainId),
   );
   for (const item of order) {
     if (leftover <= 0) break;

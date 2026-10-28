@@ -22,11 +22,14 @@ export type MissionEvent = {
   refId: string;
 };
 
-/** XP event type that advances each mission type. */
+/**
+ * Event type that advances each mission type. `action_reported` is a synthetic
+ * type for scored action reports; it is never written to the XP ledger.
+ */
 const PROGRESS_EVENT: Record<MissionType, string> = {
   learn: 'module_read',
   review: 'review_daily',
-  apply: 'action_verified',
+  apply: 'action_reported',
 };
 
 const DATE_KEY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;

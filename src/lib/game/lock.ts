@@ -15,12 +15,3 @@ export type GameLockTransaction = {
 export async function acquireGameLock(tx: GameLockTransaction, userId: string): Promise<void> {
   await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`game:${userId}`}, 0))`);
 }
-
-/** Test doubles for unrelated stores may omit `execute`; real Drizzle always has it. */
-export function canAcquireGameLock(tx: unknown): tx is GameLockTransaction {
-  return (
-    typeof tx === 'object' &&
-    tx !== null &&
-    typeof (tx as { execute?: unknown }).execute === 'function'
-  );
-}

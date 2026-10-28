@@ -367,10 +367,10 @@ async function reconcileDerived(
   joinedAt: Date,
   ledger: LedgerEvent[],
 ): Promise<GameState> {
-  // Mission rewards are stamped at reconcile time, so they must not invent an
-  // active day; every other ledger event reflects real learning activity.
+  // Every positive ledger event, including weekly mission rewards, activates its
+  // local day (PRD E8-04 AC1).
   const activeDates = ledger
-    .filter((event) => event.type !== XP_EVENT_TYPES.WEEKLY_MISSION)
+    .filter((event) => event.amount > 0)
     .map((event) => localDate(event.createdAt, timeZone));
   const joinedFullDate = localDate(joinedAt, timeZone);
   const joinedDate = joinedFullDate > today ? today : joinedFullDate;

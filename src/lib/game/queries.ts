@@ -43,6 +43,8 @@ export type GameSummaryBadge = {
   earned: boolean;
 };
 
+export type GameSummaryDomainLevel = { id: string; name: string; level: DomainLevel; xp: number };
+
 export type GameSummary = {
   totalXp: number;
   level: number;
@@ -53,6 +55,9 @@ export type GameSummary = {
   longestStreak: number;
   streakFreezes: number;
   activeToday: boolean;
+  today: string;
+  lastActiveDate: string | null;
+  domainLevels: GameSummaryDomainLevel[];
   missions: GameSummaryMission[];
   badges: GameSummaryBadge[];
 };
@@ -152,6 +157,25 @@ async function readBadges(tx: GameTransaction, userId: string): Promise<GameSumm
   }));
 }
 
+/** Per-domain Dreyfus level and XP for this user, stable by domain id. */
+async function readDomainLevels(
+  tx: GameTransaction,
+  userId: string,
+): Promise<GameSummaryDomainLevel[]> {
+  const rows = await tx
+    .select({
+      id: domains.id,
+      name: domains.name,
+      level: domainProgress.level,
+      xp: domainProgress.xp,
+    })
+    .from(domainProgress)
+    .innerJoin(domains, eq(domains.id, domainProgress.domainId))
+    .where(eq(domainProgress.userId, userId))
+    .orderBy(domains.id);
+  return rows.map((row) => ({ id: row.id, name: row.name, level: row.level, xp: row.xp }));
+}
+
 /** Home/layout summary. Lazily reconciles first so M5 data is backfilled. */
 export async function getGameSummary(
   identity: GameIdentity,
@@ -163,6 +187,7 @@ export async function getGameSummary(
     const state = await reconcileGame(tx, userId, now);
     const missions = await readMissions(tx, userId, state.weekStart);
     const badgeList = await readBadges(tx, userId);
+    const domainLevels = await readDomainLevels(tx, userId);
     return {
       totalXp: state.totalXp,
       level: state.level,
@@ -173,6 +198,9 @@ export async function getGameSummary(
       longestStreak: state.longestStreak,
       streakFreezes: state.streakFreezes,
       activeToday: state.activeToday,
+      today: state.today,
+      lastActiveDate: state.lastActiveDate,
+      domainLevels,
       missions,
       badges: badgeList,
     };

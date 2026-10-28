@@ -33,6 +33,10 @@ const WEDNESDAY = new Date('2026-10-28T05:00:00Z'); // 12:00 in Asia/Jakarta
 describe.skipIf(!URL_VALUE)('game engine real-DB integration (isolated local DB)', () => {
   it('reconciles the ledger, domains, missions, badges and locks correctly', async () => {
     assertLocalTestDatabase(URL_VALUE);
+    const inherited = process.env.DATABASE_URL;
+    if (inherited && inherited !== URL_VALUE) {
+      throw new Error('DATABASE_URL must be unset or equal to GAME_DB_URL for this test.');
+    }
     process.env.DATABASE_URL = URL_VALUE;
     const client = postgres(URL_VALUE, { prepare: false, max: 4 });
     const db: Db = drizzle(client, { schema, casing: 'snake_case' });
@@ -52,12 +56,13 @@ describe.skipIf(!URL_VALUE)('game engine real-DB integration (isolated local DB)
     const { selectWeeklyMissions } = await import('@/lib/game/missions');
 
     async function learner(options: {
+      userId?: string;
       timezone?: string;
       joinedAt?: Date;
       completedAt?: Date | null;
       moduleCount?: number;
     }) {
-      const userId = randomUUID();
+      const userId = options.userId ?? randomUUID();
       const unbookId = randomUUID();
       userIds.push(userId);
       unbookIds.push(unbookId);
@@ -315,13 +320,17 @@ describe.skipIf(!URL_VALUE)('game engine real-DB integration (isolated local DB)
         createdAt: new Date('2026-10-28T01:00:00Z'),
       });
       await db.transaction(async (tx) => {
-        await xp.awardXp(tx, {
-          userId: b.userId,
-          type: 'action_verified',
-          amount: 50,
-          refType: 'action',
-          refId: actionId,
-        });
+        await xp.awardXp(
+          tx,
+          {
+            userId: b.userId,
+            type: 'action_verified',
+            amount: 50,
+            refType: 'action',
+            refId: actionId,
+          },
+          WEDNESDAY,
+        );
       });
       expect((await domainOf(b.userId, domainA))?.verifiedActions).toBe(1);
       expect((await domainOf(b.userId, domainA))?.xp).toBe(38); // 50 * 0.75 = 37.5 -> 38
@@ -332,13 +341,17 @@ describe.skipIf(!URL_VALUE)('game engine real-DB integration (isolated local DB)
       await Promise.all(
         c.moduleIds.map((moduleId) =>
           db.transaction((tx) =>
-            xp.awardXp(tx, {
-              userId: c.userId,
-              type: 'module_read',
-              amount: 20,
-              refType: 'module',
-              refId: moduleId,
-            }),
+            xp.awardXp(
+              tx,
+              {
+                userId: c.userId,
+                type: 'module_read',
+                amount: 20,
+                refType: 'module',
+                refId: moduleId,
+              },
+              WEDNESDAY,
+            ),
           ),
         ),
       );
@@ -405,6 +418,101 @@ describe.skipIf(!URL_VALUE)('game engine real-DB integration (isolated local DB)
       expect(summary.missions.map((row) => row.type)).toEqual(['learn', 'review', 'apply']);
       expect(summary.badges.some((row) => row.earned)).toBe(true);
       await expect(queries.getGameSummary({ userId: 'nope' })).rejects.toThrow('invalidUserId');
+      expect(summary.today).toBe('2026-10-28');
+      // Earlier steps reconciled this user at several instants, so only the shape is stable.
+      expect(summary.lastActiveDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(summary.domainLevels.map((row) => row.id)).toEqual([domainA, domainB].sort());
+      expect(summary.domainLevels.find((row) => row.id === domainA)).toMatchObject({
+        name: 'Domain A',
+        level: 'novice',
+        xp: 61,
+      });
+      const fresh = await learner({ moduleCount: 1, completedAt: null });
+      await db.delete(schema.unbooks).where(eq(schema.unbooks.id, fresh.unbookId));
+      expect(await queries.getGameSummary({ userId: fresh.userId }, WEDNESDAY)).toMatchObject({
+        totalXp: 0,
+        today: '2026-10-28',
+        lastActiveDate: null,
+        activeToday: false,
+        domainLevels: [],
+      });
+
+      // ---- 9. Quiz counts once per module even with a perfect bonus ------------
+      const q = await learner({ moduleCount: 2, completedAt: null });
+      const [q1, q2] = q.moduleIds as [string, string];
+      const quiz = (type: string, refId: string, amount: number, at: string) => ({
+        userId: q.userId,
+        type,
+        refType: 'module_quiz',
+        refId,
+        amount,
+        createdAt: new Date(at),
+      });
+      await db
+        .insert(schema.xpEvents)
+        .values([
+          quiz('quiz_pass', q1, 30, '2026-10-27T03:00:00Z'),
+          quiz('quiz_perfect', q1, 10, '2026-10-27T03:00:00Z'),
+          quiz('quiz_pass', q2, 30, '2026-10-27T04:00:00Z'),
+        ]);
+      await engine.reconcileUserGame(q.userId, WEDNESDAY);
+      const qTree = await queries.getSkillTree({ userId: q.userId }, WEDNESDAY);
+      const qDomain = qTree.interests
+        .flatMap((row) => row.domains)
+        .find((row) => row.id === domainA);
+      expect(qDomain?.passedQuizzes).toBe(2);
+      expect((await domainOf(q.userId, domainA))?.xp).toBe(54); // 23 + 8 + 23
+      expect((await domainOf(q.userId, domainB))?.xp).toBe(16); // 7 + 2 + 7
+
+      // ---- 10. Mission reward alone activates the day (PRD E8-04 AC1) ----------
+      let missionUserId = randomUUID();
+      const applyFixture = templates.find((row) => row.type === 'apply')!;
+      for (let attempt = 0; attempt < 5000; attempt += 1) {
+        const picked = expectedSelection(missionUserId, '2026-10-26').find(
+          (row) => row.type === 'apply',
+        );
+        if (picked?.id === applyFixture.id) break;
+        missionUserId = randomUUID();
+      }
+      expect(
+        expectedSelection(missionUserId, '2026-10-26').find((row) => row.type === 'apply')?.id,
+      ).toBe(applyFixture.id);
+      const m = await learner({ moduleCount: 1, completedAt: null, userId: missionUserId });
+      const [mm] = m.moduleIds as [string];
+      // Not ready: no first-Unbook backfill, so the mission reward is the only XP.
+      await db
+        .update(schema.unbooks)
+        .set({ status: 'generating' })
+        .where(eq(schema.unbooks.id, m.unbookId));
+      const mAction = randomUUID();
+      await db.insert(schema.actions).values({
+        id: mAction,
+        userId: m.userId,
+        moduleId: mm,
+        title: 'Laporkan',
+        status: 'planned',
+      });
+      await db.insert(schema.actionReports).values({
+        actionId: mAction,
+        whatIDid: 'x'.repeat(30),
+        result: 'x'.repeat(30),
+        reflection: '',
+        qualityScore: 2,
+        verified: false,
+        createdAt: new Date('2026-10-28T01:00:00Z'),
+      });
+      const mState = await engine.reconcileUserGame(m.userId, WEDNESDAY);
+      const reward = (await ledgerOf(m.userId)).filter((row) => row.type === 'weekly_mission');
+      expect(reward).toHaveLength(1);
+      expect(reward[0]).toMatchObject({ amount: applyFixture.xpReward, refType: 'mission' });
+      // Only positive XP that day is a low-report mission reward: no module/quiz XP.
+      expect((await ledgerOf(m.userId)).some((row) => row.type === 'action_verified')).toBe(false);
+      expect(mState).toMatchObject({
+        totalXp: applyFixture.xpReward,
+        activeToday: true,
+        currentStreak: 1,
+        lastActiveDate: '2026-10-28',
+      });
     } finally {
       // Delete only what this run created (cascades from users/unbooks/interests).
       await db.delete(schema.users).where(inArray(schema.users.id, userIds));

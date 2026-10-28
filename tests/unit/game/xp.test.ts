@@ -104,7 +104,7 @@ describe('awardXp with a fake transaction', () => {
       params: [`game:${USER}`],
     });
     expect(reconcileGame).toHaveBeenCalledTimes(1);
-    expect(reconcileGame).toHaveBeenCalledWith(fake.tx, USER);
+    expect(reconcileGame).toHaveBeenCalledWith(fake.tx, USER, expect.any(Date));
     expect(fake.calls).toHaveLength(2);
     expect(fake.calls[0]!.insertTable).toBe(xpEvents);
     expect(fake.calls[0]!.returning).toBe(true);
@@ -137,6 +137,31 @@ describe('awardXp with a fake transaction', () => {
     expect(fake.executed).toHaveLength(1);
     expect(reconcileGame).not.toHaveBeenCalled();
     expect(fake.calls).toHaveLength(1);
+  });
+
+  it('stamps the event and reconcile with one explicit server clock', async () => {
+    const at = new Date('2026-10-28T16:59:59.000Z');
+    fake.setReturning([{ id: 'event-1' }]);
+    await awardXp(
+      fake.tx as never,
+      { userId: USER, type: 'module_read', amount: 20, refType: 'module', refId: REF },
+      at,
+    );
+    expect(fake.valuesOf(0)).toMatchObject({ createdAt: at });
+    expect(fake.valuesOf(1)).toMatchObject({ totalXp: 20 });
+    expect(reconcileGame).toHaveBeenCalledWith(fake.tx, USER, at);
+  });
+
+  it('rejects an invalid clock before touching the transaction', async () => {
+    await expect(
+      awardXp(
+        fake.tx as never,
+        { userId: USER, type: 'module_read', amount: 20, refType: 'module', refId: REF },
+        new Date('nope'),
+      ),
+    ).rejects.toThrow('invalidDate');
+    expect(fake.executed).toHaveLength(0);
+    expect(fake.calls).toHaveLength(0);
   });
 
   it('rejects non-positive amounts', async () => {
