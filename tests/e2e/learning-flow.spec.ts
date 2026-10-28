@@ -108,13 +108,16 @@ test.describe('Alur A — module, action, quiz pass', () => {
     });
   });
 
-  test.fixme(
-    'home shows the planned action and tomorrow review (wave-3 home page not on branch)',
+  test(
+    'home shows the planned action and tomorrow review',
     async ({ page, context }) => {
       const seed = readLearningSeed();
       await signInWithSeed(context, seed);
       await page.goto('/home');
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      await expect(page.getByText(id.home.today.actionsTitle)).toBeVisible();
+      await expect(page.getByText(id.home.today.actionsEmpty)).toHaveCount(0);
+      await expect(page.getByText(/^Review besok: \d+ kartu$/)).toBeVisible();
       await expectNoHorizontalOverflow(page);
       test.info().annotations.push({
         type: 'screenshot',

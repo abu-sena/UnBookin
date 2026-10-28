@@ -22,8 +22,8 @@ test.describe('Next-day review', () => {
     await db.end();
   });
 
-  test.fixme(
-    'flips and rates every due card, awards review XP, and clears the badge (wave-3 review page not on branch)',
+  test(
+    'flips and rates every due card, awards review XP, and clears the badge',
     async ({ page, context }) => {
       const seed = readLearningSeed();
       await makeCardsDueNow(db, seed.userId);
@@ -46,8 +46,7 @@ test.describe('Next-day review', () => {
           .click();
       }
 
-      const finish = page.getByRole('button', { name: /selesai/i });
-      if (await finish.isVisible()) await finish.click();
+      await expect(page.getByText(id.reviewSession.summary.title)).toBeVisible();
       await expect(page.getByText(id.game.xpToast.amount.replace('{amount}', '10'))).toBeVisible();
       await expectNoHorizontalOverflow(page);
       test.info().annotations.push({
