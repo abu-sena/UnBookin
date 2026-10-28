@@ -1,11 +1,28 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 
+import { domainRequirements, type DomainLevel } from '../../src/lib/game/domains';
+import { levelProgress } from '../../src/lib/game/levels';
 import id from '../../src/messages/id.json';
 import { readJournalSeed, readLearningSeed, type ColorSchemeName } from './support/config';
 import {
+  LEVEL_GAP_MAX,
+  addReadModulesWithXp,
+  createFixtureUnbook,
+  insertPlannedAction,
   openDb,
+  planCelebrationSeed,
   readActionRow,
+  readBadgeCatalogCount,
+  readBadgeGrid,
+  readDomainDetail,
+  readDomainNames,
   readDomainProgress,
+  readInterestDomains,
+  readInterestName,
+  readLedgerTotal,
+  readStreakStats,
+  readWeeklyMissions,
+  type CelebrationSeedPlan,
   readLedgerMap,
   readMissionXp,
   readReports,
@@ -30,8 +47,8 @@ import { capture, expectNoHorizontalOverflow, signInWithSeed } from './support/u
  * shared learner. This spec awards action XP to that same learner, so it must
  * run after them (smoke, dark-mode, learning-flow, review-flow).
  *
- * Progress / level-celebration browser assertions are intentionally pending
- * until the real game UI exists; see the `fixme` tests at the end.
+ * The game UI blocks at the end (Progress/Home, DomainDrawer, level celebration)
+ * assert DB-derived values through the accessible roles of the real components.
  */
 
 const copy = id.journal;
@@ -362,19 +379,526 @@ test.describe('M6 journal isolation', () => {
 });
 
 /*
- * Pending until the real game UI (Progress page, level celebration, DomainDrawer)
- * is merged. No selectors are invented for it. Coordinator: replace each fixme
- * with a real assertion once /progress renders; DB-level domain/stats checks
- * already run in the report test above.
+ * M6 game UI. Selectors are the accessible roles/names rendered by the real
+ * components (progress-overview, skill-tree, domain-detail, level-overview,
+ * mission-list, level-up-celebration). All copy comes from src/messages/id.json
+ * (resolved by path, so these keys must exist once the game UI is merged) and all
+ * numbers from the DB / pure game rules, never from the rendered page.
  */
-test.describe('M6 game UI (pending)', () => {
-  test.fixme('Progress shows XP, level, streak and three weekly missions (light/dark)', () => {
-    // Pending: needs real /progress selectors, Home missions and screenshots.
+type Messages = { [key: string]: string | Messages };
+
+function message(path: string): string {
+  let node: string | Messages | undefined = id as unknown as Messages;
+  for (const key of path.split('.')) {
+    node = typeof node === 'object' ? node[key] : undefined;
+  }
+  if (typeof node !== 'string') throw new Error(`Missing message: ${path}`);
+  return node;
+}
+
+function fill(template: string, values: Record<string, string | number>): string {
+  return Object.entries(values).reduce(
+    (text, [key, value]) => text.replaceAll(`{${key}}`, String(value)),
+    template,
+  );
+}
+
+/** Resolve the `{count, plural, other {# hari}}` messages used by the streak copy. */
+function pluralDays(template: string, count: number): string {
+  return template.replace(/\{count, plural, other \{# ([^}]*)\}\}/, `${count} $1`);
+}
+
+const numberFormat = new Intl.NumberFormat('id-ID');
+const fmt = (value: number) => numberFormat.format(value);
+
+function jakartaToday(): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Jakarta',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date());
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** DB stats once the page's lazy reconcile has settled (stats equal the ledger sum). */
+async function settledStats(db: Db, userId: string) {
+  const settled = await waitForCondition(
+    async () => ({
+      stats: await readUserStats(db, userId),
+      ledger: await readLedgerTotal(db, userId),
+    }),
+    (value) => value.stats?.total_xp === value.ledger,
+  );
+  expect(settled.stats?.total_xp, 'user_stats reconciled with the ledger').toBe(settled.ledger);
+  const streak = await readStreakStats(db, userId);
+  return { totalXp: settled.ledger, level: settled.stats!.level, streak: streak! };
+}
+
+async function expectLevelSummary(scope: Locator, totalXp: number): Promise<void> {
+  const progress = levelProgress(totalXp);
+  const ringName =
+    progress.nextLevelXp === null
+      ? new RegExp(`^Level ${progress.level}, `)
+      : new RegExp(`^Level ${progress.level}, \\d+ persen menuju level ${progress.level + 1}$`);
+  await expect(scope.getByRole('progressbar', { name: ringName })).toBeVisible();
+  await expect(
+    scope.getByText(fill(message('game.level.totalXp'), { xp: fmt(totalXp) }), { exact: true }),
+  ).toBeVisible();
+  const remaining =
+    progress.nextLevelXp === null
+      ? message('game.level.maxLevel')
+      : fill(message('game.level.toNext'), {
+          remaining: fmt(Math.max(0, progress.nextLevelXp - totalXp)),
+          next: progress.level + 1,
+        });
+  await expect(scope.getByText(remaining, { exact: true })).toBeVisible();
+}
+
+for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
+  test.describe(`M6 game UI: progress, home, domain drawer (${scheme}, 375px)`, () => {
+    test.use({ colorScheme: scheme });
+    let db: Db;
+
+    test.beforeAll(() => {
+      db = openDb();
+    });
+
+    test.afterAll(async () => {
+      await db.end();
+    });
+
+    test('Progress and Home show DB-backed XP, level, streak, badges, domains and missions', async ({
+      page,
+      context,
+    }) => {
+      const learning = readLearningSeed();
+      const journal = readJournalSeed();
+      const problems = hydrationProblems(page);
+      await signInWithSeed(context, learning);
+
+      await page.goto('/progress');
+      await expect(
+        page.getByRole('heading', { level: 1, name: message('progress.title'), exact: true }),
+      ).toBeVisible();
+      const state = await settledStats(db, learning.userId);
+      expect(state.totalXp).toBeGreaterThan(0);
+
+      // Level + XP.
+      const levelSection = page.getByRole('region', {
+        name: message('progress.level.title'),
+        exact: true,
+      });
+      await expect(levelSection).toBeVisible();
+      await expectLevelSummary(levelSection, state.totalXp);
+
+      // Streak: count, active flag, longest and freezes all follow the DB row.
+      const activeToday = state.streak.last_active_date === jakartaToday();
+      const streakSection = page.getByRole('region', {
+        name: message('game.streak.title'),
+        exact: true,
+      });
+      await expect(streakSection).toBeVisible();
+      await expect(
+        streakSection.getByText(
+          pluralDays(message('game.streak.days'), state.streak.current_streak),
+          {
+            exact: true,
+          },
+        ),
+      ).toBeVisible();
+      await expect(
+        streakSection.getByText(
+          activeToday ? message('game.streak.activeToday') : message('game.streak.idleToday'),
+        ),
+      ).toBeVisible();
+      await expect(
+        streakSection.getByText(
+          activeToday ? message('game.streak.idleToday') : message('game.streak.activeToday'),
+        ),
+      ).toHaveCount(0);
+      await expect(
+        streakSection.getByText(
+          pluralDays(message('game.streak.longest'), state.streak.longest_streak),
+        ),
+      ).toBeVisible();
+      await expect(
+        streakSection.getByText(
+          fill(message('game.streak.freezes'), { count: state.streak.streak_freezes }),
+        ),
+      ).toBeVisible();
+      // Top bar flame: aria matches the same server counts, active or muted.
+      const flameName = pluralDays(
+        message(activeToday ? 'topBar.streakAriaActive' : 'topBar.streakAriaIdle'),
+        state.streak.current_streak,
+      );
+      await expect(page.getByRole('link', { name: flameName, exact: true })).toBeVisible();
+      await expect(
+        page.getByRole('link', {
+          name: pluralDays(
+            message(activeToday ? 'topBar.streakAriaIdle' : 'topBar.streakAriaActive'),
+            state.streak.current_streak,
+          ),
+          exact: true,
+        }),
+      ).toHaveCount(0);
+
+      // Badge grid: first 12 catalog badges, earned vs locked from the DB.
+      const catalogCount = await readBadgeCatalogCount(db);
+      expect(catalogCount).toBeGreaterThanOrEqual(12);
+      const grid = await readBadgeGrid(db, learning.userId, 12);
+      expect(grid).toHaveLength(12);
+      const badgeSection = page.getByRole('region', {
+        name: message('progress.badges.title'),
+        exact: true,
+      });
+      await expect(badgeSection.getByRole('listitem')).toHaveCount(12);
+      const lockedPattern = new RegExp(escapeRegExp(message('progress.badges.locked')));
+      await expect(badgeSection.getByRole('listitem', { name: lockedPattern })).toHaveCount(
+        grid.filter((badge) => !badge.earned).length,
+      );
+      for (const badge of grid.filter((item) => item.earned)) {
+        await expect(
+          badgeSection.getByRole('listitem', { name: badge.name, exact: true }),
+        ).toBeVisible();
+      }
+
+      // Skill tree: the fixture interest and all of its domains, with the Dreyfus level.
+      const interestName = await readInterestName(db, journal.interestId);
+      const interestDomains = await readInterestDomains(db, learning.userId, journal.interestId);
+      expect(interestDomains.length).toBeGreaterThanOrEqual(2);
+      const interestSection = page.getByRole('region', { name: interestName, exact: true });
+      await expect(interestSection).toBeVisible();
+      await expect(interestSection.getByRole('button')).toHaveCount(interestDomains.length);
+      for (const domain of interestDomains) {
+        await expect(
+          interestSection.getByRole('button', {
+            name: fill(message('progress.skills.domainAria'), {
+              name: domain.name,
+              level: message(`game.levels.${domain.level}`),
+            }),
+            exact: true,
+          }),
+        ).toBeVisible();
+      }
+      await expectNoHorizontalOverflow(page);
+      test.info().annotations.push({
+        type: 'screenshot',
+        description: await capture(page, `${scheme}-20-progress`),
+      });
+
+      // Home: level overview and exactly the three weekly missions from the DB.
+      await page.goto('/home');
+      const overview = page.getByRole('region', {
+        name: message('game.homeOverview.title'),
+        exact: true,
+      });
+      await expect(overview).toBeVisible();
+      const homeState = await settledStats(db, learning.userId);
+      await expectLevelSummary(overview, homeState.totalXp);
+      const missions = await readWeeklyMissions(db, learning.userId);
+      expect(missions).toHaveLength(3);
+      await expect(overview.getByRole('listitem')).toHaveCount(3);
+      for (const mission of missions) {
+        const ring = fill(message('game.mission.progressAria'), {
+          title: mission.title,
+          progress: mission.progress,
+          target: mission.target,
+        });
+        const item = overview.getByRole('listitem').filter({
+          has: page.getByRole('progressbar', { name: ring, exact: true }),
+        });
+        await expect(item).toHaveCount(1);
+        await expect(item).toContainText(mission.title);
+        await expect(item).toContainText(
+          fill(message('game.mission.progressText'), {
+            progress: mission.progress,
+            target: mission.target,
+          }),
+        );
+        await expect(item).toContainText(
+          fill(message('game.mission.reward'), { xp: mission.xp_reward }),
+        );
+        if (mission.completed) await expect(item).toContainText(message('game.mission.completed'));
+        else await expect(item).not.toContainText(message('game.mission.completed'));
+      }
+      await expect(
+        overview.getByRole('link', { name: message('game.homeOverview.viewProgress') }),
+      ).toHaveAttribute('href', '/progress');
+      await expect(
+        overview.getByRole('link', { name: message('game.homeOverview.viewJournal') }),
+      ).toHaveAttribute('href', '/journal');
+      await expectNoHorizontalOverflow(page);
+      test.info().annotations.push({
+        type: 'screenshot',
+        description: await capture(page, `${scheme}-21-home-game`),
+      });
+      expect(problems).toEqual([]);
+    });
+
+    test('Domain drawer shows XP, next-level gates and own module/action links, Escape closes', async ({
+      page,
+      context,
+    }) => {
+      const learning = readLearningSeed();
+      const journal = readJournalSeed();
+      const domainId = journal.domainIds[0]!;
+      const names = await readDomainNames(db, [domainId]);
+      const domainName = names.get(domainId);
+      expect(domainName, 'fixture domain name').toBeTruthy();
+      await signInWithSeed(context, learning);
+
+      await page.goto('/progress');
+      await expect(
+        page.getByRole('heading', { level: 1, name: message('progress.title'), exact: true }),
+      ).toBeVisible();
+      await settledStats(db, learning.userId);
+      const detail = await readDomainDetail(db, learning.userId, domainId);
+      expect(detail.name).toBe(domainName);
+      expect(detail.xp).toBeGreaterThan(0);
+
+      const trigger = page.getByRole('button', {
+        name: fill(message('progress.skills.domainAria'), {
+          name: detail.name,
+          level: message(`game.levels.${detail.level}`),
+        }),
+        exact: true,
+      });
+      await trigger.click();
+      const dialog = page.getByRole('dialog', { name: detail.name, exact: true });
+      await expect(dialog).toBeVisible();
+
+      // Level, XP, passed quizzes and verified actions from the DB.
+      await expect(
+        dialog.getByText(message(`game.levels.${detail.level}`), { exact: true }),
+      ).toBeVisible();
+      const stat = (label: string) =>
+        dialog.locator('dl > div').filter({ has: page.getByText(label, { exact: true }) });
+      await expect(stat(message('progress.domain.xp'))).toContainText(fmt(detail.xp));
+      await expect(stat(message('progress.domain.passedQuizzes'))).toContainText(
+        String(detail.passedQuizzes),
+      );
+      await expect(stat(message('progress.domain.verifiedActions'))).toContainText(
+        String(detail.verifiedActions),
+      );
+
+      // Exact next-level gates from the pure domain rules.
+      const next = domainRequirements(detail.level as DomainLevel);
+      if (next) {
+        await expect(
+          dialog.getByRole('heading', {
+            name: fill(message('progress.domain.nextTitle'), {
+              level: message(`game.levels.${next.nextLevel}`),
+            }),
+            exact: true,
+          }),
+        ).toBeVisible();
+        const gates = [
+          {
+            label: fill(message('progress.domain.requirementXp'), {
+              current: fmt(detail.xp),
+              required: fmt(next.xp),
+            }),
+            met: detail.xp >= next.xp,
+          },
+          {
+            label: fill(message('progress.domain.requirementQuizzes'), {
+              current: detail.passedQuizzes,
+              required: next.passedQuizzes,
+            }),
+            met: detail.passedQuizzes >= next.passedQuizzes,
+          },
+          {
+            label: fill(message('progress.domain.requirementActions'), {
+              current: detail.verifiedActions,
+              required: next.verifiedActions,
+            }),
+            met: detail.verifiedActions >= next.verifiedActions,
+          },
+        ];
+        for (const gate of gates) {
+          const row = dialog.getByRole('listitem').filter({ hasText: gate.label });
+          await expect(row).toHaveCount(1);
+          await expect(row).toContainText(
+            message(gate.met ? 'progress.domain.met' : 'progress.domain.unmet'),
+          );
+        }
+      } else {
+        await expect(dialog.getByText(message('progress.domain.nextMax'))).toBeVisible();
+      }
+
+      // Module links: only this learner's modules, correct hrefs.
+      expect(detail.modules.length).toBeGreaterThan(0);
+      expect(detail.modules.map((module) => module.id)).toContain(learning.moduleIds[1]);
+      const moduleLinks = dialog.locator('a[href^="/unbook/"]');
+      await expect(moduleLinks).toHaveCount(detail.modules.length);
+      for (const linked of detail.modules) {
+        expect(linked.unbookId).toBe(learning.unbookId);
+        expect(learning.moduleIds).toContain(linked.id);
+        await expect(dialog.getByRole('link', { name: linked.title, exact: true })).toHaveAttribute(
+          'href',
+          `/unbook/${linked.unbookId}/module/${linked.id}`,
+        );
+      }
+
+      // Verified action links: this learner's reports only.
+      const ownReport = journal.actions[scheme].report;
+      expect(detail.actions.map((action) => action.id)).toContain(ownReport.id);
+      const actionLinks = dialog.locator('a[href^="/journal/"]');
+      await expect(actionLinks).toHaveCount(detail.actions.length);
+      for (const action of detail.actions) {
+        await expect(dialog.getByRole('link', { name: action.title, exact: true })).toHaveAttribute(
+          'href',
+          `/journal/${action.id}`,
+        );
+      }
+      const html = await dialog.innerHTML();
+      expect(html).not.toContain(journal.foreignActionId);
+      expect(html).not.toContain(journal.foreignTitle);
+      expect(html).not.toContain(journal.foreignModuleTitle);
+      await expectNoHorizontalOverflow(page);
+      test.info().annotations.push({
+        type: 'screenshot',
+        description: await capture(page, `${scheme}-22-domain-drawer`),
+      });
+
+      await page.keyboard.press('Escape');
+      await expect(dialog).toHaveCount(0);
+      await expect(trigger).toBeVisible();
+    });
   });
-  test.fixme('Domain drawer opens, shows XP and module/action links, closes with Escape', () => {
-    // Pending: needs real DomainDrawer selectors.
+}
+
+test.describe('M6 level celebration (light, 375px)', () => {
+  test.use({ colorScheme: 'light' });
+  let db: Db;
+
+  test.beforeAll(() => {
+    db = openDb();
   });
-  test.fixme('level celebration appears once after a threshold-crossing action and does not loop', () => {
-    // Pending: needs real celebration UI; seed a legal ledger just below the threshold first.
+
+  test.afterAll(async () => {
+    await setProviderMode('high').catch(() => undefined);
+    await db.end();
+  });
+
+  test('level celebration appears once after a threshold-crossing action and does not loop', async ({
+    page,
+    context,
+  }) => {
+    const learning = readLearningSeed();
+    const journal = readJournalSeed();
+    const problems = hydrationProblems(page);
+    await signInWithSeed(context, learning);
+    await setProviderMode('high');
+
+    // Own additional planned action on fixture module 2.
+    const action = await insertPlannedAction(db, {
+      userId: learning.userId,
+      moduleId: learning.moduleIds[1]!,
+      title: `Aksi perayaan level ${journal.runId}`,
+      dueAt: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000),
+    });
+    const hostUnbookId = await createFixtureUnbook(db, {
+      userId: learning.userId,
+      interestId: journal.interestId,
+      title: `Unbook perayaan ${journal.runId}`,
+    });
+
+    // Legal ledger only. Opening an app page reconciles missions/badges first, so
+    // re-plan until the settled total sits 1..50 XP below the next level threshold.
+    let plan: CelebrationSeedPlan = { threshold: 0, gap: 0, modules: 1 };
+    for (let attempt = 0; attempt < 5 && plan.modules > 0; attempt += 1) {
+      await page.goto('/home');
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+      const settled = await settledStats(db, learning.userId);
+      plan = planCelebrationSeed(settled.totalXp);
+      if (plan.modules > 0) {
+        await addReadModulesWithXp(db, {
+          userId: learning.userId,
+          unbookId: hostUnbookId,
+          count: plan.modules,
+        });
+      }
+    }
+    expect(plan.modules, 'seed converged').toBe(0);
+    expect(plan.gap).toBeGreaterThanOrEqual(1);
+    expect(plan.gap).toBeLessThanOrEqual(LEVEL_GAP_MAX);
+
+    // Provider's first snapshot is taken here, after all seeding: nothing to celebrate yet.
+    await page.goto(`/journal/${action.id}`);
+    await expect(page.getByRole('heading', { level: 1, name: action.title })).toBeVisible();
+    const before = await settledStats(db, learning.userId);
+    expect(before.totalXp).toBe(plan.threshold - plan.gap);
+    const celebration = page.getByRole('dialog', {
+      name: new RegExp(
+        `^(${escapeRegExp(message('game.celebration.titleLevel'))}|${escapeRegExp(
+          message('game.celebration.titleBoth'),
+        )})$`,
+      ),
+    });
+    await expect(celebration).toHaveCount(0);
+
+    // Verified report with reflection: +50 +40 crosses the threshold (gap <= 50).
+    await page.locator('#journal-what').fill(WHAT);
+    await page.locator('#journal-result').fill(RESULT);
+    await page.locator('#journal-reflection').fill(REFLECTION);
+    await page.getByRole('button', { name: copy.form.submit, exact: true }).click();
+    await expect(
+      page.getByRole('status').filter({ hasText: copy.form.verifiedTitle }),
+    ).toBeVisible();
+
+    const after = await waitForCondition(
+      () => settledStats(db, learning.userId),
+      (value) => value.level > before.level,
+    );
+    expect(after.level).toBeGreaterThan(before.level);
+    expect(after.totalXp).toBeGreaterThanOrEqual(plan.threshold);
+    expect(await readActionXpTypes(db, learning.userId, action.id)).toEqual([
+      'action_reflection',
+      'action_verified',
+    ]);
+
+    await expect(celebration).toBeVisible();
+    await expect(
+      celebration.getByText(fill(message('game.celebration.levelLine'), { level: after.level }), {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      celebration.getByText(fill(message('game.celebration.xpLine'), { xp: fmt(after.totalXp) }), {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expectNoHorizontalOverflow(page);
+    test.info().annotations.push({
+      type: 'screenshot',
+      description: await capture(page, 'light-23-level-celebration'),
+    });
+
+    // Dismiss with the accessible CTA; it must not come back.
+    await celebration.getByRole('button', { name: message('game.celebration.close') }).click();
+    await expect(celebration).toHaveCount(0);
+
+    for (const target of [null, '/progress', '/home'] as const) {
+      if (target === null) await page.reload();
+      else await page.goto(target);
+      await expect(page.getByRole('heading', { level: 1 }).first()).toBeVisible();
+      await page.waitForLoadState('networkidle');
+      await expect(celebration).toHaveCount(0);
+    }
+
+    // The page still reports the same level; nothing was awarded twice.
+    const final = await settledStats(db, learning.userId);
+    expect(final.level).toBe(after.level);
+    expect(final.totalXp).toBe(after.totalXp);
+    expect(await readActionXpTypes(db, learning.userId, action.id)).toEqual([
+      'action_reflection',
+      'action_verified',
+    ]);
+    expect(problems).toEqual([]);
   });
 });
