@@ -16,6 +16,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/db/seed.ts",
     "eval:engine": "tsx --conditions=react-server scripts/eval-engine.ts",
+    "dev:seed-learning": "tsx --conditions=react-server scripts/dev/seed-learning.ts",
     "vercel-build": "node scripts/vercel-build.mjs"
   },
   "dependencies": {
