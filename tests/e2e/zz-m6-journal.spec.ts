@@ -291,7 +291,16 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       await expect(page.getByRole('button', { name: /^Kirim/ })).toHaveCount(0);
       await expect(page.getByText(copy.detail.doneNote)).toBeVisible();
       await expect(page.getByRole('heading', { name: copy.detail.reportsTitle })).toBeVisible();
-      await expect(page.getByRole('link', { name: EVIDENCE })).toBeVisible();
+      const evidenceLinks = page.getByRole('link', { name: EVIDENCE });
+      await expect(evidenceLinks).toHaveCount(2);
+      for (const index of [0, 1]) {
+        const link = evidenceLinks.nth(index);
+        await expect(link).toHaveAttribute('href', EVIDENCE);
+        await expect(link).toHaveAttribute('target', '_blank');
+        await expect(link).toHaveAttribute('rel', /noopener/);
+        await expect(link).toHaveAttribute('rel', /noreferrer/);
+      }
+      await expect(evidenceLinks.last()).toBeVisible();
       expect(await readReports(db, action.id)).toHaveLength(2);
       expect(await readLedgerMap(db, learning.userId)).toEqual(ledgerAfter);
       test.info().annotations.push({
