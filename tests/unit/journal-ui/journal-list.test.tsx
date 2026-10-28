@@ -38,7 +38,7 @@ vi.mock('@/components/layout/sheet', () => ({
 
 import { formatJournalDate, JournalActionCard } from '@/components/journal/journal-action-card';
 import { JournalView } from '@/components/journal/journal-view';
-import { actionId, makeAction, nowIso } from './fixtures';
+import { actionId, makeAction, makeReport, nowIso } from './fixtures';
 
 const copy = messages.journal;
 
@@ -168,6 +168,52 @@ describe('JournalActionCard', () => {
     openTab(tabLabel(copy.tabs.skipped, 1));
     expect(screen.getByRole('link', { name: makeAction().title })).toBeInTheDocument();
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps extend and skip for a planned action whose report revisions are exhausted', async () => {
+    mocks.updateActionStatus.mockResolvedValue({ ok: true, status: 'skipped', dueAt: null });
+    const action = makeAction({
+      canReport: false,
+      reports: [
+        makeReport({ id: 'report-1', qualityScore: 1, verified: false }),
+        makeReport({ id: 'report-2', qualityScore: 1, verified: false }),
+      ],
+    });
+    mount([action]);
+
+    expect(screen.queryByRole('link', { name: copy.actions.report })).toBeNull();
+    expect(screen.getByRole('button', { name: copy.actions.extend })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: copy.actions.skip })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: copy.actions.skip }));
+    const dialog = screen.getByRole('dialog', { name: copy.skipDialog.title });
+    fireEvent.click(within(dialog).getByRole('button', { name: copy.skipDialog.confirm }));
+
+    await waitFor(() =>
+      expect(mocks.updateActionStatus).toHaveBeenCalledWith({ actionId, operation: 'skip' }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: copy.actions.skip })).toBeNull(),
+    );
+  });
+
+  it('shows no mutation controls on done or skipped actions', () => {
+    mount([
+      makeAction({ id: 'action-done', title: 'Aksi selesai', status: 'done', canReport: false }),
+      makeAction({
+        id: 'action-skipped',
+        title: 'Aksi dilewati',
+        status: 'skipped',
+        canReport: false,
+      }),
+    ]);
+
+    for (const tab of ['done', 'skipped'] as const) {
+      openTab(tabLabel(copy.tabs[tab], 1));
+      expect(screen.queryByRole('button', { name: copy.actions.extend })).toBeNull();
+      expect(screen.queryByRole('button', { name: copy.actions.skip })).toBeNull();
+      expect(screen.queryByRole('link', { name: copy.actions.report })).toBeNull();
+    }
   });
 
   it('keeps the confirmation open with a safe error when skipping fails', async () => {

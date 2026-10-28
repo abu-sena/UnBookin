@@ -11,6 +11,7 @@ import { updateActionStatus } from '@/lib/journal/actions';
 import type { JournalActionView } from './view-types';
 
 const dateFormatter = new Intl.DateTimeFormat('id-ID', {
+  timeZone: 'Asia/Jakarta',
   day: 'numeric',
   month: 'long',
   year: 'numeric',
@@ -122,11 +123,13 @@ export function JournalActionCard({ action, nowIso, onUpdated }: JournalActionCa
         {overdue ? <p className="text-small text-text-muted">{t('overdueNote')}</p> : null}
       </div>
 
-      {action.status === 'planned' && action.canReport ? (
+      {action.status === 'planned' ? (
         <div className="flex flex-col gap-2">
-          <Button asChild className="w-full">
-            <Link href={`/journal/${action.id}`}>{t('actions.report')}</Link>
-          </Button>
+          {action.canReport ? (
+            <Button asChild className="w-full">
+              <Link href={`/journal/${action.id}`}>{t('actions.report')}</Link>
+            </Button>
+          ) : null}
           <div className="grid grid-cols-2 gap-2">
             <Button
               type="button"
