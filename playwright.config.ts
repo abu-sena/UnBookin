@@ -71,7 +71,8 @@ export default defineConfig({
       command: `pnpm build && pnpm exec next start --port ${E2E_PORT}`,
       url: E2E_BASE_URL,
       reuseExistingServer: false,
-      timeout: 240_000,
+      // Cold production build (compile + typecheck) on Windows can exceed 240s.
+      timeout: 600_000,
       // DATABASE_URL is explicit for build AND start; .env.local is never read by fixtures.
       env: {
         DATABASE_URL: E2E_DATABASE_URL,
