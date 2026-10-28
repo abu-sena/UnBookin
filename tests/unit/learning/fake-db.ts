@@ -22,6 +22,7 @@ export type RecordedFakeQueries = {
   updates: RecordedWrite[];
   deletes: RecordedWrite[];
   transactionCount: number;
+  executes: unknown[];
 };
 
 /**
@@ -37,6 +38,7 @@ function createFakeDatabase() {
     updates: [],
     deletes: [],
     transactionCount: 0,
+    executes: [],
   };
   const results: unknown[][] = [];
   let cursor = 0;
@@ -156,7 +158,12 @@ function createFakeDatabase() {
     return callback(api);
   });
 
-  const api: FakeDatabaseApi = { select, insert, update, delete: del, transaction };
+  const execute = vi.fn(async (query: unknown) => {
+    recorded.executes.push(query);
+    return [];
+  });
+
+  const api: FakeDatabaseApi = { select, insert, update, delete: del, transaction, execute };
 
   return {
     db: api,
@@ -169,6 +176,7 @@ function createFakeDatabase() {
       recorded.updates.length = 0;
       recorded.deletes.length = 0;
       recorded.transactionCount = 0;
+      recorded.executes.length = 0;
       results.length = 0;
       cursor = 0;
       select.mockClear();
@@ -186,6 +194,7 @@ export type FakeDatabaseApi = {
   update: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
   transaction: ReturnType<typeof vi.fn>;
+  execute: ReturnType<typeof vi.fn>;
 };
 
 export const fake = createFakeDatabase();

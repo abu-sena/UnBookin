@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('server-only', () => ({}));
 vi.mock('@/lib/auth/session', () => ({ requireUser: mocks.requireUser }));
+vi.mock('@/lib/game/engine', () => ({ reconcileGame: vi.fn(async () => ({})) }));
 vi.mock('@/db', async () => {
   const { fake } = await import('./fake-db');
   return { db: fake.db };

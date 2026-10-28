@@ -6,6 +6,8 @@ import { moduleDomains, modules, profiles, quizQuestions, quizzes, reviewCards, 
 import { CardsResult, ModuleResult, OutlineResult, QuizResult, TaggingResult } from '@/lib/engine/generation/schemas';
 import { validateCards, validateModule, validateOutline, validateQuiz } from '@/lib/engine/generation/validate';
 import { getLocalMonthPeriod, resolveTimeZone } from '@/lib/billing/source-quota';
+import { reconcileGame } from '@/lib/game/engine';
+import { canAcquireGameLock } from '@/lib/game/lock';
 import { SourceError, type SourceErrorCode } from '@/lib/sources/errors';
 import { allowedInterests } from './context';
 import { pagesProcessed, type GenerationSection } from './sections';
@@ -189,6 +191,8 @@ export function finalizeGeneration(ids: GenerationIdentity) {
         unbooksUsed: sql`${usageCounters.unbooksUsed} + 1`,
         pagesProcessed: sql`${usageCounters.pagesProcessed} + ${pages}`,
       } });
+    // The ready transition can unlock the first-Unbook reward and Unbook badges.
+    if (canAcquireGameLock(tx)) await reconcileGame(tx, ids.userId, now);
     return { charged: true };
   }));
 }

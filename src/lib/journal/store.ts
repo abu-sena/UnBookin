@@ -3,6 +3,13 @@ import { and, asc, eq } from 'drizzle-orm';
 import { db } from '@/db';
 import { actionReports, actions, modules, unbooks } from '@/db/schema';
 import { awardXp } from '@/lib/game/xp';
+import { reconcileGame } from '@/lib/game/engine';
+import {
+  ACTION_REFLECTION,
+  ACTION_VERIFIED,
+  XP_EVENT_TYPES,
+  XP_REF_TYPES,
+} from '@/lib/game/xp-rules';
 import { JournalError } from './errors';
 import { gradeActionFeedback } from './grading';
 import { loadReportSnapshot, reportSlot } from './queries';
@@ -14,15 +21,9 @@ import {
 } from './schemas';
 import type { JournalActionResult, SubmitActionReportResult } from './types';
 
-/**
- * E7 XP values live here for now; the next game integration worker centralizes
- * them in `lib/game`. They are not used to change any existing XP rule.
- */
-export const ACTION_VERIFIED_XP = 50;
-export const ACTION_REFLECTION_XP = 40;
-const ACTION_VERIFIED_TYPE = 'action_verified';
-const ACTION_REFLECTION_TYPE = 'action_reflection';
-const ACTION_REF_TYPE = 'action';
+/** E7 XP values, re-exported for callers that already used these names. */
+export const ACTION_VERIFIED_XP = ACTION_VERIFIED;
+export const ACTION_REFLECTION_XP = ACTION_REFLECTION;
 const ACTION_EXTEND_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -186,9 +187,9 @@ export async function submitActionReport(
 
       const verifiedXp = await awardXp(tx, {
         userId: identity.userId,
-        type: ACTION_VERIFIED_TYPE,
+        type: XP_EVENT_TYPES.ACTION_VERIFIED,
         amount: ACTION_VERIFIED_XP,
-        refType: ACTION_REF_TYPE,
+        refType: XP_REF_TYPES.ACTION,
         refId: actionId,
       });
       if (verifiedXp.awarded) xpAwarded += verifiedXp.amount;
@@ -196,13 +197,17 @@ export async function submitActionReport(
       if (reflection.length > 0) {
         const reflectionXp = await awardXp(tx, {
           userId: identity.userId,
-          type: ACTION_REFLECTION_TYPE,
+          type: XP_EVENT_TYPES.ACTION_REFLECTION,
           amount: ACTION_REFLECTION_XP,
-          refType: ACTION_REF_TYPE,
+          refType: XP_REF_TYPES.ACTION,
           refId: actionId,
         });
         if (reflectionXp.awarded) xpAwarded += reflectionXp.amount;
       }
+    } else {
+      // Reporting missions count every scored report (even a revision), so a
+      // low score must still refresh the derived state immediately.
+      await reconcileGame(tx, identity.userId);
     }
 
     return {

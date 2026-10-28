@@ -4,6 +4,8 @@ import { sql } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import { userStats, xpEvents } from '@/db/schema';
 import type * as schema from '@/db/schema';
+import { reconcileGame } from './engine';
+import { acquireGameLock } from './lock';
 
 type Database = PostgresJsDatabase<typeof schema>;
 /** The transaction handle passed to `db.transaction(...)`. */
@@ -24,29 +26,34 @@ export type AwardXpResult = { awarded: boolean; amount: number };
  * Record one XP event idempotently on (user_id, type, ref_type, ref_id) and, only
  * when the event was new, add it to `user_stats.total_xp`. The caller must pass
  * an open transaction so the event and the total commit together.
+ *
+ * All game writes for the user are serialized by an advisory lock taken before
+ * the event insert. The derived engine then recomputes totals, streak, domains,
+ * badges and missions in the SAME transaction. `result.amount` always mirrors the
+ * input amount; derived bonuses are never folded into this return value.
  */
-export async function awardXp(
-  tx: XpTransaction,
-  input: AwardXpInput,
-): Promise<AwardXpResult> {
+export async function awardXp(tx: XpTransaction, input: AwardXpInput): Promise<AwardXpResult> {
   if (!Number.isInteger(input.amount) || input.amount <= 0) {
     throw new Error('invalidXpAmount');
   }
 
-  const [inserted] = (await tx
-    .insert(xpEvents)
-    .values({
-      userId: input.userId,
-      type: input.type,
-      amount: input.amount,
-      domainId: input.domainId ?? null,
-      refType: input.refType,
-      refId: input.refId,
-    })
-    .onConflictDoNothing({
-      target: [xpEvents.userId, xpEvents.type, xpEvents.refType, xpEvents.refId],
-    })
-    .returning({ id: xpEvents.id })) ?? [];
+  await acquireGameLock(tx, input.userId);
+
+  const [inserted] =
+    (await tx
+      .insert(xpEvents)
+      .values({
+        userId: input.userId,
+        type: input.type,
+        amount: input.amount,
+        domainId: input.domainId ?? null,
+        refType: input.refType,
+        refId: input.refId,
+      })
+      .onConflictDoNothing({
+        target: [xpEvents.userId, xpEvents.type, xpEvents.refType, xpEvents.refId],
+      })
+      .returning({ id: xpEvents.id })) ?? [];
 
   if (!inserted) return { awarded: false, amount: 0 };
 
@@ -61,6 +68,8 @@ export async function awardXp(
       },
     })
     .then(() => undefined);
+
+  await reconcileGame(tx, input.userId);
 
   return { awarded: true, amount: input.amount };
 }

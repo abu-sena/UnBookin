@@ -9,11 +9,14 @@ vi.mock('@/db', async () => {
   const { fake } = await import('./fake-db');
   return { db: fake.db };
 });
+vi.mock('@/lib/game/engine', () => ({ reconcileGame: vi.fn(async () => ({})) }));
+vi.mock('@/lib/game/lock', () => ({ acquireGameLock: vi.fn(async () => undefined) }));
 vi.mock('@/lib/journal/grading', () => ({
   gradeActionFeedback: mocks.gradeActionFeedback,
 }));
 
 import { actionReports, actions, userStats, xpEvents } from '@/db/schema';
+import { reconcileGame } from '@/lib/game/engine';
 import { JournalError } from '@/lib/journal/errors';
 import { submitActionReport, updateActionStatus } from '@/lib/journal/store';
 import { fake, renderSql } from './fake-db';
@@ -54,7 +57,7 @@ function lockRow(status: 'planned' | 'done' | 'skipped' = 'planned') {
 
 beforeEach(() => {
   fake.reset();
-  mocks.gradeActionFeedback.mockReset();
+  vi.mocked(reconcileGame).mockClear();  mocks.gradeActionFeedback.mockReset();
   mocks.gradeActionFeedback.mockResolvedValue({
     qualityScore: 4,
     feedback: 'Aksi dan hasilnya sudah spesifik.',
@@ -234,6 +237,9 @@ describe('submitActionReport', () => {
     });
     expect(fake.recorded.updates.filter((entry) => entry.table === actions)).toHaveLength(0);
     expect(fake.recorded.inserts.filter((entry) => entry.table === xpEvents)).toHaveLength(0);
+    // No XP is awarded, but reporting missions must still refresh immediately.
+    expect(reconcileGame).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(reconcileGame).mock.calls[0]![1]).toBe(USER.userId);
   });
 
   it('allows exactly one revision after a first low score', async () => {

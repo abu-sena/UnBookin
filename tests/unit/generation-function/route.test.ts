@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   ingestSource: { id: 'ingest-source' },
   generateUnbook: { id: 'generate-unbook' },
   regenerateQuiz: { id: 'regenerate-quiz' },
+  weeklyMissions: { id: 'weekly-missions' },
 }));
 
 vi.mock('inngest/next', () => ({ serve: mocks.serve }));
@@ -20,6 +21,7 @@ vi.mock('@/inngest/client', () => ({ inngest: { id: 'unbookin' } }));
 vi.mock('@/inngest/ingest-source', () => ({ ingestSource: mocks.ingestSource }));
 vi.mock('@/inngest/generate-unbook', () => ({ generateUnbook: mocks.generateUnbook }));
 vi.mock('@/inngest/regenerate-quiz', () => ({ regenerateQuiz: mocks.regenerateQuiz }));
+vi.mock('@/inngest/weekly-missions', () => ({ weeklyMissions: mocks.weeklyMissions }));
 
 type RouteModule = typeof import('@/app/api/inngest/route');
 
@@ -38,7 +40,7 @@ describe('inngest route', () => {
     expect(route.PUT).toBeDefined();
     expect(mocks.serve).toHaveBeenCalledWith({
       client: { id: 'unbookin' },
-      functions: [mocks.ingestSource, mocks.generateUnbook, mocks.regenerateQuiz],
+      functions: [mocks.ingestSource, mocks.generateUnbook, mocks.regenerateQuiz, mocks.weeklyMissions],
     });
   });
 });

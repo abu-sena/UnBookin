@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+﻿import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('server-only', () => ({}));
 
@@ -13,7 +13,7 @@ import * as schema from '@/db/schema';
  *   DATABASE_URL=postgres://unbookin:unbookin@127.0.0.1:5432/unbookin_m3_test_20261027
  *   LEARNING_DB_URL=same
  * Creates its own user + unbook + module + quiz + 5 cards, runs the real store
- * services twice each, asserts user_stats.total_xp = 70, then deletes everything.
+ * services twice each, asserts user_stats.total_xp = 120 (70 + 50 first Unbook), then deletes everything.
  */
 const URL = process.env.LEARNING_DB_URL ?? '';
 
@@ -26,7 +26,7 @@ const SOURCE_ID = 'f6a7b8c9-0000-4000-8000-000000000006';
 const CHUNK_ID = 'a7b8c9d0-0000-4000-8000-000000000007';
 
 describe.skipIf(!URL)('learning real-DB check (isolated local DB)', () => {
-  it('awards 20+40+10 = 70 XP exactly once across repeated calls', async () => {
+  it('awards 20+40+10 = 70 XP (+50 first Unbook) exactly once across repeated calls', async () => {
     const client = postgres(URL, { prepare: false, max: 1 });
     const db = drizzle(client, { schema, casing: 'snake_case' });
     const created: string[] = [];
@@ -181,7 +181,9 @@ describe.skipIf(!URL)('learning real-DB check (isolated local DB)', () => {
         .select()
         .from(schema.userStats)
         .where(eq(schema.userStats.userId, USER_ID));
-      expect(stats?.totalXp).toBe(70);
+      // 20 + 40 + 10 from the learning flows, plus the 50 XP first-Unbook reward that the
+      // game engine backfills on reconcile (the fixture Unbook is ready and completed).
+      expect(stats?.totalXp).toBe(120);
     } finally {
       // Delete everything this check created (cascades from users/unbooks).
       await db.delete(schema.users).where(eq(schema.users.id, USER_ID));
