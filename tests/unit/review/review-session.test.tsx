@@ -90,6 +90,25 @@ describe('ReviewSession', () => {
     expect(mocks.complete).not.toHaveBeenCalled();
   });
 
+  it('lets the next card flip while the previous rating is still saving', async () => {
+    let resolveRating: (value: unknown) => void = () => {};
+    mocks.rate.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRating = resolve;
+      }),
+    );
+    mount();
+
+    flipFirstCard();
+    fireEvent.click(screen.getByRole('button', { name: 'Ingat' }));
+    fireEvent.click(screen.getByRole('button', { name: /Kapan kebiasaan menjadi otomatis/ }));
+
+    expect(screen.getByText(cards[1]!.back)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ragu' })).toBeDisabled();
+    resolveRating({ ok: true, box: 1, dueAt: new Date().toISOString() });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Ragu' })).toBeEnabled());
+  });
+
   it('keeps the card and offers a retry when the rating fails', async () => {
     mocks.rate
       .mockResolvedValueOnce({ ok: false, code: 'failed' })

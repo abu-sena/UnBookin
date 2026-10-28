@@ -159,7 +159,9 @@ export function ReviewSession({ cards, dueTomorrow }: ReviewSessionProps) {
         back={current.back}
         flipped={flipped}
         onFlip={() => {
-          if (!busy && !failed) setFlipped((value) => !value);
+          // The previous rating may still be saving (optimistic advance): flipping the next
+          // card must already work; only rating waits until that save settles.
+          if (!failed) setFlipped((value) => !value);
         }}
       />
 
