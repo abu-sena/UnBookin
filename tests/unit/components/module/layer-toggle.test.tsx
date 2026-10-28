@@ -58,7 +58,7 @@ describe('LayerToggle', () => {
     expect(onChange).toHaveBeenCalledWith('expert');
   });
 
-  it('renders crossfading panels only when layer content is provided', () => {
+  it('renders only the active layer panel when layer content is provided', () => {
     renderWithIntl(
       <LayerToggle
         value="eli5"
@@ -68,6 +68,7 @@ describe('LayerToggle', () => {
     );
 
     expect(screen.getByText('Teks sederhana')).toBeInTheDocument();
-    expect(screen.getAllByRole('tabpanel')[0]).toHaveAttribute('aria-hidden', 'false');
+    expect(screen.queryByText('Teks praktisi')).toBeNull();
+    expect(screen.getAllByRole('tabpanel')).toHaveLength(1);
   });
 });

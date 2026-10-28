@@ -64,7 +64,7 @@ export function LayerToggle({ value, onValueChange, layers, className }: LayerTo
               role="tab"
               id={`${baseId}-tab-${layer}`}
               aria-selected={selected}
-              aria-controls={`${baseId}-panel-${layer}`}
+              aria-controls={selected ? `${baseId}-panel-${layer}` : undefined}
               tabIndex={selected ? 0 : -1}
               onClick={() => onValueChange(layer)}
               onKeyDown={onKeyDown}
@@ -82,25 +82,16 @@ export function LayerToggle({ value, onValueChange, layers, className }: LayerTo
       </div>
 
       {layers ? (
-        <div className="grid">
-          {LAYER_VALUES.map((layer) => {
-            const selected = layer === value;
-            return (
-              <div
-                key={layer}
-                role="tabpanel"
-                id={`${baseId}-panel-${layer}`}
-                aria-labelledby={`${baseId}-tab-${layer}`}
-                aria-hidden={!selected}
-                className={cn(
-                  'duration-base ease-out-soft transition-opacity [grid-area:1/1]',
-                  selected ? 'opacity-100' : 'pointer-events-none opacity-0',
-                )}
-              >
-                {layers[layer]}
-              </div>
-            );
-          })}
+        // Only the active layer is rendered (keyed so it fades in on every switch); stacking all
+        // three would size the box to the longest layer and leave a gap under the short ones.
+        <div
+          key={value}
+          role="tabpanel"
+          id={`${baseId}-panel-${value}`}
+          aria-labelledby={`${baseId}-tab-${value}`}
+          className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200"
+        >
+          {layers[value]}
         </div>
       ) : null}
     </div>
