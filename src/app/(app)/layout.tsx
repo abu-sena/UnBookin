@@ -1,10 +1,22 @@
 import { AppShell } from '@/components/layout/app-shell';
 import { requireOnboardedUser } from '@/lib/auth/session';
+import { countDueCards } from '@/lib/learning/queries';
 import { Suspense } from 'react';
 
-async function AuthenticatedApp({ children }: { children: React.ReactNode }) {
+export async function AuthenticatedApp({ children }: { children: React.ReactNode }) {
   const user = await requireOnboardedUser();
-  return <AppShell user={user}>{children}</AppShell>;
+  let reviewCount: number | undefined;
+  try {
+    reviewCount = await countDueCards({ userId: user.id });
+  } catch {
+    // A badge count must never break the app shell or show an error page.
+    reviewCount = undefined;
+  }
+  return (
+    <AppShell user={user} reviewCount={reviewCount}>
+      {children}
+    </AppShell>
+  );
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
