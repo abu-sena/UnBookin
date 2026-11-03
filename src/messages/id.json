@@ -910,6 +910,69 @@
       "retry": "Coba lagi"
     }
   },
+  "mentor": {
+    "button": "Tanya Mentor",
+    "sheetTitle": "Mentor",
+    "sheetDescription": "Tanyakan tentang bacaanmu dan dapatkan jawaban dari sumbernya.",
+    "close": "Tutup",
+    "loading": "Menyiapkan mentor…",
+    "loadingAria": "Mentor sedang disiapkan",
+    "placeholder": "Tulis pertanyaanmu…",
+    "send": "Kirim",
+    "stop": "Hentikan",
+    "retry": "Coba lagi",
+    "loadOlder": "Muat pesan sebelumnya",
+    "hint": "Jawaban berpijak pada sumber bacaanmu.",
+    "inputDisabled": "Kolom tulis dinonaktifkan sampai kuota terisi lagi.",
+    "charCount": "{used}/{max}",
+    "typing": "Mentor sedang menulis…",
+    "quota": "Sisa {remaining} pesan bulan ini",
+    "quotaUnlimited": "Tanpa batas",
+    "quotaEmpty": "Kuota pesan bulan ini sudah habis.",
+    "quotaReset": "Pesan akan tersedia lagi pada {date}.",
+    "quotaCta": "Lihat paket",
+    "outsideLabel": "Di luar sumber",
+    "notices": {
+      "stopped": "Jawaban dihentikan. Sebagian jawaban tetap tersimpan.",
+      "refunded": "Kuota pesanmu tidak terpakai. Pertanyaanmu dikembalikan ke kolom tulis.",
+      "partial": "Jawaban terhenti sebelum selesai. Sebagian jawaban tetap tersimpan.",
+      "network": "Koneksi terputus sebelum jawaban selesai."
+    },
+    "errors": {
+      "open": "Mentor belum bisa dibuka. Coba lagi sebentar lagi, ya.",
+      "history": "Pesan sebelumnya belum bisa dimuat. Coba lagi, ya.",
+      "rateLimited": "Terlalu banyak pesan dalam waktu singkat. Coba lagi sebentar lagi.",
+      "sourceUnavailable": "Sumber bacaan ini sedang tidak bisa dibaca. Coba lagi nanti.",
+      "notFound": "Percakapan ini tidak ditemukan. Muat ulang halaman, ya.",
+      "failed": "Jawaban belum bisa dibuat. Coba lagi sebentar lagi."
+    },
+    "suggestions": {
+      "summarizeModule": "Ringkas modul \"{module}\" ini.",
+      "explainConcept": "Jelaskan \"{concept}\" dengan sederhana.",
+      "compareConcepts": "Apa beda \"{first}\" dan \"{second}\"?",
+      "keyTakeaways": "Apa poin penting dari modul \"{module}\"?",
+      "applyToWork": "Bagaimana menerapkan \"{module}\" di pekerjaanku?",
+      "summarizeUnbook": "Ringkas Unbook \"{unbook}\" ini.",
+      "genericBigIdea": "Apa ide besar dari bacaan ini?",
+      "genericExamples": "Beri contoh nyata dari bacaan ini.",
+      "genericApply": "Bagaimana aku bisa menerapkan bacaan ini?"
+    },
+    "devUi": {
+      "title": "Mentor (M7)",
+      "description": "Semua keadaan lembar chat mentor dengan data contoh. Coba tema terang dan gelap.",
+      "empty": "Kosong dengan saran pertanyaan",
+      "conversation": "Jawaban bersitasi",
+      "streaming": "Sedang menulis",
+      "error": "Pesan error",
+      "quota": "Sisa kuota dan kuota habis",
+      "samples": {
+        "question": "Apa ide besar modul ini?",
+        "answer": "Pemimpin terbaik membangun sistem, bukan panggung.",
+        "outside": "Secara umum, ini sejalan dengan riset tentang kepemimpinan.",
+        "partial": "Jawaban terhenti sebelum selesai. Sebagian jawaban tetap tersimpan."
+      }
+    }
+  },
   "reader": {
     "unbook": {
       "pathTitle": "Jalur modul",
