@@ -169,6 +169,31 @@ describe('mentor chat sheet', () => {
     expect(screen.getByRole('button', { name: messages.mentor.send })).toBeInTheDocument();
   });
 
+  it('mirrors the server refund when stopped before any text', async () => {
+    fetchMock.mockImplementation((_url: string, init?: RequestInit) => {
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(encoder.encode(formatMentorEvent(started)));
+          init?.signal?.addEventListener('abort', () =>
+            controller.error(new DOMException('Aborted', 'AbortError')),
+          );
+        },
+      });
+      return Promise.resolve(new Response(stream, { status: 200 }));
+    });
+    await openWith(threadPayload({ allowance: allowance(17) }));
+
+    sendMessage('Apa intinya?');
+    await screen.findByRole('button', { name: messages.mentor.stop });
+    await waitFor(() => expect(screen.getByText(/Sisa 16 /)).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: messages.mentor.stop }));
+
+    await waitFor(() => expect(screen.getByText(messages.mentor.notices.refunded)).toBeInTheDocument());
+    expect(screen.getByRole('textbox')).toHaveValue('Apa intinya?');
+    expect(screen.getByText(/Sisa 17 /)).toBeInTheDocument();
+    expect(screen.queryByText('Apa intinya?', { selector: 'p,span,div' })).toBeNull();
+  });
+
   it('removes the optimistic bubble and restores the input when refunded', async () => {
     fetchMock.mockResolvedValue(
       eventStream([

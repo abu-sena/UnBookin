@@ -185,6 +185,7 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
     abortRef.current = controller;
     let settled = false;
     let startedUserId = tempId;
+    let sawText = false;
 
     try {
       const response = await fetch(`/api/mentor/${threadId}`, {
@@ -233,6 +234,7 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
           }
           if (event.type === 'segment') {
             if (event.segment.type === 'text') answerText += event.segment.text;
+            if (event.segment.type === 'text' && event.segment.text.trim()) sawText = true;
             setMessages((previous) =>
               previous.map((message) =>
                 message.id === assistantId
@@ -300,7 +302,26 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
       }
     } catch (error) {
       const isAbort = error instanceof DOMException && error.name === 'AbortError';
-      if (isAbort) {
+      if (isAbort && !sawText) {
+        // Stopped before any text: the server removes the turn and refunds it, so mirror that here.
+        const wasCharged = startedUserId !== tempId;
+        setMessages((previous) =>
+          previous.filter((message) => message.id !== startedUserId && message.id !== assistantId),
+        );
+        setInput(text);
+        if (wasCharged) {
+          setAllowance((previous) =>
+            previous && previous.remaining !== null
+              ? {
+                  ...previous,
+                  remaining: previous.remaining + 1,
+                  used: Math.max(0, previous.used - 1),
+                }
+              : previous,
+          );
+        }
+        setNotice({ text: t('notices.refunded') });
+      } else if (isAbort) {
         setMessages((previous) =>
           previous.map((message) =>
             message.id === assistantId
