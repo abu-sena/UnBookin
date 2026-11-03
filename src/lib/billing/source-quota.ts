@@ -106,7 +106,7 @@ export function validateSourcePageCount(limits: PlanLimits, pageCount: number): 
   }
 }
 
-async function loadActivePlan(
+export async function loadActivePlan(
   database: SourceQuotaDatabase,
   code: Plan['code'],
 ): Promise<{ code: Plan['code']; limits: unknown } | null> {
