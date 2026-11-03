@@ -1,9 +1,11 @@
+import { GameFeedbackProvider } from '@/components/game/game-feedback-provider';
 import { BottomNav } from '@/components/layout/bottom-nav';
 import { ReadingSizeSync } from '@/components/layout/reading-size-sync';
 import { SideNav } from '@/components/layout/side-nav';
 import { TopBar } from '@/components/layout/top-bar';
 import { SourceUploadProvider } from '@/components/sources/source-upload-provider';
 import { OfflineBanner } from '@/components/ui-kit/offline-banner';
+import type { GameSummary } from '@/lib/game/queries';
 import { cn } from '@/lib/utils';
 
 type AppShellWidth = 'reading' | 'dashboard';
@@ -22,6 +24,10 @@ type AppShellProps = {
   title?: string;
   /** Review cards due; forwarded to the navigation badge. */
   reviewCount?: number;
+  /** Server game snapshot; omitted when the statistics query failed. */
+  gameSummary?: GameSummary;
+  /** Trusted session user id that scopes client feedback state. */
+  gameUserId?: string;
 };
 
 /**
@@ -29,26 +35,49 @@ type AppShellProps = {
  * mobile bottom navigation (< 1024px). Content is centred at 640px on
  * tablets (PRD §12.5).
  */
-export function AppShell({ children, width = 'reading', title, reviewCount, user }: AppShellProps) {
+export function AppShell({
+  children,
+  width = 'reading',
+  title,
+  reviewCount,
+  user,
+  gameSummary,
+  gameUserId,
+}: AppShellProps) {
+  const shell = (
+    <div className="flex min-h-dvh">
+      <ReadingSizeSync />
+      <SideNav reviewCount={reviewCount} />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <OfflineBanner />
+        <TopBar
+          title={title}
+          user={user}
+          streakCount={gameSummary?.currentStreak}
+          activeToday={gameSummary?.activeToday}
+        />
+        <main
+          className={cn(
+            'mx-auto w-full max-w-[640px] flex-1 px-4 pt-4 pb-28 lg:px-6 lg:pb-10',
+            contentWidthByWidth[width],
+          )}
+        >
+          {children}
+        </main>
+        <BottomNav reviewCount={reviewCount} />
+      </div>
+    </div>
+  );
+
   return (
     <SourceUploadProvider>
-      <div className="flex min-h-dvh">
-        <ReadingSizeSync />
-        <SideNav reviewCount={reviewCount} />
-        <div className="flex min-w-0 flex-1 flex-col">
-          <OfflineBanner />
-          <TopBar title={title} user={user} />
-          <main
-            className={cn(
-              'mx-auto w-full max-w-[640px] flex-1 px-4 pt-4 pb-28 lg:px-6 lg:pb-10',
-              contentWidthByWidth[width],
-            )}
-          >
-            {children}
-          </main>
-          <BottomNav reviewCount={reviewCount} />
-        </div>
-      </div>
+      {gameUserId ? (
+        <GameFeedbackProvider userId={gameUserId} summary={gameSummary}>
+          {shell}
+        </GameFeedbackProvider>
+      ) : (
+        shell
+      )}
     </SourceUploadProvider>
   );
 }

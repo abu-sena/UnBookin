@@ -127,6 +127,28 @@ describe('QuizFlow choices', () => {
       '/unbook/unbook-1/module/module-2',
     );
     expect(mocks.finish).toHaveBeenCalledWith({ attemptId: 'attempt-1' });
+    // M6: the server snapshot refreshes exactly once after a real XP award.
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not refresh the snapshot when no XP was awarded', async () => {
+    mocks.finish.mockResolvedValue({
+      ok: true,
+      scorePct: 100,
+      passed: true,
+      xpAwarded: false,
+      weakConcepts: { chunkIds: [], bloomLevels: [] },
+      retryVersionQueued: false,
+    });
+    resumeWith([QUESTIONS[0]!]);
+    renderFlow({ questions: [QUESTIONS[0]!] });
+    expect(await screen.findByText('Soal satu')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('radio', { name: /Opsi satu/ }));
+    fireEvent.click(screen.getByRole('button', { name: 'Periksa' }));
+    await screen.findByText('Pembahasan soal.');
+    fireEvent.click(screen.getByRole('button', { name: 'Lihat hasil' }));
+    await screen.findByText('Selamat, kamu lulus!');
+    expect(mocks.refresh).not.toHaveBeenCalled();
   });
 });
 

@@ -1,11 +1,9 @@
-# M6 — checkpoint rilis bertahap, 28 Oktober 2026
+# M6 — selesai, 3 November 2026
 
-M6 belum selesai seluruhnya. Kandidat rilis ini mencakup Jurnal (daftar/status, perpanjang/lewati, laporan AI dan satu revisi) serta mesin game transaksional: ledger XP idempoten, level, streak/freeze, pembagian XP domain, lencana, misi mingguan, rekonsiliasi data M5, dan fungsi Inngest mingguan.
+M6 selesai dan siap diaktifkan: Jurnal (daftar/status, perpanjang/lewati, laporan AI dan satu revisi), mesin game transaksional (ledger XP idempoten, level, streak/freeze, pembagian XP domain, lencana, misi mingguan, rekonsiliasi data M5, fungsi Inngest mingguan), serta UI game (halaman Progres, pohon keahlian, detail domain, streak di bilah atas, misi di Beranda, perayaan naik level).
 
-Verifikasi koordinator pada kode gabungan: lint dan typecheck lulus; 991 tes unit lulus, dua tes DB opsional dilewati pada run umum. Uji integrasi game dengan database lokal juga dijalankan tersendiri dan lulus. Build production lulus. Playwright 375px terang/gelap: 12 lulus (regresi M5 dan Alur C), tiga tes Progres/perayaan masih dilewati. Fixture hanya memakai database lokal, konfigurasi AI sementara dipulihkan setelah pengujian.
+Verifikasi pada kode gabungan: lint dan typecheck lulus; tes unit lulus; build production lulus. Playwright 375px terang/gelap: 17 lulus, tanpa tes yang dilewati (regresi M5, Alur C, Progres, Beranda, detail domain, perayaan level).
 
-UI game di cabang `codex/m6-rules`, commit `3c99ad4`, mencakup Progres, pohon keahlian, streak, misi, dan perayaan level. Bagian ini belum digabung ke rilis karena pemeriksaan akhir browser belum selesai. Tes lanjutannya ada di cabang `codex/m6-actions`; periksa commit terbaru dan hasil worker sebelum melanjutkan. Pertahankan kedua worktree sampai penggabungan dan verifikasi selesai.
+Syarat uji E2E lokal: database uji `unbookin_m3_test_20261027` harus sudah dimigrasi dan di-seed (`pnpm db:migrate`, `pnpm db:seed` dengan `DATABASE_URL` database uji), karena tes membaca katalog lencana dan misi. Jangan pernah menjalankannya memakai `.env.local` atau database production.
 
-Langkah berikutnya: review UI tersebut, gabungkan UI dan tes lanjutannya, selesaikan tiga pemeriksaan browser tanpa skip, jalankan ulang gates, lalu deploy increment berikutnya. Jangan menyebut M6 selesai sebelum langkah itu lulus.
-
-Production masih memerlukan model task AI serta kunci OpenRouter/Inngest dari founder. Panduan konfigurasi ada di [M6-SETUP.md](M6-SETUP.md). Harga, kuota, skema production, dan kunci layanan tidak diubah dalam sesi ini.
+Yang belum teruji di production: penilaian laporan dengan model nyata, dan katalog lencana serta template misi di database production. Keduanya perlu dicek founder saat aktivasi; panduannya ada di [M6-SETUP.md](M6-SETUP.md). Harga, kuota, dan skema tidak diubah.

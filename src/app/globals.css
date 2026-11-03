@@ -33,6 +33,13 @@
   --level-proficient: #8b5cf6;
   --level-expert: #f59e0b;
 
+  /* Readable (AA) text variants of the Dreyfus colours on light surfaces */
+  --level-novice-text: #475569;
+  --level-advanced-beginner-text: #0369a1;
+  --level-competent-text: #047857;
+  --level-proficient-text: #6d28d9;
+  --level-expert-text: #b45309;
+
   /* shadcn/ui variables mapped onto the PRD tokens */
   --foreground: var(--text);
   --card: var(--surface);
@@ -97,6 +104,13 @@
   --level-proficient: #8b5cf6;
   --level-expert: #f59e0b;
 
+  /* Readable (AA) text variants of the Dreyfus colours on dark surfaces */
+  --level-novice-text: #cbd5e1;
+  --level-advanced-beginner-text: #38bdf8;
+  --level-competent-text: #34d399;
+  --level-proficient-text: #a78bfa;
+  --level-expert-text: #fbbf24;
+
   /* Cards rely on borders in dark mode instead of shadows. */
   --shadow-card: 0 0 #0000;
   --shadow-raised: 0 0 #0000;
@@ -126,6 +140,11 @@
   --color-level-competent: var(--level-competent);
   --color-level-proficient: var(--level-proficient);
   --color-level-expert: var(--level-expert);
+  --color-level-novice-text: var(--level-novice-text);
+  --color-level-advanced-beginner-text: var(--level-advanced-beginner-text);
+  --color-level-competent-text: var(--level-competent-text);
+  --color-level-proficient-text: var(--level-proficient-text);
+  --color-level-expert-text: var(--level-expert-text);
 
   /* shadcn/ui colour utilities */
   --color-card: var(--card);
@@ -230,6 +249,59 @@
   }
 }
 
+/* ---------- Game feedback motion (XP toast, streak flame, confetti) ---------- */
+@keyframes xp-toast-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+@keyframes streak-flame-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.35) rotate(-6deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    opacity: 0;
+    transform: translateY(-24px) rotate(0deg);
+  }
+  15% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(160px) rotate(300deg);
+  }
+}
+
+.xp-toast-motion {
+  animation: xp-toast-rise 1.2s var(--ease-out-soft) both;
+}
+
+.streak-flame-motion {
+  animation: streak-flame-pop 0.8s var(--ease-out-soft) 1;
+}
+
+.confetti-piece {
+  animation: confetti-fall 1.5s var(--ease-out-soft) both;
+}
+
 /* ---------- Reduced motion — PRD §12.4 ---------- */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -239,5 +311,16 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  /* Toasts stay readable and static; confetti is removed entirely. */
+  .xp-toast-motion,
+  .streak-flame-motion {
+    animation: none !important;
+    opacity: 1;
+  }
+
+  .confetti-piece {
+    display: none !important;
   }
 }

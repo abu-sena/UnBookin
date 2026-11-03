@@ -41,6 +41,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { LibraryInterestOption, LibraryItem } from '@/lib/library/types';
+import { GameShowcase } from './game-showcase';
 import { LearningShowcase } from './learning-showcase';
 
 type DevUiShowcaseProps = {
@@ -116,7 +117,7 @@ const previewDeleteAction: DeleteUnbookAction = async () => ({
 const previewProgressFixtures: SourceProgress[] = [
   {
     unbookId: 'preview-progress-uploading',
-    title: 'Mindset — Carol Dweck',
+    title: 'Mindset â€” Carol Dweck',
     sourceId: 'preview-source-uploading',
     sourceStatus: 'uploaded',
     unbookStatus: 'queued',
@@ -173,6 +174,7 @@ export function DevUiShowcase({
   const t = useTranslations('devUi');
   const tUpload = useTranslations('sources.upload');
   const tLearning = useTranslations('module.showcase');
+  const tGame = useTranslations('game.devUi');
   const [sheetOpen, setSheetOpen] = useState(false);
   const [previewAdapter] = useState(() => createPreviewSourceUploadAdapter());
 
@@ -207,7 +209,7 @@ export function DevUiShowcase({
             <ColorSwatch className="bg-danger" label={t('colorDanger')} />
           </div>
           <p className="text-caption text-text-muted">
-            {t('colorXp')} · {t('colorSuccess')} · {t('colorWarning')} · {t('colorDanger')}
+            {t('colorXp')} Â· {t('colorSuccess')} Â· {t('colorWarning')} Â· {t('colorDanger')}
           </p>
         </Section>
 
@@ -221,7 +223,7 @@ export function DevUiShowcase({
             <p className="text-reading">{t('typeReading')}</p>
             <p className="text-small">{t('typeSmall')}</p>
             <p className="text-caption">{t('typeCaption')}</p>
-            <p className="text-body tabular-nums">2.340 XP · 340/500 · 🔥 12</p>
+            <p className="text-body tabular-nums">2.340 XP Â· 340/500 Â· ðŸ”¥ 12</p>
           </div>
         </Section>
 
@@ -409,7 +411,7 @@ export function DevUiShowcase({
             <h3 className="text-h3 mb-3">{t('deletePreviewTitle')}</h3>
             <p className="text-body text-text-muted mb-3">{t('deletePreviewHint')}</p>
             <div className="flex items-center gap-3">
-              <span className="text-small">Atomic Habits — James Clear</span>
+              <span className="text-small">Atomic Habits â€” James Clear</span>
               <SourceDeleteButton
                 unbookId="00000000-0000-4000-8000-000000000000"
                 title="Atomic Habits"
@@ -421,6 +423,10 @@ export function DevUiShowcase({
 
         <Section title={tLearning('title')}>
           <LearningShowcase />
+        </Section>
+
+        <Section title={tGame('title')}>
+          <GameShowcase />
         </Section>
 
         <Section title={t('sectionNavigation')}>
