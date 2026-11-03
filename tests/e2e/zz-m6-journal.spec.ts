@@ -622,8 +622,10 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
         await expect(item).toContainText(
           fill(message('game.mission.reward'), { xp: mission.xp_reward }),
         );
-        if (mission.completed) await expect(item).toContainText(message('game.mission.completed'));
-        else await expect(item).not.toContainText(message('game.mission.completed'));
+        // Exact element match: titles such as "Selesaikan 4 sesi review" contain the label text.
+        await expect(
+          item.getByText(message('game.mission.completed'), { exact: true }),
+        ).toHaveCount(mission.completed ? 1 : 0);
       }
       await expect(
         overview.getByRole('link', { name: message('game.homeOverview.viewProgress') }),

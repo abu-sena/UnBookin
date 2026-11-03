@@ -1,6 +1,6 @@
 # Aktivasi penerapan dan game M6
 
-Status sesi: Jurnal dan mesin game siap diverifikasi untuk deployment bertahap. UI Progres/pohon keahlian dan perayaan level berada di cabang kerja sampai pemeriksaan akhirnya selesai; M6 belum dinyatakan selesai seluruhnya. Langkah yang menyebut UI Progres di bawah berlaku setelah bagian tersebut dirilis.
+Status: M6 selesai dan sudah dirilis, termasuk UI Progres, pohon keahlian, dan perayaan level. Yang tersisa hanya konfigurasi layanan oleh founder.
 
 M6 menggunakan tabel yang sudah ada. Nilai XP dan syarat Dreyfus mengikuti PRD. Katalog tiga minat, 18 domain, 12 lencana dan template misi berasal dari seed awal; jangan menjalankan seed penuh pada database production hanya untuk mengaktifkan M6 karena seed itu juga memperbarui paket dan harga.
 
