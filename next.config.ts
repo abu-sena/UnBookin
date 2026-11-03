@@ -33,6 +33,10 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  // Persona Markdown is read at runtime, so it must travel with the functions.
+  outputFileTracingIncludes: {
+    '/api/mentor/**': ['src/lib/ai/personas/**/*.md'],
+  },
   async headers() {
     return [
       {
