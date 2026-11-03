@@ -100,4 +100,13 @@ describe('finalizeAnswer and stored rendering', () => {
     );
     expect(parser.end()).toEqual([]);
   });
+
+  it('drops a marker fragment when the answer is cut off inside it', () => {
+    for (const cut of ['Isi [[', 'Isi [[1', 'Isi [[1]', 'Isi <<luar', 'Isi <</luar-sumber>']) {
+      const parser = createAnswerParser([]);
+      const segments = [...parser.push(cut), ...parser.end()];
+      const shown = segments.map((segment) => (segment.type === 'text' ? segment.text : '')).join('');
+      expect(shown).toBe('Isi ');
+    }
+  });
 });

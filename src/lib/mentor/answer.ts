@@ -79,7 +79,13 @@ class MarkerScanner {
           const close = this.buffer.indexOf(']]', i + 2);
           if (close === -1) {
             // Hold only what can still become a citation, so stray "[[" never stalls the stream.
-            if (!final && /^\d{0,9}\]?$/.test(this.buffer.slice(i + 2))) break;
+            const couldBeCitation = /^\d{0,9}\]?$/.test(this.buffer.slice(i + 2));
+            if (couldBeCitation) {
+              if (!final) break;
+              // An answer cut off inside a marker: drop the fragment, it must never show raw.
+              i = this.buffer.length;
+              continue;
+            }
             text += '[[';
             i += 2;
             continue;
@@ -123,7 +129,6 @@ class MarkerScanner {
           const couldBeMarker = OUTSIDE_START.startsWith(rest) || OUTSIDE_END.startsWith(rest);
           if (couldBeMarker) {
             if (!final) break;
-            text += rest;
             i = this.buffer.length;
             continue;
           }

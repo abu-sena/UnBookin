@@ -1,5 +1,6 @@
 import 'server-only';
 import { eq } from 'drizzle-orm';
+import { after } from 'next/server';
 import { db } from '@/db';
 import { interests, profiles } from '@/db/schema';
 import { loadPersona } from '@/lib/ai/personas';
@@ -340,6 +341,14 @@ async function executeMentorTurn(args: TurnArgs, sink: TurnSink): Promise<void> 
   }
 }
 
+function keepAliveUntil(work: Promise<void>): void {
+  try {
+    after(() => work);
+  } catch {
+    // Outside a request scope (unit tests) there is no platform lifetime to extend.
+  }
+}
+
 function streamTurn(args: TurnArgs): Response {
   const encoder = new TextEncoder();
   let controller: ReadableStreamDefaultController<Uint8Array> | null = null;
@@ -369,9 +378,12 @@ function streamTurn(args: TurnArgs): Response {
   const body = new ReadableStream<Uint8Array>({
     start(next) {
       controller = next;
-      void executeMentorTurn(args, sink).catch(() => {
+      const turn = executeMentorTurn(args, sink).catch(() => {
         sink.close();
       });
+      // The answer must still be saved (or the quota refunded) after the client disconnects, when
+      // a serverless function could otherwise be frozen mid-turn.
+      keepAliveUntil(turn);
     },
     cancel() {
       closed = true;
