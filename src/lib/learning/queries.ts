@@ -265,7 +265,7 @@ export async function getSourceExcerpt(
 }
 
 /** Max 3 sentences / 400 chars, cut on the last sentence boundary. */
-function excerptText(text: string): string {
+export function excerptText(text: string): string {
   if (text.length <= 400) return text.trim();
   const cut = text.slice(0, 400);
   const sentenceEnd = Math.max(
