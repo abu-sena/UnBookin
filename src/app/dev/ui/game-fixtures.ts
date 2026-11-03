@@ -1,4 +1,4 @@
-﻿import type { GameSummary, SkillTreeInterest } from '@/lib/game/queries';
+import type { GameSummary, SkillTreeInterest } from '@/lib/game/queries';
 
 /** Static, clearly fake sample data for the /dev/ui game section only. */
 export const sampleSummary: GameSummary = {

@@ -1,4 +1,4 @@
-﻿import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
 /** Loading shape for the Progres page (skeleton, never a spinner). */
 export function ProgressSkeleton() {

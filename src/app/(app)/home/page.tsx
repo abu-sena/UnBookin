@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { HomeGameOverview, HomeGameUnavailable } from '@/components/game/level-overview';
 import { HomeToday } from '@/components/home/home-today';
 import { PageHeader } from '@/components/ui-kit/page-header';

@@ -1,4 +1,4 @@
-﻿import { getTranslations } from 'next-intl/server';
+import { getTranslations } from 'next-intl/server';
 import { ProgressSkeleton } from '@/components/game/progress-skeleton';
 
 export default async function ProgressLoading() {

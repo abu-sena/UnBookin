@@ -1,4 +1,4 @@
-﻿import { DOMAIN_LEVELS, type DomainLevel } from '@/lib/game/domains';
+import { DOMAIN_LEVELS, type DomainLevel } from '@/lib/game/domains';
 
 /**
  * Semantic Tailwind classes per Dreyfus level. Colours come from the

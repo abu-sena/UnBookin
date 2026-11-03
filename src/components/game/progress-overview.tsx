@@ -1,4 +1,4 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { AwardIcon, FlameIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { BadgeCard } from '@/components/profile/badge-card';
@@ -57,7 +57,7 @@ export function ProgressOverview({ summary }: { summary: GameSummary }) {
             icon={AwardIcon}
             message={t('badges.empty')}
             actionLabel={t('skills.emptyAction')}
-            actionHref="/library"
+            actionHref="/settings/profil-belajar"
           />
         ) : (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">

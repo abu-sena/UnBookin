@@ -1,4 +1,4 @@
-﻿import type { GameSummary, SkillTreeDomain } from '@/lib/game/queries';
+import type { GameSummary, SkillTreeDomain } from '@/lib/game/queries';
 
 export function makeSummary(overrides: Partial<GameSummary> = {}): GameSummary {
   return {

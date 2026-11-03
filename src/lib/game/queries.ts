@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import {
@@ -176,13 +177,19 @@ async function readDomainLevels(
   return rows.map((row) => ({ id: row.id, name: row.name, level: row.level, xp: row.xp }));
 }
 
+// The layout and the page both need the summary. Each read reconciles the whole XP ledger under
+// the per-user lock, so one render shares a single read (a no-op cache outside a server render).
+const summaryForRender = cache((userId: string) => readGameSummary(userId, new Date()));
+
 /** Home/layout summary. Lazily reconciles first so M5 data is backfilled. */
-export async function getGameSummary(
-  identity: GameIdentity,
-  now: Date = new Date(),
-): Promise<GameSummary> {
+export async function getGameSummary(identity: GameIdentity, now?: Date): Promise<GameSummary> {
   const userId = assertIdentity(identity);
+  if (now === undefined) return summaryForRender(userId);
   assertNow(now);
+  return readGameSummary(userId, now);
+}
+
+function readGameSummary(userId: string, now: Date): Promise<GameSummary> {
   return db.transaction(async (tx) => {
     const state = await reconcileGame(tx, userId, now);
     const missions = await readMissions(tx, userId, state.weekStart);

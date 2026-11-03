@@ -1,4 +1,4 @@
-﻿import { Suspense } from 'react';
+import { Suspense } from 'react';
 import { getTranslations } from 'next-intl/server';
 import { TrendingUpIcon } from 'lucide-react';
 import { ProgressOverview } from '@/components/game/progress-overview';

@@ -1,4 +1,4 @@
-﻿import { DOMAIN_LEVELS, type DomainLevel } from '@/lib/game/domains';
+import { DOMAIN_LEVELS, type DomainLevel } from '@/lib/game/domains';
 import type { GameSummary } from '@/lib/game/queries';
 
 export type DomainLevelUp = { id: string; name: string; level: DomainLevel };

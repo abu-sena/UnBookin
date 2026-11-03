@@ -1,4 +1,4 @@
-﻿import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { diffGameSummary } from '@/components/game/game-feedback-diff';

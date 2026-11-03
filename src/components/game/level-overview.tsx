@@ -1,4 +1,4 @@
-﻿import Link from 'next/link';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { GameSummary } from '@/lib/game/queries';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ const numberFormat = new Intl.NumberFormat('id-ID');
 
 type LevelSummaryProps = Pick<
   GameSummary,
-  'level' | 'progress' | 'nextLevelXp' | 'currentLevelXp' | 'totalXp'
+  'level' | 'progress' | 'nextLevelXp' | 'totalXp'
 >;
 
 /** Ring plus total XP and the exact distance to the next level. */
@@ -17,11 +17,9 @@ export function LevelSummary({
   level,
   progress,
   nextLevelXp,
-  currentLevelXp,
   totalXp,
 }: LevelSummaryProps) {
   const t = useTranslations('game.level');
-  void currentLevelXp;
   return (
     <div className="flex min-w-0 items-center gap-4">
       <LevelRing level={level} progress={progress} nextLevelXp={nextLevelXp} size={104} />

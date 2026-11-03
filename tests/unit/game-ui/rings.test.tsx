@@ -1,4 +1,4 @@
-﻿import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, describe, expect, it } from 'vitest';
 import { LevelRing } from '@/components/game/level-ring';

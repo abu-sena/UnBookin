@@ -1,4 +1,4 @@
-﻿import { cn } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { clampFraction } from './level-meta';
 
 type ProgressRingProps = {

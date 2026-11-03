@@ -1,4 +1,4 @@
-﻿import { CheckIcon } from 'lucide-react';
+import { CheckIcon } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn } from '@/lib/utils';
 import { ProgressRing } from './progress-ring';

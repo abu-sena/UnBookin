@@ -1,4 +1,4 @@
-﻿import { useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import type { GameSummaryMission } from '@/lib/game/queries';
 import { MissionRing } from './mission-ring';
 
