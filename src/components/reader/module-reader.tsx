@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl';
 import { ArrowLeftIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { XPToast } from '@/components/game/xp-toast';
+import { TanyaMentorButton } from '@/components/mentor/tanya-mentor-button';
 import type { LayerValue } from '@/components/module/layer-toggle';
 import { Button } from '@/components/ui/button';
 import { MODULE_READ } from '@/lib/game/xp-rules';
@@ -116,13 +117,16 @@ export function ModuleReader(props: ReaderModuleProps) {
   return (
     <div className="flex min-w-0 flex-col gap-5">
       <div className="flex flex-col gap-3">
-        <Link
-          href={`/unbook/${props.unbookId}`}
-          className="text-small text-text-muted hover:text-text inline-flex min-h-11 w-fit items-center gap-1"
-        >
-          <ArrowLeftIcon className="size-4" aria-hidden="true" />
-          {t('back')}
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Link
+            href={`/unbook/${props.unbookId}`}
+            className="text-small text-text-muted hover:text-text inline-flex min-h-11 w-fit items-center gap-1"
+          >
+            <ArrowLeftIcon className="size-4" aria-hidden="true" />
+            {t('back')}
+          </Link>
+          <TanyaMentorButton unbookId={props.unbookId} moduleId={props.moduleId} />
+        </div>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h1 className="text-h1 min-w-0 break-words">{props.title}</h1>
           <span className="text-caption text-text-muted shrink-0 tabular-nums">

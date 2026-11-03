@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { CheckCircle2Icon } from 'lucide-react';
+import { TanyaMentorButton } from '@/components/mentor/tanya-mentor-button';
 import { ModulePath } from '@/components/module/path-node';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -54,7 +55,7 @@ export function UnbookPathView({ path }: { path: UnbookPath }) {
         />
       </section>
 
-      <div className="bg-background/95 border-border sticky bottom-24 z-20 -mx-4 mt-2 border-t px-4 py-3 backdrop-blur lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
+      <div className="bg-background/95 border-border sticky bottom-24 z-20 -mx-4 mt-2 flex flex-wrap items-center gap-3 border-t px-4 py-3 backdrop-blur lg:static lg:mx-0 lg:border-0 lg:bg-transparent lg:px-0 lg:backdrop-blur-none">
         {path.continueModuleId ? (
           <Button asChild size="lg" className="w-full sm:w-auto">
             <Link href={`/unbook/${path.unbookId}/module/${path.continueModuleId}`}>
@@ -62,7 +63,7 @@ export function UnbookPathView({ path }: { path: UnbookPath }) {
             </Link>
           </Button>
         ) : (
-          <div className="border-success/30 bg-success/5 flex items-start gap-3 rounded-[var(--radius-card)] border p-4">
+          <div className="border-success/30 bg-success/5 flex w-full items-start gap-3 rounded-[var(--radius-card)] border p-4">
             <CheckCircle2Icon className="text-success mt-0.5 size-5 shrink-0" aria-hidden="true" />
             <div className="flex min-w-0 flex-col gap-1">
               <p className="text-small font-semibold">{t('allDoneTitle')}</p>
@@ -70,6 +71,7 @@ export function UnbookPathView({ path }: { path: UnbookPath }) {
             </div>
           </div>
         )}
+        <TanyaMentorButton unbookId={path.unbookId} className="w-full sm:w-auto" />
       </div>
     </div>
   );
