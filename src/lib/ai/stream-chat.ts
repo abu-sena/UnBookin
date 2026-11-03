@@ -303,6 +303,8 @@ export async function* streamChatTask(input: StreamChatInput): AsyncGenerator<St
       clearTimeout(totalTimer);
       if (firstTimer) clearTimeout(firstTimer);
       input.signal?.removeEventListener('abort', onAbort);
+      // Also ends the upstream request when the consumer stops iterating early.
+      controller.abort();
       const status =
         outcome === 'done' ? 'succeeded' : outcome === 'aborted' ? 'aborted' : 'failed';
       await logCall({

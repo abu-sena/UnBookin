@@ -91,4 +91,13 @@ describe('finalizeAnswer and stored rendering', () => {
     expect(renderSegments(finalized.content, finalized.citations)).toEqual(live);
     expect(texts(live)).toBe('Isi sumber dan . Umum tambahan');
   });
+
+  it('does not stall the stream on a stray double bracket', () => {
+    const parser = createAnswerParser([]);
+    const first = parser.push('lihat [[catatan ini');
+    expect(first.map((segment) => (segment.type === 'text' ? segment.text : '')).join('')).toBe(
+      'lihat [[catatan ini',
+    );
+    expect(parser.end()).toEqual([]);
+  });
 });

@@ -103,6 +103,14 @@ describe.skipIf(!URL_VALUE)('mentor retrieval real-DB integration (isolated loca
       expect(textOnly.mode).toBe('text');
       expect(textOnly.chunks.every((chunk) => chunk.text.includes('kepemimpinan'))).toBe(true);
 
+      // A natural question contains words the source lacks; any matching word must be enough.
+      const natural = await retrieveChunks({
+        sourceId: sourceA,
+        question: 'apa maksud kepemimpinan menurut bacaan saya?',
+        userId,
+      });
+      expect(natural.chunks.length).toBeGreaterThan(0);
+
       const crossed = await retrieveChunks({ sourceId: sourceA, question: 'kebiasaan', userId });
       expect(crossed).toEqual({ chunks: [], mode: 'text' });
     } finally {

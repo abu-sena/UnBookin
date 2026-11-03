@@ -78,7 +78,8 @@ class MarkerScanner {
         if (this.buffer.startsWith('[[', i)) {
           const close = this.buffer.indexOf(']]', i + 2);
           if (close === -1) {
-            if (!final) break;
+            // Hold only what can still become a citation, so stray "[[" never stalls the stream.
+            if (!final && /^\d{0,9}\]?$/.test(this.buffer.slice(i + 2))) break;
             text += '[[';
             i += 2;
             continue;

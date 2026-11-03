@@ -88,7 +88,7 @@ describe('retrieveChunks', () => {
     mocks.execute.mockImplementation(async (query: unknown) => {
       const { text } = shape(query);
       if (text.includes('<=>')) return [row('a', 1, 'alpha'), row('b', 2, 'beta')];
-      if (text.includes('websearch_to_tsquery')) return [row('b', 2, 'beta'), row('c', 3, 'gamma')];
+      if (text.includes('plainto_tsquery')) return [row('b', 2, 'beta'), row('c', 3, 'gamma')];
       return [];
     });
 

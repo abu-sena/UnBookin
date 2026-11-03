@@ -95,10 +95,17 @@ async function embedQuestion(question: string, userId: string): Promise<number[]
 
 async function cosineRows(sourceId: string, vector: number[]): Promise<RawRow[]> {
   const literal = vectorLiteral(vector);
+  // Materialized on purpose: the HNSW index would take the nearest rows across ALL sources first
+  // and filter afterwards, which can leave nothing for this source. One source stays small enough
+  // for an exact scan.
   const result = await db.execute(sql`
+    with scoped as materialized (
+      select id, idx, text, page_from, page_to, chapter_title, embedding
+      from source_chunks
+      where source_id = ${sourceId} and embedding is not null
+    )
     select id, idx, text, page_from, page_to, chapter_title
-    from source_chunks
-    where source_id = ${sourceId} and embedding is not null
+    from scoped
     order by embedding <=> ${literal}::vector
     limit ${PER_LIST_LIMIT}
   `);
@@ -106,15 +113,15 @@ async function cosineRows(sourceId: string, vector: number[]): Promise<RawRow[]>
 }
 
 async function textRows(sourceId: string, question: string): Promise<RawRow[]> {
+  // Any word may match: the `simple` config keeps stop words, so requiring every word of a
+  // natural question ("apa maksud ...") would almost never match. Ranking favours more matches.
+  const anyWord = sql`to_tsquery('simple', replace(plainto_tsquery('simple', ${question})::text, ' & ', ' | '))`;
   const result = await db.execute(sql`
     select id, idx, text, page_from, page_to, chapter_title
     from source_chunks
     where source_id = ${sourceId}
-      and to_tsvector('simple', text) @@ websearch_to_tsquery('simple', ${question})
-    order by ts_rank(
-      to_tsvector('simple', text),
-      websearch_to_tsquery('simple', ${question})
-    ) desc
+      and to_tsvector('simple', text) @@ ${anyWord}
+    order by ts_rank(to_tsvector('simple', text), ${anyWord}) desc
     limit ${PER_LIST_LIMIT}
   `);
   return rowsOf(result);
