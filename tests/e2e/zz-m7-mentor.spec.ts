@@ -186,16 +186,18 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       await expect(outside.getByText(OUTSIDE_TEXT, { exact: true })).toBeVisible();
       await expectNoRawMarkers(sheet);
 
-      const chips = sheet.locator('button[aria-haspopup="dialog"]');
+      const chips = sheet.locator('button[aria-expanded]');
       await expect(chips.first()).toBeVisible();
       expect(await chips.count()).toBeGreaterThanOrEqual(2);
       await chips.first().click();
-      const excerpt = page.getByRole('dialog', { name: sourceCopy.sheetTitle });
+      await expect(chips.first()).toHaveAttribute('aria-expanded', 'true');
+      const excerpt = sheet.getByRole('region', { name: sourceCopy.sheetTitle });
       await expect(excerpt).toBeVisible();
-      const quote = excerpt.locator('blockquote');
+      const quote = excerpt.locator('q');
       await expect(quote).toBeVisible();
       expect(((await quote.textContent()) ?? '').trim().length).toBeGreaterThan(10);
-      await page.keyboard.press('Escape');
+      await expectNoHorizontalOverflow(page);
+      await chips.first().click();
       await expect(excerpt).toHaveCount(0);
 
       await expect(
@@ -282,9 +284,10 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       await expect(sheet.getByText(copy.notices.refunded).first()).toBeVisible();
       const input = sheet.getByRole('textbox', { name: copy.placeholder });
       await expect(input).toHaveValue(SILENT_QUESTION);
-      await page.waitForTimeout(2_500);
-
-      expect(await readMentorUsage(db, learning.userId)).toBe(before);
+      // The server may only notice the disconnect at its first-token timeout (20 s), then refunds.
+      await expect
+        .poll(() => readMentorUsage(db, learning.userId), { timeout: 40_000 })
+        .toBe(before);
       const messages = await readMentorMessages(db, learning.userId);
       expect(messages.length).toBe(messagesBefore);
       expect(messages.some((row) => row.content === SILENT_QUESTION)).toBe(false);
