@@ -291,7 +291,7 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       const messages = await readMentorMessages(db, learning.userId);
       expect(messages.length).toBe(messagesBefore);
       expect(messages.some((row) => row.content === SILENT_QUESTION)).toBe(false);
-      await expect(sheet.getByText(SILENT_QUESTION)).toHaveCount(0);
+      await expect(sheet.locator('p', { hasText: SILENT_QUESTION })).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
       test.info().annotations.push({
         type: 'screenshot',
@@ -320,7 +320,7 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       const messages = await readMentorMessages(db, learning.userId);
       expect(messages.length).toBe(messagesBefore);
       expect(messages.some((row) => row.content === FAIL_QUESTION)).toBe(false);
-      await expect(sheet.getByText(FAIL_QUESTION)).toHaveCount(0);
+      await expect(sheet.locator('p', { hasText: FAIL_QUESTION })).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
       test.info().annotations.push({
         type: 'screenshot',
