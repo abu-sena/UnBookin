@@ -1,23 +1,36 @@
 #!/usr/bin/env node
 /**
- * Local fake `action_feedback` provider for the M6 e2e run. Speaks just enough
- * of the OpenRouter chat-completions JSON for `runStructuredTask`. It never
- * reads, stores or logs request bodies and never makes an outbound call.
+ * Local fake OpenRouter provider for the M6 and M7 e2e runs. It speaks enough
+ * of the chat-completions API for `runStructuredTask` (JSON) and for mentors
+ * (`stream: true`, SSE). It never reads, stores or logs request bodies and
+ * never makes an outbound call.
  *
  *   GET  /health                    -> 200 {"ok":true}
- *   GET  /mode                      -> {"mode":"high"}          (loopback only)
- *   POST /mode  {"mode":"low|high|fail"}                        (loopback only)
+ *   GET  /mode                      -> {"mode":"high","requests":n} (loopback only)
+ *   POST /mode  {"mode":"..."}                                  (loopback only)
  *   POST /api/v1/chat/completions   -> completion for the current mode
  *
- * Modes: low = score 2, high = score 4, fail = provider error (HTTP 500).
- * The mode endpoint changes this process only; it never touches the database.
+ * M6 modes: low = score 2, high = score 4, fail = provider error (HTTP 500).
+ * M7 modes: mentor-cite (streamed answer with citations), mentor-slow (a first
+ * delta then a long pause), mentor-silent (a long pause before any token) and
+ * mentor-fail (HTTP 500 before any token). The mode endpoint changes this
+ * process only; it never touches the database.
  */
 import { createServer } from 'node:http';
 import { fileURLToPath } from 'node:url';
 
-export const PROVIDER_MODES = ['low', 'high', 'fail'];
+export const PROVIDER_MODES = [
+  'low',
+  'high',
+  'fail',
+  'mentor-cite',
+  'mentor-slow',
+  'mentor-silent',
+  'mentor-fail',
+];
 const MAX_CHAT_BYTES = 1_048_576;
 const MAX_MODE_BYTES = 1_024;
+const MENTOR_HOLD_MS = 15_000;
 
 const SCORE_BY_MODE = { low: 2, high: 4 };
 const FEEDBACK_BY_MODE = {
@@ -43,6 +56,104 @@ export function buildCompletion(mode) {
 function send(response, status, payload) {
   response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
   response.end(JSON.stringify(payload));
+}
+
+/**
+ * Answer split into small deltas. Markers are cut across frames on purpose so
+ * the server-side parser must hold partial `[[1` and `<<luar-` sequences.
+ */
+const MENTOR_CITE_DELTAS = [
+  'Pemimpin ',
+  'terbaik membangun ',
+  'sistem',
+  '[[1',
+  ']]',
+  ', bukan ',
+  'panggung',
+  '[[2]]',
+  '. ',
+  '\n\n',
+  '<<luar-',
+  'sumber>>',
+  'Secara umum, ',
+  'riset kepemimpinan ',
+  'mendukung hal ini.',
+  '<</luar',
+  '-sumber>>',
+];
+const MENTOR_SLOW_FIRST = 'Pemimpin terbaik membangun sistem.';
+
+function sseFrame(response, payload) {
+  response.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+
+function sseFinish(response) {
+  sseFrame(response, {
+    choices: [{ delta: {}, finish_reason: 'stop' }],
+    usage: { prompt_tokens: 24, completion_tokens: 32, cost: 0 },
+  });
+  response.write('data: [DONE]\n\n');
+  response.end();
+}
+
+/** Stream an answer over SSE; every timer is cleared if the client stops. */
+function streamMentor(response, mode) {
+  response.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-store',
+    Connection: 'keep-alive',
+  });
+  let timer = null;
+  let closed = false;
+  const cleanup = () => {
+    closed = true;
+    if (timer) clearTimeout(timer);
+    timer = null;
+  };
+  response.on('close', cleanup);
+  const write = (payload) => {
+    if (closed) return false;
+    try {
+      sseFrame(response, payload);
+      return true;
+    } catch {
+      cleanup();
+      return false;
+    }
+  };
+
+  if (mode === 'mentor-slow') {
+    if (!write({ choices: [{ delta: { content: MENTOR_SLOW_FIRST } }] })) return;
+    timer = setTimeout(() => {
+      if (closed) return;
+      write({ choices: [{ delta: { content: ' Terus berlatih.' } }] });
+      sseFinish(response);
+      cleanup();
+    }, MENTOR_HOLD_MS);
+    return;
+  }
+
+  if (mode === 'mentor-silent') {
+    timer = setTimeout(() => {
+      if (closed) return;
+      sseFinish(response);
+      cleanup();
+    }, MENTOR_HOLD_MS);
+    return;
+  }
+
+  let index = 0;
+  const tick = () => {
+    if (closed) return;
+    if (index >= MENTOR_CITE_DELTAS.length) {
+      sseFinish(response);
+      cleanup();
+      return;
+    }
+    write({ choices: [{ delta: { content: MENTOR_CITE_DELTAS[index++] } }] });
+    timer = setTimeout(tick, 15);
+  };
+  timer = setTimeout(tick, 10);
 }
 
 /** Read at most `limit` bytes; resolves null when the body is too large. */
@@ -99,9 +210,21 @@ export function createProviderServer(initialMode = 'high') {
       const body = await readBounded(request, MAX_CHAT_BYTES);
       if (body === null) return send(response, 413, { error: 'too large' });
       state.requests += 1;
-      if (state.mode === 'fail')
+      if (state.mode === 'fail' || state.mode === 'mentor-fail')
         return send(response, 500, { error: { message: 'fixture failure' } });
-      return send(response, 200, buildCompletion(state.mode));
+
+      let streamRequested = false;
+      try {
+        streamRequested = JSON.parse(body)?.stream === true;
+      } catch {
+        streamRequested = false;
+      }
+      if (streamRequested) {
+        streamMentor(response, state.mode);
+        return;
+      }
+      // A JSON caller only exists for the M6 tasks; mentor modes never take this path.
+      return send(response, 200, buildCompletion(SCORE_BY_MODE[state.mode] ? state.mode : 'high'));
     }
 
     return send(response, 404, { error: 'not found' });
