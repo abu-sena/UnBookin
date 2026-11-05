@@ -489,8 +489,11 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
             placeholder={t('placeholder')}
             className="max-h-32 min-h-11 resize-none"
           />
+          {/* Distinct keys: if React reused one <button> and flipped it to type="submit" while the
+              stop click is still being handled, the browser would submit and resend the question. */}
           {streaming ? (
             <Button
+              key="stop"
               type="button"
               variant="outline"
               onClick={stop}
@@ -501,7 +504,7 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
               {t('stop')}
             </Button>
           ) : (
-            <Button type="submit" disabled={!canSend} className="shrink-0">
+            <Button key="send" type="submit" disabled={!canSend} className="shrink-0">
               <SendIcon aria-hidden="true" />
               {t('send')}
             </Button>
