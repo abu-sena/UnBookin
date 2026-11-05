@@ -217,7 +217,7 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       await page.reload();
       const reopened = await openSheet(page);
       await expect(reopened.getByText(ANSWER_MAIN, { exact: true })).toBeVisible();
-      await expect(reopened.locator('button[aria-haspopup="dialog"]').first()).toBeVisible();
+      await expect(reopened.locator('button[aria-expanded]').first()).toBeVisible();
       await expect(
         reopened.getByText(fill(copy.quota, { remaining: limit - 1 })),
       ).toBeVisible();
