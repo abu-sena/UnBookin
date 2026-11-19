@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   RETURN_PATH_PREFIX,
   isPhoneWidth,
+  isSafeReturnPath,
   readReturnPath,
   runSnapCheckout,
   storeReturnPath,
@@ -97,5 +98,13 @@ describe('runSnapCheckout', () => {
   it('treats < 768 px as a phone', () => {
     expect(isPhoneWidth(767)).toBe(true);
     expect(isPhoneWidth(768)).toBe(false);
+  });
+
+  it('only accepts same-site return paths', () => {
+    expect(isSafeReturnPath('/unbook/abc?x=1')).toBe(true);
+    expect(isSafeReturnPath('//evil.example')).toBe(false);
+    expect(isSafeReturnPath('/\\evil.example')).toBe(false);
+    expect(isSafeReturnPath('https://evil.example')).toBe(false);
+    expect(isSafeReturnPath('/ok path')).toBe(false);
   });
 });

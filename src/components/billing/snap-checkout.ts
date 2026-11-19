@@ -35,10 +35,15 @@ export function readReturnPath(orderId: string): string | null {
   if (!orderId) return null;
   try {
     const value = window.sessionStorage.getItem(`${RETURN_PATH_PREFIX}${orderId}`);
-    return value && value.startsWith('/') ? value : null;
+    return value && isSafeReturnPath(value) ? value : null;
   } catch {
     return null;
   }
+}
+
+/** Same-origin app paths only: `//host` and `/\host` are protocol-relative and would leave the site. */
+export function isSafeReturnPath(value: string): boolean {
+  return /^\/(?![/\\])[^\s]*$/.test(value);
 }
 
 export function isPhoneWidth(width: number): boolean {
