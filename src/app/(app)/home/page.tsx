@@ -1,7 +1,9 @@
 import { getTranslations } from 'next-intl/server';
+import { RenewalBanner } from '@/components/billing/renewal-banner';
 import { HomeGameOverview, HomeGameUnavailable } from '@/components/game/level-overview';
 import { HomeToday } from '@/components/home/home-today';
 import { PageHeader } from '@/components/ui-kit/page-header';
+import { getRenewalInfo } from '@/lib/billing/actions';
 import { requireOnboardedUser } from '@/lib/auth/session';
 import { getGameSummary, type GameSummary } from '@/lib/game/queries';
 import { LearningError } from '@/lib/learning/errors';
@@ -17,15 +19,30 @@ async function loadGameSummary(userId: string): Promise<GameSummary | null> {
   }
 }
 
+async function loadRenewal(): Promise<{ daysLeft: number | null; renewSoon: boolean } | null> {
+  try {
+    const result = await getRenewalInfo();
+    return result.ok ? result.data : null;
+  } catch {
+    // The renewal reminder must never break Home.
+    return null;
+  }
+}
+
 /** Home: the "Hari ini" card at the end of Alur A and the start of Alur B. */
 export default async function HomePage() {
   const user = await requireOnboardedUser('/home');
   const t = await getTranslations('pages');
-  const [library, gameSummary] = await Promise.all([
+  const [library, gameSummary, renewal] = await Promise.all([
     getMyLibrary({ q: '', interest: '', status: '' }),
     loadGameSummary(user.id),
+    loadRenewal(),
   ]);
   const nowIso = new Date().toISOString();
+  const renewalBanner =
+    renewal && renewal.renewSoon && renewal.daysLeft !== null ? (
+      <RenewalBanner daysLeft={renewal.daysLeft} />
+    ) : null;
   const gameBlock = gameSummary ? (
     <HomeGameOverview summary={gameSummary} />
   ) : (
@@ -36,6 +53,7 @@ export default async function HomePage() {
     return (
       <div className="flex flex-col gap-6">
         <PageHeader title={t('home.title')} />
+        {renewalBanner}
         <HomeToday
           hasAnyUnbooks={false}
           reviewDue={0}
@@ -77,6 +95,7 @@ export default async function HomePage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t('home.title')} />
+      {renewalBanner}
       <HomeToday
         hasAnyUnbooks
         reviewDue={reviewDue}

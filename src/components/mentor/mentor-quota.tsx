@@ -1,8 +1,8 @@
 'use client';
 
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
-import { useSyncExternalStore } from 'react';
+import { useState, useSyncExternalStore } from 'react';
+import { PaywallSheet } from '@/components/billing/paywall-sheet';
 import type { MentorAllowanceView } from '@/lib/mentor/protocol';
 
 /** Client-only date label: formatting depends on the browser time zone. */
@@ -48,21 +48,27 @@ export function QuotaSummary({ allowance }: { allowance: MentorAllowanceView | n
 
 export function QuotaEmptyNotice({ resetsAt }: { resetsAt: string }) {
   const t = useTranslations('mentor');
+  const billing = useTranslations('billing');
   const mounted = useMounted();
+  const [paywallOpen, setPaywallOpen] = useState(false);
   const label = mounted ? formatResetDate(resetsAt) : null;
 
   return (
-    <div className="border-border bg-surface-2 flex min-w-0 flex-col gap-2 rounded-[var(--radius-card)] border p-3">
-      <p className="text-small font-semibold">{t('quotaEmpty')}</p>
-      {label ? (
-        <p className="text-small text-text-muted">{t('quotaReset', { date: label })}</p>
-      ) : null}
-      <Link
-        href="/#harga-title"
-        className="text-primary text-small inline-flex min-h-11 w-fit items-center font-semibold hover:underline"
-      >
-        {t('quotaCta')}
-      </Link>
-    </div>
+    <>
+      <div className="border-border bg-surface-2 flex min-w-0 flex-col gap-2 rounded-[var(--radius-card)] border p-3">
+        <p className="text-small font-semibold">{t('quotaEmpty')}</p>
+        {label ? (
+          <p className="text-small text-text-muted">{t('quotaReset', { date: label })}</p>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => setPaywallOpen(true)}
+          className="text-primary text-small inline-flex min-h-11 w-fit items-center font-semibold hover:underline"
+        >
+          {billing('plans.upgrade')}
+        </button>
+      </div>
+      <PaywallSheet open={paywallOpen} onOpenChange={setPaywallOpen} />
+    </>
   );
 }

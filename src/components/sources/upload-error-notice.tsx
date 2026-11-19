@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
+import { PaywallSheet } from '@/components/billing/paywall-sheet';
 import { Button } from '@/components/ui/button';
 import type { PlanLimits } from '@/lib/billing/plan-limits';
 import type { SourceErrorCode } from '@/lib/sources/types';
@@ -28,6 +30,8 @@ export function UploadErrorNotice({
   onRetryCleanup,
 }: UploadErrorNoticeProps) {
   const t = useTranslations('sources.upload');
+  const billing = useTranslations('billing');
+  const [paywallOpen, setPaywallOpen] = useState(false);
 
   if (recovery) {
     return (
@@ -80,11 +84,23 @@ export function UploadErrorNotice({
           : t(`errors.${resolved}`);
 
   return (
-    <p
-      role="alert"
-      className="border-danger/30 bg-danger/5 text-danger text-small rounded-[var(--radius-card)] border p-3"
-    >
-      {message}
-    </p>
+    <>
+      <div
+        role="alert"
+        className="border-danger/30 bg-danger/5 text-danger text-small flex flex-col gap-2 rounded-[var(--radius-card)] border p-3"
+      >
+        <p>{message}</p>
+        {resolved === 'quotaExceeded' ? (
+          <button
+            type="button"
+            onClick={() => setPaywallOpen(true)}
+            className="text-primary inline-flex min-h-11 w-fit items-center font-semibold hover:underline"
+          >
+            {billing('plans.upgrade')}
+          </button>
+        ) : null}
+      </div>
+      <PaywallSheet open={paywallOpen} onOpenChange={setPaywallOpen} />
+    </>
   );
 }

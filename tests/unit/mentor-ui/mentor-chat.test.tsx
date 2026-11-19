@@ -20,6 +20,10 @@ vi.mock('@/lib/mentor/actions', () => ({
   getMentorCitationExcerpt: mocks.getMentorCitationExcerpt,
 }));
 vi.mock('@/lib/analytics/events', () => ({ track: mocks.track }));
+vi.mock('@/lib/billing/actions', () => ({
+  getPaywallConfig: vi.fn(),
+  startCheckout: vi.fn(),
+}));
 vi.mock('@/hooks/use-media-query', () => ({ useMediaQuery: () => true }));
 
 const fetchMock = vi.fn();
@@ -268,7 +272,7 @@ describe('mentor chat sheet', () => {
     expect(leftovers).toHaveLength(0);
   });
 
-  it('disables the input at zero quota and shows the refill date and pricing link', async () => {
+  it('disables the input at zero quota and shows the refill date and upgrade button', async () => {
     const empty = allowance(0);
     await openWith(threadPayload({ allowance: empty }));
 
@@ -278,10 +282,9 @@ describe('mentor chat sheet', () => {
     const expected = messages.mentor.quotaReset.replace('{date}', formatResetDate(empty.resetsAt));
     await waitFor(() => expect(screen.getByText(expected)).toBeInTheDocument());
 
-    expect(screen.getByRole('link', { name: messages.mentor.quotaCta })).toHaveAttribute(
-      'href',
-      '/#harga-title',
-    );
+    expect(
+      screen.getByRole('button', { name: messages.billing.plans.upgrade }),
+    ).toBeInTheDocument();
   });
 
   it('sends a suggestion chip as the user message', async () => {

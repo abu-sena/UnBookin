@@ -916,6 +916,138 @@
       "retry": "Coba lagi"
     }
   },
+  "billing": {
+    "common": {
+      "loading": "Memuat…",
+      "retry": "Coba lagi",
+      "cancel": "Batal",
+      "close": "Tutup"
+    },
+    "plans": {
+      "free": "Gratis",
+      "pro": "Pro",
+      "byok": "Pro BYOK",
+      "monthly": "Bulanan",
+      "yearly": "Tahunan",
+      "perMonth": "/bulan",
+      "perYear": "/tahun",
+      "savings": "Hemat {pct}%",
+      "current": "Paket aktif",
+      "selected": "Dipilih",
+      "choose": "Pilih paket ini",
+      "upgrade": "Tingkatkan paket",
+      "freeAlways": "Selalu gratis",
+      "unavailable": "Paket ini belum tersedia."
+    },
+    "paywall": {
+      "title": "Tingkatkan paketmu",
+      "description": "Pilih paket, lalu selesaikan pembayaran dengan aman lewat Midtrans.",
+      "choosePlan": "Pilih paket",
+      "pay": "Lanjutkan pembayaran",
+      "processing": "Menyiapkan pembayaran…",
+      "missingClientKey": "Pembayaran belum tersedia. Coba lagi nanti, ya.",
+      "checkoutFailed": "Pembayaran belum bisa dimulai. Coba lagi sebentar lagi, ya.",
+      "secure": "Pembayaran diproses oleh Midtrans. Data kartu tidak melewati Unbookin."
+    },
+    "langganan": {
+      "title": "Langganan",
+      "description": "Kelola paket, pembayaran, dan masa aktifmu.",
+      "currentPlan": "Paket aktif",
+      "freePlan": "Gratis",
+      "activeUntil": "Aktif sampai {date}",
+      "daysLeft": "{days} hari lagi",
+      "noActive": "Kamu sedang memakai paket Gratis. Tidak ada data yang dihapus.",
+      "chooseTitle": "Pilih paket",
+      "chooseDescription": "Harga di bawah adalah harga yang ditagih saat pembayaran.",
+      "renew": "Perpanjang",
+      "historyTitle": "Riwayat pembayaran",
+      "historyEmpty": "Belum ada pembayaran.",
+      "historyDate": "Tanggal",
+      "historyPlan": "Paket",
+      "historyAmount": "Jumlah",
+      "historyStatus": "Status",
+      "status": {
+        "pending": "Menunggu",
+        "paid": "Lunas",
+        "failed": "Gagal"
+      },
+      "order": {
+        "waitingTitle": "Menunggu pembayaran",
+        "waitingBody": "Setelah pembayaran selesai, status diperbarui otomatis di halaman ini.",
+        "paidTitle": "Paketmu aktif",
+        "paidBody": "{plan} aktif sampai {date}.",
+        "failedTitle": "Pembayaran belum berhasil",
+        "failedBody": "Tidak ada paket yang diaktifkan. Kamu bisa mencoba lagi.",
+        "timeoutTitle": "Pembayaran masih diproses",
+        "timeoutBody": "Kami belum menerima kabar dari Midtrans. Muat ulang halaman ini beberapa saat lagi.",
+        "backTo": "Kembali ke {path}",
+        "retry": "Coba lagi"
+      },
+      "errors": {
+        "orderLimitReached": "Terlalu banyak pesanan menunggu. Selesaikan atau tunggu sebentar, lalu coba lagi.",
+        "planUnavailable": "Paket ini sedang tidak tersedia.",
+        "paymentNotFound": "Pesanan tidak ditemukan.",
+        "midtransUnavailable": "Status pembayaran belum bisa dicek. Coba lagi nanti, ya.",
+        "generic": "Ada yang belum bisa diproses. Coba lagi sebentar lagi, ya."
+      }
+    },
+    "renewalBanner": {
+      "title": "Paketmu berakhir dalam {days} hari",
+      "cta": "Perpanjang"
+    },
+    "devUi": {
+      "title": "Langganan (M8)",
+      "description": "Pemilih paket, paywall, status pesanan, kartu Model AI, dan banner dengan data contoh.",
+      "planPicker": "Pemilih paket",
+      "paywall": "Paywall",
+      "openPaywall": "Buka paywall",
+      "statuses": "Status pesanan",
+      "byok": "Status Model AI",
+      "banner": "Banner perpanjangan"
+    }
+  },
+  "byokSettings": {
+    "title": "Model AI",
+    "description": "Hubungkan kunci OpenRouter milikmu untuk memakai paket Pro BYOK.",
+    "back": "Kembali ke Pengaturan",
+    "retry": "Coba lagi",
+    "status": {
+      "connected": "Terhubung · ••••{last4}",
+      "notConnected": "Belum terhubung",
+      "viaOauth": "Lewat OpenRouter OAuth",
+      "viaManual": "Kunci manual",
+      "lastVerified": "Terakhir diverifikasi {date}",
+      "notVerified": "Belum diverifikasi"
+    },
+    "connectOpenRouter": "Hubungkan OpenRouter",
+    "manualTitle": "Tempel kunci manual",
+    "manualDescription": "Kunci disimpan terenkripsi. Hanya 4 karakter terakhir yang ditampilkan.",
+    "keyLabel": "Kunci API OpenRouter",
+    "keyPlaceholder": "Tempel kunci di sini",
+    "saveKey": "Simpan kunci",
+    "saving": "Memeriksa kunci…",
+    "retest": "Uji ulang",
+    "retesting": "Menguji kunci…",
+    "disconnect": "Putuskan",
+    "disconnecting": "Memutuskan…",
+    "disconnectTitle": "Putuskan koneksi?",
+    "disconnectDescription": "Kunci OpenRouter akan dihapus dari akunmu. Kamu bisa menghubungkannya lagi nanti.",
+    "disconnectConfirm": "Ya, putuskan",
+    "cancel": "Batal",
+    "close": "Tutup",
+    "result": {
+      "connected": "OpenRouter berhasil terhubung.",
+      "failed": "OpenRouter belum berhasil terhubung. Coba lagi, ya."
+    },
+    "planNote": "BYOK membutuhkan paket Pro BYOK. Pilih paket itu di halaman Langganan agar kunci ini dipakai.",
+    "modelNote": "Pilihan model AI untuk pengguna BYOK menyusul di pembaruan berikutnya.",
+    "errors": {
+      "byokKeyRejected": "Kunci OpenRouter ditolak. Periksa lagi kuncinya, ya.",
+      "byokKeyMissing": "Belum ada kunci tersimpan. Hubungkan OpenRouter dulu.",
+      "invalidInput": "Kunci belum terlihat benar. Periksa lagi, ya.",
+      "generic": "Ada yang belum bisa diproses. Coba lagi sebentar lagi, ya."
+    }
+  },
   "mentor": {
     "button": "Tanya Mentor",
     "sheetTitle": "Mentor",
