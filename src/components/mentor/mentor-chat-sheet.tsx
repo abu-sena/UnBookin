@@ -155,6 +155,10 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
         return t('errors.sourceUnavailable');
       case 'notFound':
         return t('errors.notFound');
+      case 'byokKeyMissing':
+        return t('errors.byokKeyMissing');
+      case 'byokKeyRejected':
+        return t('errors.byokKeyRejected');
       case 'quotaExceeded':
         return t('quotaEmpty');
       case 'invalidInput':
@@ -281,7 +285,9 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
               ),
             );
             setInput(text);
-            setNotice({ text: t('notices.refunded') });
+            // A BYOK key problem needs the fix-your-key message; the refund note alone would hide it.
+            const byok = event.code === 'byokKeyMissing' || event.code === 'byokKeyRejected';
+            setNotice({ text: byok ? errorText(event.code) : t('notices.refunded') });
           } else {
             setMessages((previous) =>
               previous.map((message) =>

@@ -4,6 +4,8 @@ export const MENTOR_ERROR_CODES = [
   'quotaExceeded',
   'rateLimited',
   'sourceUnavailable',
+  'byokKeyMissing',
+  'byokKeyRejected',
   'failed',
 ] as const;
 export type MentorErrorCode = (typeof MENTOR_ERROR_CODES)[number];

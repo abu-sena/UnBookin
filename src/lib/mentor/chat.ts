@@ -95,12 +95,12 @@ function jsonError(
 }
 
 /**
- * A BYOK key problem is a safe turn failure: the contract has no dedicated
- * mentor code yet, and the pre-text refund rule below still applies.
+ * A BYOK key problem gets its own code so the user is told to fix the key (E12 AC6); the
+ * pre-text refund rule below still applies.
  */
 function mentorCodeFor(error: unknown): MentorErrorCode {
   if (error instanceof SourceError) {
-    if (error.code === 'byokKeyMissing' || error.code === 'byokKeyRejected') return 'failed';
+    if (error.code === 'byokKeyMissing' || error.code === 'byokKeyRejected') return error.code;
   }
   return toMentorErrorCode(error);
 }

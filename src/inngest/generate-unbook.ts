@@ -28,6 +28,9 @@ const NON_RETRIABLE_CODES: ReadonlySet<SourceErrorCode> = new Set([
   'notFound',
   'configurationMissing',
   'rightsRequired',
+  // Retrying cannot fix the user's own key; stop and show the BYOK message.
+  'byokKeyMissing',
+  'byokKeyRejected',
 ]);
 
 function toStepError(error: unknown): Error {

@@ -207,6 +207,21 @@ describe('mentor chat sheet', () => {
     expect(screen.getByRole('button', { name: 'hlm. 3' })).toHaveAttribute('aria-expanded', 'true');
   });
 
+  it('tells a BYOK user to fix the key when the turn is refunded', async () => {
+    fetchMock.mockResolvedValue(
+      eventStream([
+        started,
+        { type: 'error', code: 'byokKeyRejected', refunded: true, allowance: allowance(17) },
+      ]),
+    );
+    await openWith(threadPayload());
+
+    sendMessage('Apa intinya?');
+
+    expect(await screen.findByText(messages.mentor.errors.byokKeyRejected)).toBeInTheDocument();
+    expect(screen.getByRole('textbox')).toHaveValue('Apa intinya?');
+  });
+
   it('mirrors the server refund when stopped before any text', async () => {
     fetchMock.mockImplementation((_url: string, init?: RequestInit) => {
       const stream = new ReadableStream<Uint8Array>({
