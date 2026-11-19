@@ -145,6 +145,22 @@ describe('SubscriptionSettings', () => {
     expect(vi.mocked(getOrderStatus)).toHaveBeenCalledTimes(1);
   });
 
+  it('stops polling and shows not found for an order that is not the user’s', async () => {
+    vi.useFakeTimers();
+    vi.mocked(getOrderStatus).mockResolvedValue({ ok: false, error: 'paymentNotFound' });
+    const { container } = renderSettings({ initialOrderId: 'UB-foreign' });
+
+    await act(async () => {});
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(POLL_INTERVAL_MS * 2);
+    });
+
+    expect(container.querySelector('[data-phase="failed"]')).not.toBeNull();
+    expect(screen.getByText('Pesanan tidak ditemukan.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Coba lagi' })).toBeNull();
+    expect(vi.mocked(getOrderStatus)).toHaveBeenCalledTimes(1);
+  });
+
   it('times out after the polling window', async () => {
     vi.useFakeTimers();
     vi.mocked(getOrderStatus).mockResolvedValue(pendingView);

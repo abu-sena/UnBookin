@@ -36,6 +36,7 @@ export function OrderStatusPanel({ orderId, plans }: OrderStatusPanelProps) {
   const t = useTranslations('billing');
   const [phase, setPhase] = useState<OrderPhase>('waiting');
   const [view, setView] = useState<OrderStatusView | null>(null);
+  const [notFound, setNotFound] = useState(false);
   const [overview, setOverview] = useState<SubscriptionOverview | null>(null);
   const [pollKey, setPollKey] = useState(0);
   const returnPath = useSyncExternalStore(
@@ -64,6 +65,11 @@ export function OrderStatusPanel({ orderId, plans }: OrderStatusPanelProps) {
           setPhase('failed');
           return;
         }
+      } else if (result.error === 'paymentNotFound' || result.error === 'invalidInput') {
+        // Not this user's order (or not an order at all): polling cannot change that.
+        setNotFound(true);
+        setPhase('failed');
+        return;
       }
       attempts += 1;
       if (attempts >= MAX_POLLS) {
@@ -115,7 +121,9 @@ export function OrderStatusPanel({ orderId, plans }: OrderStatusPanelProps) {
                 })
               : planName
             : phase === 'failed'
-              ? t('langganan.order.failedBody')
+              ? notFound
+                ? t('langganan.errors.paymentNotFound')
+                : t('langganan.order.failedBody')
               : t('langganan.order.timeoutBody')}
       </p>
       {phase === 'paid' && returnPath ? (
@@ -123,7 +131,7 @@ export function OrderStatusPanel({ orderId, plans }: OrderStatusPanelProps) {
           <Link href={returnPath}>{t('langganan.order.backTo', { path: returnPath })}</Link>
         </Button>
       ) : null}
-      {phase === 'failed' || phase === 'timeout' ? (
+      {(phase === 'failed' && !notFound) || phase === 'timeout' ? (
         <Button type="button" variant="outline" className="min-h-11 self-start" onClick={retry}>
           {t('langganan.order.retry')}
         </Button>

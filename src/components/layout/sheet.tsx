@@ -54,7 +54,9 @@ export function Sheet({ open, onOpenChange, title, description, children }: Resp
           <DrawerTitle className="text-h3">{title}</DrawerTitle>
           {description ? <DrawerDescription>{description}</DrawerDescription> : null}
         </DrawerHeader>
-        <div className="px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">{children}</div>
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+          {children}
+        </div>
       </DrawerContent>
     </Drawer>
   );
