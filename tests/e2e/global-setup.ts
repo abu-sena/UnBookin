@@ -23,6 +23,16 @@ export default async function globalSetup(): Promise<void> {
     run('scripts/dev/seed-journal.ts', []);
     try {
       run('scripts/dev/seed-mentor.ts', []);
+      try {
+        run('scripts/dev/seed-billing.ts', []);
+      } catch (error) {
+        try {
+          run('scripts/dev/seed-billing.ts', ['--cleanup']);
+        } catch {
+          // Keep the original failure and still unwind the rest.
+        }
+        throw error;
+      }
     } catch (error) {
       // The mentor seed restores its own config on failure; unwind the earlier seeds too.
       try {

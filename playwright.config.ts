@@ -11,6 +11,15 @@ import {
   E2E_PROVIDER_ORIGIN,
   E2E_PROVIDER_PORT,
 } from './tests/e2e/support/config';
+import {
+  E2E_BYOK_ENCRYPTION_KEY,
+  E2E_FIXTURE_BYOK_KEY,
+  E2E_MIDTRANS_API_URL,
+  E2E_MIDTRANS_CLIENT_KEY,
+  E2E_MIDTRANS_SERVER_KEY,
+  E2E_MIDTRANS_SNAP_URL,
+  E2E_OPENROUTER_AUTH_URL,
+} from './tests/e2e/support/billing';
 import { assertLocalBaseUrl, assertLocalTestDatabase } from './tests/e2e/support/guards';
 
 // Refuse production URLs / databases before Playwright starts anything.
@@ -65,7 +74,11 @@ export default defineConfig({
       url: `${E2E_PROVIDER_ORIGIN}/health`,
       reuseExistingServer: false,
       timeout: 30_000,
-      env: { E2E_PROVIDER_PORT: String(E2E_PROVIDER_PORT) },
+      env: {
+        E2E_PROVIDER_PORT: String(E2E_PROVIDER_PORT),
+        E2E_MIDTRANS_SERVER_KEY,
+        E2E_BYOK_FIXTURE_KEY: E2E_FIXTURE_BYOK_KEY,
+      },
     },
     {
       command: `pnpm build && pnpm exec next start --port ${E2E_PORT}`,
@@ -84,6 +97,13 @@ export default defineConfig({
         NEXT_TELEMETRY_DISABLED: '1',
         OPENROUTER_BASE_URL: E2E_PROVIDER_BASE_URL,
         OPENROUTER_API_KEY: E2E_PROVIDER_KEY,
+        MIDTRANS_SERVER_KEY: E2E_MIDTRANS_SERVER_KEY,
+        MIDTRANS_CLIENT_KEY: E2E_MIDTRANS_CLIENT_KEY,
+        MIDTRANS_SNAP_URL: E2E_MIDTRANS_SNAP_URL,
+        MIDTRANS_API_URL: E2E_MIDTRANS_API_URL,
+        OPENROUTER_AUTH_URL: E2E_OPENROUTER_AUTH_URL,
+        BYOK_ENCRYPTION_KEY: E2E_BYOK_ENCRYPTION_KEY,
+        BYOK_ENCRYPTION_KEY_VERSION: '1',
         TZ: 'UTC',
       },
     },
