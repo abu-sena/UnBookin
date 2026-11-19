@@ -108,7 +108,10 @@ test.describe('Alur A — module, action, quiz pass', () => {
     await signInWithSeed(context, seed);
     await page.goto('/home');
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(page.getByText(id.home.today.actionsTitle)).toBeVisible();
+    // `.first()`: while a streamed section is swapped in, its hidden copy briefly sits in the DOM.
+    await expect(
+      page.getByRole('heading', { name: id.home.today.actionsTitle, exact: true }).first(),
+    ).toBeVisible();
     await expect(page.getByText(id.home.today.actionsEmpty)).toHaveCount(0);
     await expect(page.getByText(/^Review besok: \d+ kartu$/)).toBeVisible();
     await expectNoHorizontalOverflow(page);

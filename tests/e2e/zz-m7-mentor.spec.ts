@@ -279,7 +279,11 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       const messagesBefore = (await readMentorMessages(db, learning.userId)).length;
 
       await setMentorProviderMode('mentor-silent');
+      const limit = await readFreeMentorLimit(db);
       await sendQuestion(page, sheet, SILENT_QUESTION);
+      // Stop only once the server has reserved quota and saved the question (the `started` event),
+      // otherwise the test races the server instead of exercising the refund.
+      await expect(sheet.getByText(fill(copy.quota, { remaining: limit - before - 1 }))).toBeVisible();
       await sheet.getByRole('button', { name: copy.stop, exact: true }).click();
       await expect(sheet.getByText(copy.notices.refunded).first()).toBeVisible();
       const input = sheet.getByRole('textbox', { name: copy.placeholder });
@@ -288,8 +292,12 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       await expect
         .poll(() => readMentorUsage(db, learning.userId), { timeout: 40_000 })
         .toBe(before);
+      await expect
+        .poll(async () => (await readMentorMessages(db, learning.userId)).length, {
+          timeout: 40_000,
+        })
+        .toBe(messagesBefore);
       const messages = await readMentorMessages(db, learning.userId);
-      expect(messages.length).toBe(messagesBefore);
       expect(messages.some((row) => row.content === SILENT_QUESTION)).toBe(false);
       await expect(sheet.locator('p', { hasText: SILENT_QUESTION })).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
@@ -317,8 +325,12 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       await expect(input).toHaveValue(FAIL_QUESTION);
 
       expect(await readMentorUsage(db, learning.userId)).toBe(before);
+      await expect
+        .poll(async () => (await readMentorMessages(db, learning.userId)).length, {
+          timeout: 40_000,
+        })
+        .toBe(messagesBefore);
       const messages = await readMentorMessages(db, learning.userId);
-      expect(messages.length).toBe(messagesBefore);
       expect(messages.some((row) => row.content === FAIL_QUESTION)).toBe(false);
       await expect(sheet.locator('p', { hasText: FAIL_QUESTION })).toHaveCount(0);
       await expectNoHorizontalOverflow(page);

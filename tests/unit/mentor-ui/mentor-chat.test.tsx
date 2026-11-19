@@ -5,7 +5,7 @@ import { shouldAutoScroll } from '@/components/mentor/chat-scroll';
 import { MentorChatSheet } from '@/components/mentor/mentor-chat-sheet';
 import { formatResetDate } from '@/components/mentor/mentor-quota';
 import { formatMentorEvent, toAllowanceView, type MentorStreamEvent } from '@/lib/mentor/protocol';
-import { MESSAGE_ID, THREAD_ID, UNBOOK_ID, USER_MESSAGE_ID, renderWithIntl } from './harness';
+import { CHUNK_ID, MESSAGE_ID, THREAD_ID, UNBOOK_ID, USER_MESSAGE_ID, renderWithIntl } from './harness';
 
 const mocks = vi.hoisted(() => ({
   openMentorThread: vi.fn(),
@@ -167,6 +167,44 @@ describe('mentor chat sheet', () => {
     );
     expect(screen.getByText('Sebagian')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: messages.mentor.send })).toBeInTheDocument();
+  });
+
+  it('keeps an opened citation open when the answer finishes', async () => {
+    let push: (event: MentorStreamEvent) => void = () => {};
+    let finish: () => void = () => {};
+    fetchMock.mockImplementation(() => {
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          push = (event) => controller.enqueue(encoder.encode(formatMentorEvent(event)));
+          finish = () => controller.close();
+        },
+      });
+      return Promise.resolve(new Response(stream, { status: 200 }));
+    });
+    mocks.getMentorCitationExcerpt.mockResolvedValue({
+      ok: true,
+      chunkId: CHUNK_ID,
+      pageFrom: 3,
+      pageTo: 3,
+      text: 'Kutipan yang tetap terbuka.',
+    });
+    await openWith(threadPayload());
+
+    sendMessage('Apa intinya?');
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+    push(started);
+    push({ type: 'segment', segment: { type: 'text', text: 'Isi ' } });
+    push({ type: 'segment', segment: { type: 'citation', n: 1, chunkId: CHUNK_ID, page: 3 } });
+    fireEvent.click(await screen.findByRole('button', { name: 'hlm. 3' }));
+    expect(await screen.findByText('Kutipan yang tetap terbuka.')).toBeInTheDocument();
+
+    push(done);
+    finish();
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: messages.mentor.send })).toBeInTheDocument(),
+    );
+    expect(screen.getByText('Kutipan yang tetap terbuka.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'hlm. 3' })).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('mirrors the server refund when stopped before any text', async () => {

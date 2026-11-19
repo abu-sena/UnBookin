@@ -36,6 +36,8 @@ export type MentorChatMessage = {
   createdAt: string;
   streaming?: boolean;
   note?: string;
+  /** Stable React key: the temporary id, kept when the server id replaces it, so open citations survive. */
+  renderKey?: string;
 };
 
 type Notice = { text: string; retryText?: string };
@@ -227,7 +229,9 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
             setAllowance(event.allowance);
             setMessages((previous) =>
               previous.map((message) =>
-                message.id === tempId ? { ...message, id: event.userMessageId } : message,
+                message.id === tempId
+                  ? { ...message, id: event.userMessageId, renderKey: tempId }
+                  : message,
               ),
             );
             continue;
@@ -256,6 +260,7 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
                   ? {
                       ...message,
                       id: event.messageId,
+                      renderKey: assistantId,
                       streaming: false,
                       note: event.finish === 'aborted' ? t('notices.stopped') : undefined,
                     }
@@ -440,7 +445,11 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
               </p>
             ) : null}
             {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} threadId={threadId ?? ''} />
+              <MessageBubble
+                key={message.renderKey ?? message.id}
+                message={message}
+                threadId={threadId ?? ''}
+              />
             ))}
             {showSuggestions ? (
               <SuggestionChips
