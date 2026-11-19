@@ -91,16 +91,11 @@ function orderIdFrom(page: Page): string {
   return order!;
 }
 
-/**
- * The paywall can be nested in the mentor drawer, where the pay button sits
- * below a transformed/scroll-locked sheet and Playwright refuses to scroll it
- * into view. Dispatch the DOM click instead; React handles it identically.
- */
 async function payAndReturn(page: Page, button: Locator): Promise<string> {
   await expect(button).toBeEnabled();
   await Promise.all([
     page.waitForURL(/\/settings\/langganan\?order=/, { timeout: 30_000 }),
-    button.evaluate((element) => (element as HTMLElement).click()),
+    button.click(),
   ]);
   return orderIdFrom(page);
 }
@@ -513,7 +508,7 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       }
     });
 
-    test.fixme(
+    test(
       'an unknown order shows the not-found state instead of polling to timeout',
       async ({ page, context }) => {
         await blockMidtrans(page);
