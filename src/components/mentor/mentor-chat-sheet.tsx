@@ -262,8 +262,8 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
                   : message,
               ),
             );
-            if (event.finish === 'aborted') setNotice({ text: t('notices.stopped') });
-            else setAnnouncement(answerText.trim());
+            // A stopped answer already carries its note inside the bubble; no second notice.
+            if (event.finish !== 'aborted') setAnnouncement(answerText.trim());
             continue;
           }
 
@@ -329,7 +329,6 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
               : message,
           ),
         );
-        setNotice({ text: t('notices.stopped') });
       } else {
         setMessages((previous) =>
           previous.map((message) =>
