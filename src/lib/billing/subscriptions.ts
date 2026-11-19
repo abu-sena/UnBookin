@@ -75,14 +75,14 @@ export async function applyPaidPayment(
       id: plans.id,
       code: plans.code,
       interval: plans.interval,
-      priceIdr: plans.priceIdr,
-      isActive: plans.isActive,
     })
     .from(plans)
     .where(eq(plans.id, payment.refId))
     .limit(1);
 
-  if (!plan || !plan.isActive || plan.code === 'free' || plan.priceIdr <= 0) {
+  // `isActive` is checked when the order is created, not here: once the user has paid, a plan
+  // retired in the meantime must still be delivered.
+  if (!plan || plan.code === 'free') {
     throw new BillingError('planUnavailable');
   }
 
