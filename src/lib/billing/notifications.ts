@@ -176,14 +176,14 @@ export async function applyVerifiedNotification(
         await markPaymentFailed(tx, payment.id, failedStatusFor(data));
       }
 
-      if (mapped === 'pending') {
-        await tx
-          .update(payments)
-          .set({ paymentType: data.payment_type ?? null, raw: redacted })
-          .where(eq(payments.id, payment.id));
-      } else {
-        await tx.update(payments).set({ raw: redacted }).where(eq(payments.id, payment.id));
-      }
+      // Keep the payment method for the history view whatever the outcome; never blank a known one.
+      await tx
+        .update(payments)
+        .set({
+          raw: redacted,
+          ...(data.payment_type ? { paymentType: data.payment_type } : {}),
+        })
+        .where(eq(payments.id, payment.id));
     });
 
     return { status: 200 };
