@@ -15,16 +15,16 @@ function mount() {
 }
 
 describe('SettingsList', () => {
-  it('renders six rows with four marked as coming soon', () => {
+  it('renders six rows with two marked as coming soon', () => {
     const { container } = mount();
 
     expect(screen.getAllByRole('listitem')).toHaveLength(6);
-    expect(screen.getAllByText(messages.settings.comingSoon)).toHaveLength(4);
-    expect(container.querySelectorAll('[aria-disabled="true"]')).toHaveLength(4);
-    expect(screen.getAllByRole('link')).toHaveLength(2);
+    expect(screen.getAllByText(messages.settings.comingSoon)).toHaveLength(2);
+    expect(container.querySelectorAll('[aria-disabled="true"]')).toHaveLength(2);
+    expect(screen.getAllByRole('link')).toHaveLength(4);
   });
 
-  it('links the two live rows to their settings pages', () => {
+  it('links the four live rows to their settings pages', () => {
     mount();
 
     expect(

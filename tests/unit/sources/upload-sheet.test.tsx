@@ -19,6 +19,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('@/lib/sources/actions', () => mocks.actions);
+vi.mock('@/lib/billing/actions', () => ({
+  getPaywallConfig: vi.fn(),
+  startCheckout: vi.fn(),
+}));
 vi.mock('@/components/layout/sheet', () => ({
   Sheet: ({
     open,
