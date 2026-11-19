@@ -21,12 +21,28 @@ export default async function globalSetup(): Promise<void> {
   run('scripts/dev/seed-learning.ts', []);
   try {
     run('scripts/dev/seed-journal.ts', []);
+    try {
+      run('scripts/dev/seed-mentor.ts', []);
+    } catch (error) {
+      // The mentor seed restores its own config on failure; unwind the earlier seeds too.
+      try {
+        run('scripts/dev/seed-mentor.ts', ['--cleanup']);
+      } catch {
+        // Keep the original failure and still unwind the rest.
+      }
+      throw error;
+    }
   } catch (error) {
-    // The journal seed restores its own config on failure; also drop the learner now.
+    // Journal or mentor seeding failed: restore configs and drop every fixture user.
     try {
       run('scripts/dev/seed-journal.ts', ['--cleanup']);
-    } finally {
+    } catch {
+      // Best effort; the original failure matters more.
+    }
+    try {
       run('scripts/dev/seed-learning.ts', ['--cleanup']);
+    } catch {
+      // Best effort; the original failure matters more.
     }
     throw error;
   }

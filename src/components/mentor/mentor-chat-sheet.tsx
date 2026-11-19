@@ -262,8 +262,8 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
                   : message,
               ),
             );
-            if (event.finish === 'aborted') setNotice({ text: t('notices.stopped') });
-            else setAnnouncement(answerText.trim());
+            // A stopped answer already carries its note inside the bubble; no second notice.
+            if (event.finish !== 'aborted') setAnnouncement(answerText.trim());
             continue;
           }
 
@@ -329,7 +329,6 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
               : message,
           ),
         );
-        setNotice({ text: t('notices.stopped') });
       } else {
         setMessages((previous) =>
           previous.map((message) =>
@@ -489,8 +488,11 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
             placeholder={t('placeholder')}
             className="max-h-32 min-h-11 resize-none"
           />
+          {/* Distinct keys: if React reused one <button> and flipped it to type="submit" while the
+              stop click is still being handled, the browser would submit and resend the question. */}
           {streaming ? (
             <Button
+              key="stop"
               type="button"
               variant="outline"
               onClick={stop}
@@ -501,7 +503,7 @@ export function MentorChatSheet({ open, onOpenChange, unbookId, moduleId }: Ment
               {t('stop')}
             </Button>
           ) : (
-            <Button type="submit" disabled={!canSend} className="shrink-0">
+            <Button key="send" type="submit" disabled={!canSend} className="shrink-0">
               <SendIcon aria-hidden="true" />
               {t('send')}
             </Button>

@@ -14,11 +14,14 @@ function run(script: string): number | null {
 
 export default async function globalTeardown(): Promise<void> {
   assertLocalTestDatabase(E2E_DATABASE_URL);
-  // Journal first (restores task config, removes foreign user), learner last.
-  // Both always run, even when the first cleanup fails.
+  // Mentor first (restores its task config), then journal, learner last.
+  // All always run, even when an earlier cleanup fails.
+  const mentor = run('scripts/dev/seed-mentor.ts');
   const journal = run('scripts/dev/seed-journal.ts');
   const learning = run('scripts/dev/seed-learning.ts');
-  if (journal !== 0 || learning !== 0) {
-    throw new Error(`E2E cleanup failed (journal ${journal}, learning ${learning}).`);
+  if (mentor !== 0 || journal !== 0 || learning !== 0) {
+    throw new Error(
+      `E2E cleanup failed (mentor ${mentor}, journal ${journal}, learning ${learning}).`,
+    );
   }
 }

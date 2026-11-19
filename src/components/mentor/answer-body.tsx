@@ -61,7 +61,7 @@ function SegmentList({ segments, renderCitation }: SegmentListProps) {
         }
         if (segment.type === 'citation') {
           return (
-            <span key={index} className="inline-flex max-w-full align-middle">
+            <span key={index} className="max-w-full align-middle">
               {renderCitation(segment)}
             </span>
           );
