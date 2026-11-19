@@ -46,11 +46,13 @@ const rows: SettingsRow[] = [
     labelKey: 'aiModel',
     descriptionKey: 'aiModelDescription',
     icon: BotIcon,
+    href: '/settings/model-ai',
   },
   {
     labelKey: 'subscription',
     descriptionKey: 'subscriptionDescription',
     icon: CreditCardIcon,
+    href: '/settings/langganan',
   },
   {
     labelKey: 'notifications',
