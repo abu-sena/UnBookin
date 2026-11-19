@@ -26,6 +26,7 @@ export const byokKeys = pgTable('byok_keys', {
   encryptedKey: text().notNull(),
   iv: text().notNull(),
   authTag: text().notNull(),
+  keyVersion: integer().notNull().default(1),
   last4: text().notNull(),
   connectedVia: byokConnection().notNull(),
   verifiedAt: timestamp({ withTimezone: true }),

@@ -43,6 +43,13 @@
       "when": 1793116494326,
       "tag": "0005_curious_sir_ram",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795094527338,
+      "tag": "0006_cool_blizzard",
+      "breakpoints": true
     }
   ]
 }
