@@ -21,6 +21,8 @@ export const SOURCE_ERROR_CODES = [
   'notFound',
   'processingFailed',
   'configurationMissing',
+  'byokKeyMissing',
+  'byokKeyRejected',
 ] as const;
 
 export type SourceErrorCode = (typeof SOURCE_ERROR_CODES)[number];

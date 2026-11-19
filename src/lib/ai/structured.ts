@@ -3,6 +3,8 @@ import { z, type ZodType } from 'zod';
 import { db } from '@/db';
 import { aiCalls } from '@/db/schema';
 import { getTaskConfig } from '@/lib/ai/task-config';
+import { resolveActivePlan } from '@/lib/billing/active-plan';
+import { loadPlainKey } from '@/lib/byok/store';
 import { SourceError, type SourceErrorCode } from '@/lib/sources/errors';
 
 type Message = { role: 'system' | 'user' | 'assistant'; content: string };
@@ -34,11 +36,19 @@ export type StructuredTaskResult<T> = {
  * M8 adds BYOK selection (PRD §7.2 step 2, AC6), with no silent fallback to
  * the platform key when a user's BYOK key fails. Embedding stays platform-only.
  */
-export function resolveTaskKey(userId: string): string {
-  void userId;
+export type TaskKey = { key: string; byok: boolean };
+
+export async function resolveTaskKey(userId: string): Promise<TaskKey> {
+  const plan = await resolveActivePlan(userId);
+  if (plan?.byok) {
+    // Never fall back to the platform key for a BYOK plan (E12 AC6).
+    const key = await loadPlainKey(userId);
+    if (!key) throw new SourceError('byokKeyMissing');
+    return { key, byok: true };
+  }
   const key = process.env.OPENROUTER_API_KEY?.trim();
   if (!key) throw new SourceError('configurationMissing');
-  return key;
+  return { key, byok: false };
 }
 
 const MAX_RESPONSE_BYTES = 1_048_576;
@@ -120,7 +130,8 @@ export async function runStructuredTask<T>(
   input: StructuredTaskInput<T>,
 ): Promise<StructuredTaskResult<T>> {
   const config = await getTaskConfig(input.task);
-  const key = resolveTaskKey(input.userId);
+  const taskKey = await resolveTaskKey(input.userId);
+  const key = taskKey.key;
   const baseUrl = process.env.OPENROUTER_BASE_URL?.trim() || 'https://openrouter.ai/api/v1';
   const jsonSchema = z.toJSONSchema(input.schema);
   const totals = { costUsd: 0, costComplete: true, calls: 0 };
@@ -174,7 +185,12 @@ export async function runStructuredTask<T>(
         if (!response.ok) {
           canFallback =
             response.status === 408 || response.status === 429 || response.status >= 500;
-          if (response.status === 401 || response.status === 403) {
+          if (
+            taskKey.byok &&
+            (response.status === 401 || response.status === 402 || response.status === 403)
+          ) {
+            errorCode = 'byokKeyRejected';
+          } else if (response.status === 401 || response.status === 403) {
             errorCode = 'configurationMissing';
           }
           // Error bodies can contain vendor/user content; never read or log them.
@@ -215,11 +231,13 @@ export async function runStructuredTask<T>(
         }
       } catch {
         status = 'failed';
-        if (errorCode !== 'configurationMissing') errorCode = 'generationUnavailable';
+        if (errorCode !== 'configurationMissing' && errorCode !== 'byokKeyRejected') {
+          errorCode = 'generationUnavailable';
+        }
       } finally {
         totals.costUsd += usage.costUsd ?? 0;
         if (usage.costUsd === null) totals.costComplete = false;
-        await logCall(input, model, usage, status, errorCode, Date.now() - startedAt);
+        await logCall(input, model, usage, status, errorCode, Date.now() - startedAt, taskKey.byok);
       }
       if (result) return { data: result.data, model, usedFallback: modelIndex > 0, ...totals };
       if (status === 'failed') {
@@ -250,13 +268,14 @@ async function logCall<T>(
   status: 'succeeded' | 'failed' | 'invalid',
   error: SourceErrorCode | null,
   latencyMs: number,
+  byok: boolean,
 ): Promise<void> {
   try {
     await db.insert(aiCalls).values({
       userId: input.userId,
       task: input.task,
       model,
-      byok: false,
+      byok,
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       costUsd: usage.costUsd === null ? null : usage.costUsd.toFixed(6),

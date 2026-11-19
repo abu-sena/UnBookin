@@ -7,9 +7,13 @@ const mocks = vi.hoisted(() => ({
   fetch: vi.fn(),
   limit: vi.fn(),
   values: vi.fn(),
+  resolveActivePlan: vi.fn(),
+  loadPlainKey: vi.fn(),
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/db', () => ({ db: { select: mocks.select, insert: mocks.insert } }));
+vi.mock('@/lib/billing/active-plan', () => ({ resolveActivePlan: mocks.resolveActivePlan }));
+vi.mock('@/lib/byok/store', () => ({ loadPlainKey: mocks.loadPlainKey }));
 import { runStructuredTask } from '@/lib/ai/structured';
 import { resetTaskConfigCache } from '@/lib/ai/task-config';
 
@@ -51,6 +55,8 @@ function body(index = 0) {
 }
 beforeEach(() => {
   resetTaskConfigCache();
+  mocks.resolveActivePlan.mockReset().mockResolvedValue({ byok: false });
+  mocks.loadPlainKey.mockReset().mockResolvedValue(null);
   vi.stubEnv('OPENROUTER_API_KEY', 'platform-test-key');
   vi.stubEnv('OPENROUTER_BASE_URL', 'https://gateway.local/api/v1');
   mocks.limit.mockReset().mockResolvedValue([config]);
