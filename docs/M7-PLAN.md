@@ -1,6 +1,6 @@
 # Rencana M7 — Mentor AI
 
-Status: **keputusan #1–#4 disetujui founder 3 Nov 2026**. Belum ada kode M7 yang ditulis.
+Status: **kode selesai 19 Nov 2026** (keputusan #1–#4 disetujui founder 3 Nov 2026). E2E 375 px terang/gelap lulus dengan penyedia palsu; mutu jawaban model nyata menunggu konfigurasi founder (`docs/M7-SETUP.md`).
 
 M7 mencakup PRD §8 E10-01 (AC1–AC6). Milestone selesai bila **jawaban bersitasi** dan **kuota pesan bekerja** (PRD §15).
 
