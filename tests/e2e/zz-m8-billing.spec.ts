@@ -340,22 +340,22 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       const bannerText = fill(billingCopy.renewalBanner.title, { days: 5 });
 
       await page.goto('/home');
-      await expect(page.getByText(bannerText)).toBeVisible();
+      await expect(page.getByRole('main').getByText(bannerText)).toBeVisible();
       await expectNoHorizontalOverflow(page);
       await capture(page, `m8-${scheme}-10-home-banner`);
       await page.goto('/settings/langganan');
-      await expect(page.getByText(bannerText)).toBeVisible();
+      await expect(page.getByRole('main').getByText(bannerText)).toBeVisible();
       await expectNoHorizontalOverflow(page);
       await capture(page, `m8-${scheme}-11-langganan-banner`);
 
       await setLearnerPlan(db, userId, 'pro_monthly', new Date(Date.now() + 10 * day));
       const bannerRegex = /Paketmu berakhir dalam/;
       await page.goto('/home');
-      await expect(page.getByText(bannerRegex)).toHaveCount(0);
+      await expect(page.getByRole('main').getByText(bannerRegex)).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
       await capture(page, `m8-${scheme}-12-home-no-banner`);
       await page.goto('/settings/langganan');
-      await expect(page.getByText(bannerRegex)).toHaveCount(0);
+      await expect(page.getByRole('main').getByText(bannerRegex)).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
       await capture(page, `m8-${scheme}-13-langganan-no-banner`);
     });

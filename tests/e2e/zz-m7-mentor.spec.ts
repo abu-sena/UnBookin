@@ -340,7 +340,7 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
       });
     });
 
-    test('quota empty disables the input and offers the reset date and pricing link', async ({
+    test('quota empty disables the input and offers the reset date and upgrade button', async ({
       page,
       context,
     }) => {
@@ -359,9 +359,8 @@ for (const scheme of ['light', 'dark'] as ColorSchemeName[]) {
         await expect(
           sheet.getByText(fill(copy.quotaReset, { date: nextResetLabel() })),
         ).toBeVisible();
-        const cta = sheet.getByRole('link', { name: copy.quotaCta });
-        await expect(cta).toBeVisible();
-        await expect(cta).toHaveAttribute('href', '/#harga-title');
+        // M8: the pricing link became an Upgrade button that opens the paywall sheet.
+        await expect(sheet.getByRole('button', { name: id.billing.plans.upgrade })).toBeVisible();
 
         const requests = await mentorProviderRequestCount();
         await page.waitForTimeout(1_000);
