@@ -139,13 +139,14 @@ async function logCall(values: {
   status: 'succeeded' | 'failed' | 'aborted';
   error: SourceErrorCode | null;
   promptVersion: string;
+  byok: boolean;
 }): Promise<void> {
   try {
     await db.insert(aiCalls).values({
       userId: values.userId,
       task: values.task,
       model: values.model,
-      byok: false,
+      byok: values.byok,
       inputTokens: values.usage.inputTokens,
       outputTokens: values.usage.outputTokens,
       costUsd: values.usage.costUsd === null ? null : values.usage.costUsd.toFixed(6),
@@ -159,7 +160,8 @@ async function logCall(values: {
   }
 }
 
-function errorCodeForStatus(status: number): SourceErrorCode {
+function errorCodeForStatus(status: number, byok: boolean): SourceErrorCode {
+  if (byok && (status === 401 || status === 402 || status === 403)) return 'byokKeyRejected';
   return status === 401 || status === 403 ? 'configurationMissing' : 'generationUnavailable';
 }
 
@@ -170,7 +172,8 @@ function errorCodeForStatus(status: number): SourceErrorCode {
  */
 export async function* streamChatTask(input: StreamChatInput): AsyncGenerator<StreamChatEvent> {
   const config = await getTaskConfig(input.task);
-  const key = resolveTaskKey(input.userId);
+  const taskKey = await resolveTaskKey(input.userId);
+  const key = taskKey.key;
   const baseUrl = process.env.OPENROUTER_BASE_URL?.trim() || DEFAULT_OPENROUTER_BASE_URL;
   const timeoutMs = input.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const firstTokenTimeoutMs = input.firstTokenTimeoutMs ?? DEFAULT_FIRST_TOKEN_TIMEOUT_MS;
@@ -222,7 +225,7 @@ export async function* streamChatTask(input: StreamChatInput): AsyncGenerator<St
 
       if (!response.ok) {
         canFallback = response.status === 408 || response.status === 429 || response.status >= 500;
-        fatalCode = errorCodeForStatus(response.status);
+        fatalCode = errorCodeForStatus(response.status, taskKey.byok);
         // Error bodies can contain vendor/user content; never read or log them.
         await response.body?.cancel();
         outcome = 'fatal';
@@ -316,6 +319,7 @@ export async function* streamChatTask(input: StreamChatInput): AsyncGenerator<St
         status,
         error: outcome === 'fatal' ? fatalCode : null,
         promptVersion: input.promptVersion,
+        byok: taskKey.byok,
       });
     }
 

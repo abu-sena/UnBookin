@@ -8,6 +8,7 @@ import { MENTOR_PROMPT_VERSION, buildMentorMessages } from '@/lib/ai/prompts/men
 import type { LearningProfile } from '@/lib/ai/prompts/shared';
 import { streamChatTask, type ChatUsage } from '@/lib/ai/stream-chat';
 import { getCurrentUser } from '@/lib/auth/session';
+import { SourceError } from '@/lib/sources/errors';
 import {
   getMentorAllowance,
   refundMentorMessage,
@@ -15,7 +16,12 @@ import {
   type MentorAllowance,
   type MentorReservation,
 } from '@/lib/billing/mentor-quota';
-import { createAnswerParser, finalizeAnswer, type AnswerSegment, type AnswerParser } from './answer';
+import {
+  createAnswerParser,
+  finalizeAnswer,
+  type AnswerSegment,
+  type AnswerParser,
+} from './answer';
 import { toMentorErrorCode, type MentorErrorCode } from './errors';
 import {
   formatMentorEvent,
@@ -86,6 +92,17 @@ function jsonError(
 ): Response {
   const body: MentorErrorBody = { code, allowance };
   return Response.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
+}
+
+/**
+ * A BYOK key problem is a safe turn failure: the contract has no dedicated
+ * mentor code yet, and the pre-text refund rule below still applies.
+ */
+function mentorCodeFor(error: unknown): MentorErrorCode {
+  if (error instanceof SourceError) {
+    if (error.code === 'byokKeyMissing' || error.code === 'byokKeyRejected') return 'failed';
+  }
+  return toMentorErrorCode(error);
 }
 
 function statusForCode(code: MentorErrorCode): number {
@@ -268,14 +285,14 @@ async function executeMentorTurn(args: TurnArgs, sink: TurnSink): Promise<void> 
     return refundOnce(identity.userId, reservation);
   };
 
-  const failBeforeText = async (): Promise<void> => {
+  const failBeforeText = async (code: MentorErrorCode = 'failed'): Promise<void> => {
     const fresh = await refundBeforeText();
-    sink.send({ type: 'error', code: 'failed', refunded: true, allowance: fresh });
+    sink.send({ type: 'error', code, refunded: true, allowance: fresh });
   };
 
-  const failAfterText = async (): Promise<void> => {
+  const failAfterText = async (code: MentorErrorCode = 'failed'): Promise<void> => {
     await persistAnswer(identity, context.threadId, raw, chunks, usage);
-    sink.send({ type: 'error', code: 'failed', refunded: false, allowance: allowanceView });
+    sink.send({ type: 'error', code, refunded: false, allowance: allowanceView });
   };
 
   sink.send({ type: 'started', userMessageId, allowance: allowanceView });
@@ -333,10 +350,11 @@ async function executeMentorTurn(args: TurnArgs, sink: TurnSink): Promise<void> 
     }
     sink.send({ type: 'done', messageId: saved.id, finish, allowance: allowanceView });
     sink.close();
-  } catch {
+  } catch (error) {
     // Do not flush a held marker on failure: a split `[[` must never reach the UI raw.
-    if (hasText) await failAfterText();
-    else await failBeforeText();
+    const code = mentorCodeFor(error);
+    if (hasText) await failAfterText(code);
+    else await failBeforeText(code);
     sink.close();
   }
 }

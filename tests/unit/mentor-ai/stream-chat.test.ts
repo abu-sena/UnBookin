@@ -5,10 +5,14 @@ const mocks = vi.hoisted(() => ({
   values: vi.fn(),
   fetch: vi.fn(),
   getTaskConfig: vi.fn(),
+  resolveActivePlan: vi.fn(),
+  loadPlainKey: vi.fn(),
 }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/db', () => ({ db: { insert: mocks.insert } }));
 vi.mock('@/lib/ai/task-config', () => ({ getTaskConfig: mocks.getTaskConfig }));
+vi.mock('@/lib/billing/active-plan', () => ({ resolveActivePlan: mocks.resolveActivePlan }));
+vi.mock('@/lib/byok/store', () => ({ loadPlainKey: mocks.loadPlainKey }));
 import { MAX_STREAM_BYTES, streamChatTask, type StreamChatEvent } from '@/lib/ai/stream-chat';
 
 const config = {
@@ -72,6 +76,8 @@ async function collect(events: AsyncGenerator<StreamChatEvent>): Promise<StreamC
 }
 
 beforeEach(() => {
+  mocks.resolveActivePlan.mockReset().mockResolvedValue({ byok: false });
+  mocks.loadPlainKey.mockReset().mockResolvedValue(null);
   vi.stubEnv('OPENROUTER_API_KEY', 'platform-test-key');
   vi.stubEnv('OPENROUTER_BASE_URL', 'https://gateway.local/api/v1');
   mocks.getTaskConfig.mockReset().mockResolvedValue(config);

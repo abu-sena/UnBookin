@@ -255,7 +255,9 @@
         "noText": "File ini berupa gambar; versi ini belum mendukung OCR.",
         "notFound": "Bacaan itu sudah tidak ada. Coba muat ulang Pustaka.",
         "processingFailed": "Bacaan belum bisa diproses. Coba lagi sebentar lagi, ya.",
-        "configurationMissing": "Layanan unggah belum siap. Coba lagi nanti atau hubungi bantuan."
+        "configurationMissing": "Layanan unggah belum siap. Coba lagi nanti atau hubungi bantuan.",
+        "byokKeyMissing": "Hubungkan kunci OpenRouter-mu dulu di Pengaturan → Model AI untuk memakai paket BYOK.",
+        "byokKeyRejected": "Kunci OpenRouter-mu ditolak atau kreditnya habis. Periksa kuncinya di Pengaturan → Model AI."
       }
     },
     "progress": {
@@ -295,7 +297,9 @@
         "noText": "File ini berupa gambar; versi ini belum mendukung OCR.",
         "notFound": "Bacaan itu sudah tidak ada. Coba muat ulang Pustaka.",
         "processingFailed": "Bacaan belum bisa diproses. Coba lagi sebentar lagi, ya.",
-        "configurationMissing": "Layanan unggah belum siap. Coba lagi nanti."
+        "configurationMissing": "Layanan unggah belum siap. Coba lagi nanti.",
+        "byokKeyMissing": "Hubungkan kunci OpenRouter-mu dulu di Pengaturan → Model AI untuk memakai paket BYOK.",
+        "byokKeyRejected": "Kunci OpenRouter-mu ditolak atau kreditnya habis. Periksa kuncinya di Pengaturan → Model AI."
       },
       "connection": {
         "error": "Koneksi ke server terputus. Progres terakhir tetap ditampilkan, kami coba sambungkan ulang otomatis.",
@@ -346,7 +350,9 @@
         "noText": "File ini berupa gambar; versi ini belum mendukung OCR.",
         "notFound": "Unbook itu sudah tidak ada. Buka ulang Pustaka.",
         "processingFailed": "Unbook belum bisa dihapus. Coba lagi sebentar lagi, ya.",
-        "configurationMissing": "Layanan belum siap. Coba lagi nanti atau hubungi bantuan."
+        "configurationMissing": "Layanan belum siap. Coba lagi nanti atau hubungi bantuan.",
+        "byokKeyMissing": "Hubungkan kunci OpenRouter-mu dulu di Pengaturan → Model AI untuk memakai paket BYOK.",
+        "byokKeyRejected": "Kunci OpenRouter-mu ditolak atau kreditnya habis. Periksa kuncinya di Pengaturan → Model AI."
       }
     }
   },
@@ -944,7 +950,9 @@
       "rateLimited": "Terlalu banyak pesan dalam waktu singkat. Coba lagi sebentar lagi.",
       "sourceUnavailable": "Sumber bacaan ini sedang tidak bisa dibaca. Coba lagi nanti.",
       "notFound": "Percakapan ini tidak ditemukan. Muat ulang halaman, ya.",
-      "failed": "Jawaban belum bisa dibuat. Coba lagi sebentar lagi."
+      "failed": "Jawaban belum bisa dibuat. Coba lagi sebentar lagi.",
+      "byokKeyMissing": "Hubungkan kunci OpenRouter-mu dulu di Pengaturan → Model AI untuk memakai paket BYOK.",
+      "byokKeyRejected": "Kunci OpenRouter-mu ditolak atau kreditnya habis. Periksa kuncinya di Pengaturan → Model AI."
     },
     "suggestions": {
       "summarizeModule": "Ringkas modul \"{module}\" ini.",
