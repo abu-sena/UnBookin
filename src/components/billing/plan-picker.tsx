@@ -80,7 +80,8 @@ export function PlanPicker({
             ? planFamily(currentPlanCode) === view.family
             : false;
           const isFree = view.family === 'free';
-          const priceLabel = isFree ? t('plans.freeAlways') : formatIdr(plan.priceIdr);
+          // The free card shows Rp 0 as its price and "Selalu gratis" once, as the caption below.
+          const priceLabel = formatIdr(isFree ? 0 : plan.priceIdr);
           return (
             <div
               key={view.family}

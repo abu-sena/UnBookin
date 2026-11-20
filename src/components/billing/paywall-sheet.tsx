@@ -92,8 +92,33 @@ export function PaywallSheet({
 
   const missingKey = Boolean(config && !config.clientKey);
 
+  const footer = plans ? (
+    <>
+      {error ? (
+        <p role="alert" className="text-danger text-small">
+          {t(billingErrorKey(error))}
+        </p>
+      ) : null}
+      <Button
+        type="button"
+        className="min-h-12 w-full"
+        onClick={() => void pay()}
+        disabled={paying || missingKey || selected === 'free'}
+      >
+        {paying ? t('paywall.processing') : t('paywall.pay')}
+      </Button>
+      <p className="text-caption text-text-muted text-center">{t('paywall.secure')}</p>
+    </>
+  ) : null;
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} title={t('paywall.title')} description={t('paywall.description')}>
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t('paywall.title')}
+      description={t('paywall.description')}
+      footer={footer}
+    >
       <div className="flex flex-col gap-4">
         {!plans && !error ? (
           <div className="flex flex-col gap-3" aria-busy="true">
@@ -122,20 +147,6 @@ export function PaywallSheet({
                 {t('paywall.missingClientKey')}
               </p>
             ) : null}
-            {error ? (
-              <p role="alert" className="text-danger text-small">
-                {t(billingErrorKey(error))}
-              </p>
-            ) : null}
-            <Button
-              type="button"
-              className="min-h-12 w-full"
-              onClick={() => void pay()}
-              disabled={paying || missingKey || selected === 'free'}
-            >
-              {paying ? t('paywall.processing') : t('paywall.pay')}
-            </Button>
-            <p className="text-caption text-text-muted">{t('paywall.secure')}</p>
           </>
         ) : null}
       </div>

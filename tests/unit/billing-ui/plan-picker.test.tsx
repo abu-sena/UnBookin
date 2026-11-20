@@ -11,7 +11,9 @@ describe('PlanPicker', () => {
 
     expect(screen.getByText('Rp 59.000')).toBeInTheDocument();
     expect(screen.getByText('Rp 29.000')).toBeInTheDocument();
-    expect(screen.getAllByText('Selalu gratis').length).toBeGreaterThan(0);
+    expect(screen.getByText('Rp 0')).toBeInTheDocument();
+    // Shown once as the caption, never repeated as the price.
+    expect(screen.getAllByText('Selalu gratis')).toHaveLength(1);
   });
 
   it('shows the yearly savings label from the data', () => {
